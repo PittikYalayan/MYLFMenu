@@ -15,48 +15,63 @@ ImGui.SetTheme("Dark")
 
 ImGui.OnRender(function()
     if not menuOpen then return end
-    
     ImGui.Begin("MYLF Hub", UDim2.new(0,100,0,100), UDim2.new(0,500,0,400))
-
     -- === Sekmeler ===
     if ImGui.BeginTabBar("MainTabs") then
-        
-        -- 🎯 Aimbot
-        if ImGui.BeginTab("🎯 Aimbot") then
-            if ImGui.Button("Toggle Aimbot") then Features.ToggleAimbot() end
-            if ImGui.Button("Toggle Silent Aim") then Features.ToggleSilentAim() end
-            if ImGui.Button("Toggle NoRecoil/NoSpread") then Features.ToggleNoRecoilSpread() end
+
+        -- Aimbot
+        if ImGui.BeginTab(" Aimbot") then
+            if ImGui.Button("Toggle Aimbot") then
+                Features.ToggleAimbot()
+            end
+            if ImGui.Button("Toggle Silent Aim") then
+                Features.ToggleSilentAim()
+            end
+            if ImGui.Button("Toggle NoRecoil/NoSpread") then
+                Features.ToggleNoRecoilSpread()
+            end
             ImGui.EndTab()
         end
 
-        -- 👁 ESP
-        if ImGui.BeginTab("👁 ESP") then
-            if ImGui.Button("Toggle ESP") then Features.ToggleESP() end
+        -- ESP
+        if ImGui.BeginTab(" ESP") then
+            if ImGui.Button("Toggle ESP") then
+                Features.ToggleESP()
+            end
             ImGui.EndTab()
         end
 
         -- ⚡ Movement
         if ImGui.BeginTab("⚡ Movement") then
-            if ImGui.Button("Toggle Fly") then Features.ToggleFly() end
-            if ImGui.Button("Toggle SpeedHack") then Features.ToggleSpeed() end
+            if ImGui.Button("Toggle Fly") then
+                Features.ToggleFly()
+            end
+            if ImGui.Button("Toggle SpeedHack") then
+                Features.ToggleSpeed()
+            end
             ImGui.EndTab()
         end
 
-        -- 🛡 Player
-        if ImGui.BeginTab("🛡 Player") then
-            if ImGui.Button("Toggle Godmode") then Features.ToggleGodmode() end
+        -- Player
+        if ImGui.BeginTab(" Player") then
+            if ImGui.Button("Toggle Godmode") then
+                Features.ToggleGodmode()
+            end
             ImGui.EndTab()
         end
 
-        -- 🎨 Misc
-        if ImGui.BeginTab("🎨 Misc") then
-            if ImGui.Button("Toggle FOV Changer") then Features.ToggleFOV() end
-            if ImGui.Button("Toggle Crosshair") then Features.ToggleCrosshair() end
+        -- Misc
+        if ImGui.BeginTab(" Misc") then
+            if ImGui.Button("Toggle FOV Changer") then
+                Features.ToggleFOV()
+            end
+            if ImGui.Button("Toggle Crosshair") then
+                Features.ToggleCrosshair()
+            end
             ImGui.EndTab()
         end
 
         ImGui.EndTabBar()
     end
-    
     ImGui.End()
 end)
