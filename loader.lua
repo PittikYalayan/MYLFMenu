@@ -1,59 +1,62 @@
-local ImGui = loadstring(game:HttpGet('https://raw.githubusercontent.com/depthso/Roblox-ImGUI/main/ImGui.lua'))()
-local Features = loadstring(game:HttpGet('https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua'))()
+local ImGui = loadstring(game:HttpGet("https://raw.githubusercontent.com/depthso/Roblox-ImGUI/main/ImGui.lua"))()
+local Features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
 
--- Menü Aç/Kapa (RightShift)
+-- Menü Aç/Kapa
 local menuOpen = true
-game:GetService("UserInputService").InputBegan:Connect(function(input,gp)
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
     if not gp and input.KeyCode == Enum.KeyCode.RightShift then
         menuOpen = not menuOpen
     end
 end)
 
--- === Ana Menü ===
+-- Ana Menü
 ImGui.SetWindowTitle("MYLF Premium Menu")
 ImGui.SetTheme("Dark")
 
 ImGui.OnRender(function()
     if not menuOpen then return end
     
-    ImGui.Begin("MYLF Hub", UDim2.new(0.2,0,0.2,0), UDim2.new(0,600,0,450))
+    ImGui.Begin("MYLF Hub", UDim2.new(0,100,0,100), UDim2.new(0,500,0,400))
 
-    -- === TabBar ===
+    -- === Sekmeler ===
     if ImGui.BeginTabBar("MainTabs") then
-
+        
         -- 🎯 Aimbot
         if ImGui.BeginTab("🎯 Aimbot") then
-            ImGui.Button("Toggle Aimbot", Features.ToggleAimbot)
-            ImGui.Button("Toggle Silent Aim", Features.ToggleSilentAim)
+            if ImGui.Button("Toggle Aimbot") then Features.ToggleAimbot() end
+            if ImGui.Button("Toggle Silent Aim") then Features.ToggleSilentAim() end
+            if ImGui.Button("Toggle NoRecoil/NoSpread") then Features.ToggleNoRecoilSpread() end
             ImGui.EndTab()
         end
 
         -- 👁 ESP
         if ImGui.BeginTab("👁 ESP") then
-            ImGui.Button("Toggle ESP", Features.ToggleESP)
+            if ImGui.Button("Toggle ESP") then Features.ToggleESP() end
             ImGui.EndTab()
         end
 
-        -- ⚡ Player
-        if ImGui.BeginTab("⚡ Player") then
-            ImGui.Button("Toggle Speed", Features.ToggleSpeed)
-            ImGui.Button("Toggle Godmode", Features.ToggleGodmode)
-            ImGui.Button("Toggle Fly", Features.ToggleFly)
-            ImGui.Button("Toggle Infinite Jump", Features.ToggleInfiniteJump)
-            ImGui.Button("Toggle Invisible", Features.ToggleInvisible)
+        -- ⚡ Movement
+        if ImGui.BeginTab("⚡ Movement") then
+            if ImGui.Button("Toggle Fly") then Features.ToggleFly() end
+            if ImGui.Button("Toggle SpeedHack") then Features.ToggleSpeed() end
             ImGui.EndTab()
         end
 
-        -- 🌀 Misc
-        if ImGui.BeginTab("🌀 Misc") then
-            ImGui.Button("Toggle Teleport Tool (T key)", Features.ToggleTeleportTool)
-            ImGui.Button("Toggle Kill Aura", Features.ToggleKillAura)
-            ImGui.Button("Toggle Noclip", Features.ToggleNoclip)
+        -- 🛡 Player
+        if ImGui.BeginTab("🛡 Player") then
+            if ImGui.Button("Toggle Godmode") then Features.ToggleGodmode() end
+            ImGui.EndTab()
+        end
+
+        -- 🎨 Misc
+        if ImGui.BeginTab("🎨 Misc") then
+            if ImGui.Button("Toggle FOV Changer") then Features.ToggleFOV() end
+            if ImGui.Button("Toggle Crosshair") then Features.ToggleCrosshair() end
             ImGui.EndTab()
         end
 
         ImGui.EndTabBar()
     end
-
+    
     ImGui.End()
 end)
