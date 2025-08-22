@@ -343,13 +343,14 @@ end)
 -- 👀 ESP
 local RunService = game:GetService("RunService")
 
--- 👀 ESP (Takım kontrol + NPC + Rainbow Fill + Rainbow Name)
+-- 👀 ESP (Takım kontrol + NPC + Rainbow Fill + Rainbow Name + Skeleton)
 local espBtn = makeButton("👀 ESP OFF", Color3.fromRGB(80,180,200))
 local espEnabled = false
 local espObjects = {}
 
 local player = game.Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
 -- Renk döngüsü (rainbow)
 local function rainbowColor(t)
@@ -359,20 +360,7 @@ local function rainbowColor(t)
     return Color3.fromRGB(r,g,b)
 end
 
--- Takım kontrol
-local function getTeamColor(plr)
-    local myTeam = player.Team
-    if not myTeam then
-        return Color3.fromRGB(255,0,0)
-    end
-    if plr.Team == myTeam then
-        return Color3.fromRGB(0,255,0)
-    else
-        return Color3.fromRGB(255,0,0)
-    end
-end
-
--- Adornee bulucu (Head yoksa Torso / HRP)
+-- Adornee bulucu
 local function getAdornee(target)
     return target:FindFirstChild("Head")
         or target:FindFirstChild("UpperTorso")
@@ -380,23 +368,42 @@ local function getAdornee(target)
         or target:FindFirstChild("HumanoidRootPart")
 end
 
+-- Skeleton için kullanılacak bağlantılar
+local skeletonJoints = {
+    {"Head","UpperTorso"},
+    {"UpperTorso","LowerTorso"},
+    {"UpperTorso","LeftUpperArm"},
+    {"LeftUpperArm","LeftLowerArm"},
+    {"LeftLowerArm","LeftHand"},
+    {"UpperTorso","RightUpperArm"},
+    {"RightUpperArm","RightLowerArm"},
+    {"RightLowerArm","RightHand"},
+    {"LowerTorso","LeftUpperLeg"},
+    {"LeftUpperLeg","LeftLowerLeg"},
+    {"LeftLowerLeg","LeftFoot"},
+    {"LowerTorso","RightUpperLeg"},
+    {"RightUpperLeg","RightLowerLeg"},
+    {"RightLowerLeg","RightFoot"},
+}
+
 -- ESP ekle
 local function addESP(target, isNPC)
     local adornee = getAdornee(target)
     if target and adornee then
         if not espObjects[target] then espObjects[target] = {} end
+        local obj = espObjects[target]
 
         -- Highlight
-        if not espObjects[target].highlight or not espObjects[target].highlight.Parent then
+        if not obj.highlight or not obj.highlight.Parent then
             local highlight = Instance.new("Highlight")
             highlight.FillTransparency = 0.5
             highlight.OutlineColor = Color3.fromRGB(255,255,255)
             highlight.Parent = target
-            espObjects[target].highlight = highlight
+            obj.highlight = highlight
         end
 
         -- Billboard
-        if not espObjects[target].billboard or not espObjects[target].billboard.Parent then
+        if not obj.billboard or not obj.billboard.Parent then
             local billboard = Instance.new("BillboardGui")
             billboard.Name = "ESP_Name"
             billboard.Adornee = adornee
@@ -413,8 +420,20 @@ local function addESP(target, isNPC)
             text.Text = isNPC and "NPC" or (game.Players:GetPlayerFromCharacter(target) and game.Players:GetPlayerFromCharacter(target).Name or "?")
 
             billboard.Parent = adornee
-            espObjects[target].billboard = billboard
-            espObjects[target].label = text
+            obj.billboard = billboard
+            obj.label = text
+        end
+
+        -- Skeleton çizgileri
+        if not obj.skeleton then
+            obj.skeleton = {}
+            for _,link in pairs(skeletonJoints) do
+                local line = Drawing.new("Line")
+                line.Thickness = 2
+                line.Color = Color3.fromRGB(255,255,255)
+                line.Visible = true
+                table.insert(obj.skeleton, {parts = link, line = line})
+            end
         end
     end
 end
@@ -425,6 +444,11 @@ local function clearDead()
         if not obj.Parent or not getAdornee(obj) then
             if objs.highlight then objs.highlight:Destroy() end
             if objs.billboard then objs.billboard:Destroy() end
+            if objs.skeleton then
+                for _, s in pairs(objs.skeleton) do
+                    s.line:Remove()
+                end
+            end
             espObjects[obj] = nil
         end
     end
@@ -461,37 +485,39 @@ espBtn.MouseButton1Click:Connect(function()
             end
         end)
 
-        -- Güncelleme loop
-        spawn(function()
-            while espEnabled do
-                for _, plr in pairs(game.Players:GetPlayers()) do
-                    if plr.Character and espObjects[plr.Character] and espObjects[plr.Character].highlight then
-                        espObjects[plr.Character].highlight.FillColor = getTeamColor(plr)
-                    end
-                end
-                for obj, objs in pairs(espObjects) do
-                    if objs.highlight and objs.label and objs.label.Text == "NPC" then
-                        objs.highlight.FillColor = Color3.fromRGB(160, 60, 200)
-                    end
-                end
-                clearDead()
-                task.wait(0.2)
-            end
-        end)
-
-        -- RenderStepped rainbow akışı (isim + dolgu)
+        -- RenderStepped loop (rainbow + skeleton update)
         local t = 0
         RunService.RenderStepped:Connect(function(dt)
             if not espEnabled then return end
             t = t + dt
             for obj, objs in pairs(espObjects) do
-                if objs.label then
-                    objs.label.TextColor3 = rainbowColor(t)
-                end
-                if objs.highlight then
-                    objs.highlight.FillColor = rainbowColor(t) -- 🌈 iç dolgu rainbow
+                -- Rainbow renk
+                if objs.label then objs.label.TextColor3 = rainbowColor(t) end
+                if objs.highlight then objs.highlight.FillColor = rainbowColor(t) end
+
+                -- Skeleton çizimleri güncelle
+                if objs.skeleton then
+                    for _, s in pairs(objs.skeleton) do
+                        local p1 = obj:FindFirstChild(s.parts[1])
+                        local p2 = obj:FindFirstChild(s.parts[2])
+                        if p1 and p2 then
+                            local v1, onscreen1 = Camera:WorldToViewportPoint(p1.Position)
+                            local v2, onscreen2 = Camera:WorldToViewportPoint(p2.Position)
+                            if onscreen1 and onscreen2 then
+                                s.line.From = Vector2.new(v1.X, v1.Y)
+                                s.line.To = Vector2.new(v2.X, v2.Y)
+                                s.line.Color = rainbowColor(t)
+                                s.line.Visible = true
+                            else
+                                s.line.Visible = false
+                            end
+                        else
+                            s.line.Visible = false
+                        end
+                    end
                 end
             end
+            clearDead()
         end)
 
     else
@@ -500,6 +526,11 @@ espBtn.MouseButton1Click:Connect(function()
         for _, objs in pairs(espObjects) do
             if objs.highlight then objs.highlight:Destroy() end
             if objs.billboard then objs.billboard:Destroy() end
+            if objs.skeleton then
+                for _, s in pairs(objs.skeleton) do
+                    s.line:Remove()
+                end
+            end
         end
         espObjects = {}
     end
@@ -846,4 +877,5 @@ runService.Heartbeat:Connect(function()
         end
     end
 end)
+
 
