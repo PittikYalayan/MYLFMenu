@@ -15,7 +15,7 @@ local features = {}
 features.TeamCheck       = true     -- aynı takım hedeflenmez
 features.Smoothness      = 1        -- 1 = anında bak; 3-6 = yumuşak
 features.AimRequireLOS   = false    -- true: çizgisel görüş şart (duvar arkası yok)
-features.AimUseFOV       = false    -- true: ekran içi açı sınırı uygula
+features.AimUseFOV       = true    -- true: ekran içi açı sınırı uygula
 features.AimMaxAngleDeg  = 360      -- AimUseFOV=true iken geçerli
 features.AimMaxDistance  = 1e9      -- pratikte sınırsız
 
