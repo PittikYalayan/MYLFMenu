@@ -1,4 +1,4 @@
--- ⚡ MYLF Premium Loader (Linoria) - Modern Design
+-- ⚡ MYLF Premium Loader (Linoria) - FIXED & UPDATED
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
@@ -6,29 +6,22 @@ local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 -- ✅ Features Modülü
 local Features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
 
--- === Tema Ayarları (Modern) ===
-Library.BackgroundColor = Color3.fromRGB(25, 20, 30)
-Library.MainColor       = Color3.fromRGB(160, 60, 180)
-Library.AccentColor     = Color3.fromRGB(255, 0, 90)
-Library.OutlineColor    = Color3.fromRGB(40, 40, 60)
-Library.FontColor       = Color3.fromRGB(230, 230, 230)
-
 -- === Ana Pencere ===
 local Window = Library:CreateWindow({
-    Title = '⚡ MYLF | Hub ⚡',
+    Title = '⚡ MYLF Hub ⚡',
     Center = true,
     AutoShow = true,
 })
 
--- === Sekmeler (ikonlarla) ===
+-- === Sekmeler ===
 local Tabs = {
-    Legit    = Window:AddTab('🎯 Legit'),
-    Rage     = Window:AddTab('🔥 Rage'),
-    Visuals  = Window:AddTab('👁 Visuals'),
-    Player   = Window:AddTab('🧍 Player'),
+    Legit    = Window:AddTab(' Legit'),
+    Rage     = Window:AddTab(' Rage'),
+    Visuals  = Window:AddTab(' Visuals'),
+    Player   = Window:AddTab(' Player'),
     Teleport = Window:AddTab('⚡ Teleport'),
-    World    = Window:AddTab('🌍 World'),
-    Misc     = Window:AddTab('🛠 Misc'),
+    World    = Window:AddTab(' World'),
+    Misc     = Window:AddTab(' Misc'),
     Settings = Window:AddTab('⚙️ Settings'),
 }
 
@@ -41,8 +34,10 @@ AimbotGroup:AddSlider('AimSmooth', {Text = 'Smoothness', Min = 1, Max = 10, Defa
     :OnChanged(function(val) Features.SetSmoothness(val) end)
 AimbotGroup:AddToggle('AimPrediction', {Text = 'Prediction'}):OnChanged(function(val) Features.SetPrediction(val) end)
 AimbotGroup:AddToggle('AimSticky', {Text = 'Sticky Aim'}):OnChanged(function(val) Features.SetSticky(val) end)
-AimbotGroup:AddKeyPicker('AimKey', {Default = 'MouseButton2', Mode = 'Hold', Text = 'Keybind'})
-    :OnClick(function(val) Features.SetAimKey(val) end)
+AimbotGroup:AddKeyPicker('AimKey', {
+    Default = 'MouseButton2', Mode = 'Hold', Text = 'Keybind',
+    Callback = function(val) Features.SetAimKey(val) end
+})
 
 -- === Rage Tab ===
 local RageGroup = Tabs.Rage:AddLeftGroupbox('Ragebot')
