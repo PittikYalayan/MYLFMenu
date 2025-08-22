@@ -21,6 +21,16 @@ features.TriggerOnAim    = true     -- hedefteyken otomatik ateş
 features.TriggerRate     = 0.12     -- tetikler arası min süre
 features._lastTrigger    = 0
 
+
+  -- === Ayarlar ===
+    features._mb_on        = false
+    features._mb_patterns  = { "shoot", "fire", "ray", "bullet", "projectile", "weapon", "hit", "remote" } -- isim eşleşmesi
+    features._mb_whitelist = {}  -- [Instance]=true
+    features._mb_conns     = {}  -- event bağlantıları
+    features._mb_tool      = nil -- aktif tool
+    features._mb_oldNC     = nil -- bizim namecall hook referansımız (silent aim’den ayrı)
+    features._mb_hooked    = false
+
 ----------------------------------------------------------------
 -- Hedef seçimi (mesafe önemsiz, açıya göre en iyi düşman)
 ----------------------------------------------------------------
@@ -452,3 +462,208 @@ function features.ToggleInvisible(on)
 end
 
 return features
+
+-- =========================
+-- MAGIC BULLET (FALLBACK)
+-- =========================
+
+ local function _MB_GetEnemyHead()
+        -- varsa mevcut fonksiyon (bizim aimbot’ta var)
+        if typeof(getClosestVisibleHead) == "function" then
+            local h = getClosestVisibleHead()
+            if h then return h end
+        end
+        -- fallback: ekrandaki en yakın açı
+        local cam = workspace.CurrentCamera
+        local origin = cam.CFrame.Position
+        local look   = cam.CFrame.LookVector
+        local best, score = nil, math.huge
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LP and plr.Character and plr.Character:FindFirstChild("Head") then
+                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                if hum and hum.Health > 0 then
+                    if not (features.TeamCheck and LP.Team and plr.Team and LP.Team == plr.Team) then
+                        local head = plr.Character.Head
+                        local dir  = (head.Position - origin).Unit
+                        local a = math.deg(math.acos(math.clamp(look:Dot(dir), -1, 1)))
+                        if a < score then score, best = a, head end
+                    end
+                end
+            end
+        end
+        return best
+    end
+
+    -- İsim patern kontrolü
+    local function _MB_MatchName(str)
+        str = tostring(str):lower()
+        for _,p in ipairs(features._mb_patterns) do
+            if string.find(str, p) then return true end
+        end
+        return false
+    end
+
+    -- Tool içinden uygun remotes’ları çıkar ve whitelist’e ekle
+    local function _MB_ScanTool(tool)
+        if not tool then return end
+        for _,d in ipairs(tool:GetDescendants()) do
+            if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then
+                if _MB_MatchName(d.Name) or _MB_MatchName(d:GetFullName()) then
+                    features._mb_whitelist[d] = true
+                end
+            end
+        end
+    end
+
+    -- Aktif tool’u belirle (Character > Backpack)
+    local function _MB_FindTool()
+        local ch = LP.Character
+        if ch then
+            for _,t in ipairs(ch:GetChildren()) do
+                if t:IsA("Tool") then return t end
+            end
+        end
+        local bp = LP:FindFirstChildOfClass("Backpack")
+        if bp then
+            for _,t in ipairs(bp:GetChildren()) do
+                if t:IsA("Tool") then return t end
+            end
+        end
+        return nil
+    end
+
+    -- Whitelist’i temizle ve yeniden kur
+    local function _MB_RebuildWhitelist()
+        features._mb_whitelist = {}
+        features._mb_tool = _MB_FindTool()
+        if features._mb_tool then
+            _MB_ScanTool(features._mb_tool)
+        end
+    end
+
+    -- Bağlantıları temizle
+    local function _MB_DisconnectAll()
+        for _,c in ipairs(features._mb_conns) do pcall(function() c:Disconnect() end) end
+        features._mb_conns = {}
+    end
+
+    -- Tool/Backpack/Respawn değişimlerini izle
+    local function _MB_AttachWatchers()
+        _MB_DisconnectAll()
+        local ch = LP.Character
+        if ch then
+            table.insert(features._mb_conns, ch.ChildAdded:Connect(function(obj)
+                if not features._mb_on then return end
+                if obj:IsA("Tool") then
+                    task.defer(function() _MB_RebuildWhitelist() end)
+                end
+            end))
+            table.insert(features._mb_conns, ch.ChildRemoved:Connect(function(obj)
+                if not features._mb_on then return end
+                if obj:IsA("Tool") then
+                    task.defer(function() _MB_RebuildWhitelist() end)
+                end
+            end))
+        end
+        local bp = LP:FindFirstChildOfClass("Backpack")
+        if bp then
+            table.insert(features._mb_conns, bp.ChildAdded:Connect(function(obj)
+                if not features._mb_on then return end
+                if obj:IsA("Tool") then
+                    task.defer(function() _MB_RebuildWhitelist() end)
+                end
+            end))
+            table.insert(features._mb_conns, bp.ChildRemoved:Connect(function(obj)
+                if not features._mb_on then return end
+                if obj:IsA("Tool") then
+                    task.defer(function() _MB_RebuildWhitelist() end)
+                end
+            end))
+        end
+        table.insert(features._mb_conns, LP.CharacterAdded:Connect(function()
+            if not features._mb_on then return end
+            task.wait(0.3)
+            _MB_RebuildWhitelist()
+            _MB_AttachWatchers()
+        end))
+    end
+
+    -- __namecall hook (silent aim ile çakışmasın diye fallback mantığı)
+    local function _MB_EnsureHook()
+        if features._mb_hooked then return end
+        features._mb_hooked = true
+        local old
+        old = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
+
+            -- MagicBullet sadece açıkken ve remote uygunsa devreye girer
+            if features._mb_on
+                and (method == "FireServer" or method == "InvokeServer")
+                and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+            then
+                -- a) Tool whitelist: bizim taradıklarımız
+                local ok = features._mb_whitelist[self] or false
+                -- b) Ek güvenlik: isim paterni eşleşirse de çalış
+                ok = ok or _MB_MatchName(self.Name)
+
+                if ok then
+                    -- Silent Aim açıksa, onun üstüne fazla zorlamayalım: MB fallback mantığı
+                    if not features._silent then
+                        local head = _MB_GetEnemyHead()
+                        if head then
+                            -- İlk Vector3 / CFrame argümanını hedef pozisyona çevir
+                            for i=1,#args do
+                                local a = args[i]
+                                local t = typeof(a)
+                                if t == "Vector3" then
+                                    args[i] = head.Position
+                                    break
+                                elseif t == "CFrame" then
+                                    -- CFrame yönü hedefe baksın
+                                    args[i] = CFrame.new(a.Position, head.Position)
+                                    break
+                                end
+                            end
+                            return old(self, unpack(args))
+                        end
+                    end
+                end
+            end
+
+            return old(self, ...)
+        end)
+        features._mb_oldNC = old
+    end
+
+    -- Tek seferlik manuel tetik (debug)
+    function features.MagicBulletOnce()
+        local head = _MB_GetEnemyHead()
+        if not head then warn("MB: enemy yok"); return end
+        -- Elindeki tool’dan paternli bir RemoteEvent bul, HitPos ver
+        _MB_RebuildWhitelist()
+        for rem,_ in pairs(features._mb_whitelist) do
+            if rem:IsA("RemoteEvent") then
+                -- En basit şablon: tek Vector3
+                pcall(function() rem:FireServer(head.Position) end)
+                warn("MB Once: fired @", rem:GetFullName())
+                return
+            end
+        end
+        warn("MB Once: uygun remote bulunamadı")
+    end
+
+    -- Menü togglesı
+    function features.ToggleMagicBullet(on)
+        features._mb_on = not not on
+        if on then
+            _MB_EnsureHook()
+            _MB_RebuildWhitelist()
+            _MB_AttachWatchers()
+        else
+            _MB_DisconnectAll()
+            features._mb_whitelist = {}
+            -- Hook kalabilir; devre dışıyken hiçbir şey yapmaz (performans önemsiz)
+        end
+    end
+end
