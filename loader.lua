@@ -343,14 +343,15 @@ end)
 -- 👀 ESP
 local RunService = game:GetService("RunService")
 
--- 👀 ESP (Takım kontrol + NPC + Rainbow Name sürekli)
+-- 👀 ESP (Takım kontrol + NPC + Rainbow Fill + Rainbow Name)
 local espBtn = makeButton("👀 ESP OFF", Color3.fromRGB(80,180,200))
 local espEnabled = false
 local espObjects = {}
 
 local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
--- Renk döngüsü (rainbow nick)
+-- Renk döngüsü (rainbow)
 local function rainbowColor(t)
     local r = math.sin(t*2) * 127 + 128
     local g = math.sin(t*2 + 2) * 127 + 128
@@ -358,24 +359,34 @@ local function rainbowColor(t)
     return Color3.fromRGB(r,g,b)
 end
 
--- Takım kontrol fonksiyonu
+-- Takım kontrol
 local function getTeamColor(plr)
     local myTeam = player.Team
     if not myTeam then
-        return Color3.fromRGB(255,0,0) -- Deathmatch: herkes kırmızı
+        return Color3.fromRGB(255,0,0)
     end
     if plr.Team == myTeam then
-        return Color3.fromRGB(0,255,0) -- Aynı takım → Yeşil
+        return Color3.fromRGB(0,255,0)
     else
-        return Color3.fromRGB(255,0,0) -- Rakip → Kırmızı
+        return Color3.fromRGB(255,0,0)
     end
 end
 
--- ESP ekle (Player + NPC)
+-- Adornee bulucu (Head yoksa Torso / HRP)
+local function getAdornee(target)
+    return target:FindFirstChild("Head")
+        or target:FindFirstChild("UpperTorso")
+        or target:FindFirstChild("Torso")
+        or target:FindFirstChild("HumanoidRootPart")
+end
+
+-- ESP ekle
 local function addESP(target, isNPC)
-    if target and target:FindFirstChild("Head") then
+    local adornee = getAdornee(target)
+    if target and adornee then
         if not espObjects[target] then espObjects[target] = {} end
 
+        -- Highlight
         if not espObjects[target].highlight or not espObjects[target].highlight.Parent then
             local highlight = Instance.new("Highlight")
             highlight.FillTransparency = 0.5
@@ -384,10 +395,11 @@ local function addESP(target, isNPC)
             espObjects[target].highlight = highlight
         end
 
+        -- Billboard
         if not espObjects[target].billboard or not espObjects[target].billboard.Parent then
             local billboard = Instance.new("BillboardGui")
             billboard.Name = "ESP_Name"
-            billboard.Adornee = target.Head
+            billboard.Adornee = adornee
             billboard.Size = UDim2.new(0,100,0,20)
             billboard.StudsOffset = Vector3.new(0, 2, 0)
             billboard.AlwaysOnTop = true
@@ -400,17 +412,17 @@ local function addESP(target, isNPC)
             text.TextScaled = true
             text.Text = isNPC and "NPC" or (game.Players:GetPlayerFromCharacter(target) and game.Players:GetPlayerFromCharacter(target).Name or "?")
 
-            billboard.Parent = target.Head
+            billboard.Parent = adornee
             espObjects[target].billboard = billboard
             espObjects[target].label = text
         end
     end
 end
 
--- ESP sil
+-- Ölü temizleme
 local function clearDead()
     for obj, objs in pairs(espObjects) do
-        if not obj.Parent or not obj:FindFirstChild("Head") then
+        if not obj.Parent or not getAdornee(obj) then
             if objs.highlight then objs.highlight:Destroy() end
             if objs.billboard then objs.billboard:Destroy() end
             espObjects[obj] = nil
@@ -425,7 +437,7 @@ espBtn.MouseButton1Click:Connect(function()
         espBtn.Text = "👀 ESP ON"
         espBtn.BackgroundColor3 = Color3.fromRGB(0,200,100)
 
-        -- Player spawn olduğunda tekrar uygula
+        -- Player spawn
         for _, plr in pairs(game.Players:GetPlayers()) do
             plr.CharacterAdded:Connect(function(char)
                 if espEnabled then
@@ -438,18 +450,18 @@ espBtn.MouseButton1Click:Connect(function()
 
         -- NPC ESP
         for _, obj in pairs(workspace:GetChildren()) do
-            if obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("Head") and not game.Players:GetPlayerFromCharacter(obj) then
+            if obj:FindFirstChildOfClass("Humanoid") and getAdornee(obj) and not game.Players:GetPlayerFromCharacter(obj) then
                 addESP(obj, true)
             end
         end
         workspace.ChildAdded:Connect(function(obj)
-            if espEnabled and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("Head") and not game.Players:GetPlayerFromCharacter(obj) then
+            if espEnabled and obj:FindFirstChildOfClass("Humanoid") and getAdornee(obj) and not game.Players:GetPlayerFromCharacter(obj) then
                 task.wait(1)
                 addESP(obj, true)
             end
         end)
 
-        -- Highlight renkleri düzenli güncelle (takım/NPC kontrolü)
+        -- Güncelleme loop
         spawn(function()
             while espEnabled do
                 for _, plr in pairs(game.Players:GetPlayers()) do
@@ -467,20 +479,20 @@ espBtn.MouseButton1Click:Connect(function()
             end
         end)
 
-    -- RenderStepped ile sürekli rainbow isim + highlight fill akışı
-local t = 0
-RunService.RenderStepped:Connect(function(dt)
-    if not espEnabled then return end
-    t = t + dt
-    for obj, objs in pairs(espObjects) do
-        if objs.label then
-            objs.label.TextColor3 = rainbowColor(t)
-        end
-        if objs.highlight then
-            objs.highlight.FillColor = rainbowColor(t) -- 🌈 iç dolgu da rainbow olacak
-        end
-    end
-end)
+        -- RenderStepped rainbow akışı (isim + dolgu)
+        local t = 0
+        RunService.RenderStepped:Connect(function(dt)
+            if not espEnabled then return end
+            t = t + dt
+            for obj, objs in pairs(espObjects) do
+                if objs.label then
+                    objs.label.TextColor3 = rainbowColor(t)
+                end
+                if objs.highlight then
+                    objs.highlight.FillColor = rainbowColor(t) -- 🌈 iç dolgu rainbow
+                end
+            end
+        end)
 
     else
         espBtn.Text = "👀 ESP OFF"
@@ -492,6 +504,7 @@ end)
         espObjects = {}
     end
 end)
+
 
 -- 🎯 Aimbot + NoRecoil + NoSpread (Dinamik Enemy Takibi)
 local aimbotBtn = makeButton("🎯 Aimbot OFF", Color3.fromRGB(200,120,60))
@@ -833,3 +846,4 @@ runService.Heartbeat:Connect(function()
         end
     end
 end)
+
