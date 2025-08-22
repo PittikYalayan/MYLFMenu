@@ -83,5 +83,16 @@ SaveManager:SetFolder('MYLFHub')
 SaveManager:BuildConfigSection(Tabs.Settings)
 ThemeManager:ApplyToTab(Tabs.Settings)
 
+-- Menü Toggle (LeftShift ile aç/kapa)
+local uis = game:GetService("UserInputService")
+
+uis.InputBegan:Connect(function(input, gp)
+    if not gp and input.KeyCode == Enum.KeyCode.LeftShift then
+        Library:Toggle()  -- menüyü aç/kapa
+    end
+end)
+
+
 -- === Toggle Key (LeftShift) ===
 Library.ToggleKeybind = Enum.KeyCode.LeftShift
+
