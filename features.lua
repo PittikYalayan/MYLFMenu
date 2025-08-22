@@ -1,56 +1,55 @@
--- features.lua (MYLF) — scriptindeki buton mantıkları modüler hale getirildi
-local runService = game:GetService("RunService")
-local uis        = game:GetService("UserInputService")
+-- ⚡ MYLF | Hub ⚡ — FEATURES (refreshli ESP + sade aimbot)
+
+local RunService = game:GetService("RunService")
+local UIS        = game:GetService("UserInputService")
 local Players    = game:GetService("Players")
-local player     = Players.LocalPlayer
-local features   = {}
+local Player     = Players.LocalPlayer
+
+local features = {}
 
 ----------------------------------------------------------------
--- Helper: en yakın görünür kafa (LoS + takım kontrolü)
+-- Utility: yakındaki hedef (LoS + takım kontrol + ekran)
 ----------------------------------------------------------------
 local function getClosestVisibleHead()
     local cam = workspace.CurrentCamera
-    local closest, dist = nil, math.huge
+    local best, dist = nil, math.huge
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = { Player.Character }
 
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            -- Team check (aynı takım ise atla)
-            if not (player.Team and plr.Team and player.Team == plr.Team) then
+        if plr ~= Player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+            if not (Player.Team and plr.Team and Player.Team == plr.Team) then
                 local head = plr.Character.Head
-                local headPos = head.Position
-
-                local params = RaycastParams.new()
-                params.FilterType = Enum.RaycastFilterType.Blacklist
-                params.FilterDescendantsInstances = { player.Character }
-
-                local res = workspace:Raycast(cam.CFrame.Position, (headPos - cam.CFrame.Position).Unit * 1e3, params)
-                if res and res.Instance:IsDescendantOf(plr.Character) then
-                    local screenPos, onScreen = cam:WorldToViewportPoint(headPos)
-                    if onScreen then
-                        local m = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
-                        if m < dist then dist, closest = m, head end
+                local res = workspace:Raycast(cam.CFrame.Position, (head.Position - cam.CFrame.Position).Unit * 1e3, params)
+                if res and res.Instance and res.Instance:IsDescendantOf(plr.Character) then
+                    local sp, on = cam:WorldToViewportPoint(head.Position)
+                    if on then
+                        local m = (Vector2.new(sp.X, sp.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
+                        if m < dist then dist, best = m, head end
                     end
                 end
             end
         end
     end
-    return closest
+    return best
 end
 
 ----------------------------------------------------------------
--- Speed (scriptteki 16 ↔ 50 toggle davranışı)
+-- Speed 50↔16
 ----------------------------------------------------------------
 function features.ToggleSpeed(on)
     local function apply()
-        local h = player.Character and player.Character:FindFirstChild("Humanoid")
+        local h = Player.Character and Player.Character:FindFirstChild("Humanoid")
         if h then h.WalkSpeed = on and 50 or 16 end
     end
     if on then
-        if features._spdConn then features._spdConn:Disconnect() end
-        features._spdConn = runService.Heartbeat:Connect(apply)
-        player.CharacterAdded:Connect(function() task.wait(1); apply() end)
+        if features._spd then features._spd:Disconnect() end
+        features._spd = RunService.Heartbeat:Connect(apply)
+        Player.CharacterAdded:Connect(function() task.wait(0.5); apply() end)
     else
-        if features._spdConn then features._spdConn:Disconnect() end
+        if features._spd then features._spd:Disconnect() end
         apply()
     end
 end
@@ -60,30 +59,30 @@ end
 ----------------------------------------------------------------
 function features.ToggleGodmode(on)
     local function apply()
-        local h = player.Character and player.Character:FindFirstChild("Humanoid")
+        local h = Player.Character and Player.Character:FindFirstChild("Humanoid")
         if h then h.Health, h.MaxHealth = math.huge, math.huge end
     end
     if on then
-        if features._godConn then features._godConn:Disconnect() end
-        features._godConn = runService.Heartbeat:Connect(apply)
-        player.CharacterAdded:Connect(function()
-            task.wait(1)
-            if features._godConn then features._godConn:Disconnect() end
-            features._godConn = runService.Heartbeat:Connect(apply)
+        if features._god then features._god:Disconnect() end
+        features._god = RunService.Heartbeat:Connect(apply)
+        Player.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            if features._god then features._god:Disconnect() end
+            features._god = RunService.Heartbeat:Connect(apply)
         end)
     else
-        if features._godConn then features._godConn:Disconnect() end
+        if features._god then features._god:Disconnect() end
     end
 end
 
 ----------------------------------------------------------------
--- Fly (script: BodyVelocity; iniş tuşu çakışmasın diye LeftControl)
+-- Fly (LeftControl = aşağı)
 ----------------------------------------------------------------
 features._flySpeed = 60
 function features.ToggleFly(on)
     local function ensureBV()
-        local char = player.Character
-        local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+        local ch = Player.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
         local bv = hrp:FindFirstChildOfClass("BodyVelocity")
         if not bv then
@@ -93,27 +92,26 @@ function features.ToggleFly(on)
         end
         return bv, hrp
     end
-
     if on then
-        if features._flyConn then features._flyConn:Disconnect() end
-        features._flyConn = runService.RenderStepped:Connect(function()
+        if features._fly then features._fly:Disconnect() end
+        features._fly = RunService.RenderStepped:Connect(function()
             local bv = ensureBV()
             if not bv then return end
             local dir = Vector3.zero
-            local cam = workspace.CurrentCamera.CFrame
-            if uis:IsKeyDown(Enum.KeyCode.W) then dir += cam.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.S) then dir -= cam.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.A) then dir -= cam.RightVector end
-            if uis:IsKeyDown(Enum.KeyCode.D) then dir += cam.RightVector end
-            if uis:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
-            if uis:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end -- SHIFT çakışmasın
-            bv.Velocity = dir * features._flySpeed
+            local cf  = workspace.CurrentCamera.CFrame
+            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cf.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cf.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cf.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cf.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+            bv.Velocity = dir * (features._flySpeed or 60)
         end)
-        player.CharacterAdded:Connect(function() task.wait(1); if on then features.ToggleFly(true) end end)
+        Player.CharacterAdded:Connect(function() task.wait(0.5); if on then features.ToggleFly(true) end end)
     else
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then local bv = hrp:FindFirstChildOfClass("BodyVelocity"); if bv then bv:Destroy() end end
-        if features._flyConn then features._flyConn:Disconnect() end
+        if features._fly then features._fly:Disconnect() end
     end
 end
 
@@ -122,128 +120,92 @@ end
 ----------------------------------------------------------------
 function features.ToggleInfiniteJump(on)
     if on then
-        if features._infConn then features._infConn:Disconnect() end
-        features._infConn = uis.JumpRequest:Connect(function()
-            local h = player.Character and player.Character:FindFirstChild("Humanoid")
+        if features._inf then features._inf:Disconnect() end
+        features._inf = UIS.JumpRequest:Connect(function()
+            local h = Player.Character and Player.Character:FindFirstChild("Humanoid")
             if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
         end)
     else
-        if features._infConn then features._infConn:Disconnect(); features._infConn=nil end
+        if features._inf then features._inf:Disconnect(); features._inf=nil end
     end
 end
 
 ----------------------------------------------------------------
--- Teleport (T key)
+-- Teleport (T)
 ----------------------------------------------------------------
 function features.ToggleTeleport(on)
-    local mouse = player:GetMouse()
+    local mouse = Player:GetMouse()
     if on then
-        if features._tpConn then features._tpConn:Disconnect() end
-        features._tpConn = runService.Heartbeat:Connect(function()
-            if uis:IsKeyDown(Enum.KeyCode.T) then
-                local char = player.Character
-                local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-                if hrp then char:MoveTo(mouse.Hit.p + Vector3.new(0,3,0)) end
+        if features._tp then features._tp:Disconnect() end
+        features._tp = RunService.Heartbeat:Connect(function()
+            if UIS:IsKeyDown(Enum.KeyCode.T) then
+                local ch = Player.Character
+                local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+                if hrp then ch:MoveTo(mouse.Hit.p + Vector3.new(0,3,0)) end
             end
         end)
     else
-        if features._tpConn then features._tpConn:Disconnect(); features._tpConn=nil end
+        if features._tp then features._tp:Disconnect(); features._tp=nil end
     end
 end
 
 ----------------------------------------------------------------
--- Aimbot (scriptteki kamera-aim + NR/NS ayrı loop’ta)
+-- Aimbot (ESKİ SADE SÜRÜM)
 ----------------------------------------------------------------
+features.Smoothness = 5
 function features.ToggleAimbot(on)
     local cam = workspace.CurrentCamera
-    local uis = game:GetService("UserInputService")
-
-    local function aimStep()
-        -- senin mevcut hedef seçicini kullanıyoruz:
-        local head = (getClosestVisibleHead and getClosestVisibleHead()) or nil
-        if head then
-            local target = CFrame.new(cam.CFrame.Position, head.Position)
-            local s = (features.Smoothness or 1)
-            cam.CFrame = (s > 1) and cam.CFrame:Lerp(target, 1/s) or target
-        end
-    end
-
     if on then
-        -- eski ayarları sakla
-        features._oldMouseBehavior = uis.MouseBehavior
-        features._oldMouseIcon     = uis.MouseIconEnabled
-
-        -- RMB zorunluluğunu kaldır
-        uis.MouseBehavior   = Enum.MouseBehavior.LockCenter
-        uis.MouseIconEnabled = false
-
-        -- kamera modülünden sonra çalışsın (RMB gereksinimini by-pass eder)
-        local bindName = "MYLF_AIM_RS"
-        features._aimBindName = bindName
-        pcall(function() game:GetService("RunService"):UnbindFromRenderStep(bindName) end)
-        game:GetService("RunService"):BindToRenderStep(bindName, 201, aimStep)
+        if features._aim then features._aim:Disconnect() end
+        features._aim = RunService.RenderStepped:Connect(function()
+            local head = getClosestVisibleHead()
+            if head then
+                local target = CFrame.new(cam.CFrame.Position, head.Position)
+                local s = tonumber(features.Smoothness) or 1
+                cam.CFrame = (s > 1) and cam.CFrame:Lerp(target, 1/s) or target
+            end
+        end)
     else
-        -- unbind + restore
-        if features._aimBindName then
-            pcall(function() game:GetService("RunService"):UnbindFromRenderStep(features._aimBindName) end)
-            features._aimBindName = nil
-        end
-        uis.MouseBehavior    = features._oldMouseBehavior or Enum.MouseBehavior.Default
-        if features._oldMouseIcon ~= nil then
-            uis.MouseIconEnabled = features._oldMouseIcon
-        else
-            uis.MouseIconEnabled = true
-        end
+        if features._aim then features._aim:Disconnect(); features._aim=nil end
     end
 end
 
 ----------------------------------------------------------------
--- Silent Aim (scriptin __namecall mantığı)
+-- Silent Aim / Rapid Fire / Kill Aura (senin mantığına uygun basit hâl)
 ----------------------------------------------------------------
 function features.ToggleSilentAim(on)
     if on then
-        if features._oldNamecall then return end
-        features._silentOn = true
-        features._oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-            local method = getnamecallmethod()
+        if features._oldNC then return end
+        features._silent = true
+        features._oldNC = hookmetamethod(game, "__namecall", function(self, ...)
+            local m = getnamecallmethod()
             local args = { ... }
-            if features._silentOn and method == "FireServer" then
-                local lname = tostring(self):lower()
-                if lname:find("fire") or lname:find("shoot") then
+            if features._silent and m == "FireServer" then
+                local n = tostring(self):lower()
+                if n:find("fire") or n:find("shoot") then
                     local head = getClosestVisibleHead()
                     if head then
-                        if typeof(args[1]) == "Vector3" then
-                            args[1] = head.Position
-                        elseif typeof(args[2]) == "Vector3" then
-                            args[2] = head.Position
-                        end
-                        return features._oldNamecall(self, unpack(args))
+                        if typeof(args[1])=="Vector3" then args[1]=head.Position
+                        elseif typeof(args[2])=="Vector3" then args[2]=head.Position end
+                        return features._oldNC(self, unpack(args))
                     end
                 end
             end
-            return features._oldNamecall(self, ...)
+            return features._oldNC(self, ...)
         end)
     else
-        features._silentOn = false
-        if features._oldNamecall then
-            hookmetamethod(game, "__namecall", features._oldNamecall)
-            features._oldNamecall = nil
-        end
+        features._silent = false
+        if features._oldNC then hookmetamethod(game, "__namecall", features._oldNC); features._oldNC=nil end
     end
 end
 
-----------------------------------------------------------------
--- Rapid Fire (cooldown/attack/reload value’larını zorla küçült)
-----------------------------------------------------------------
 function features.ToggleRapidFire(on)
     if on then
-        if features._rofConn then features._rofConn:Disconnect() end
-        features._rofConn = runService.Heartbeat:Connect(function()
-            local char = player.Character
-            if not char then return end
-            local tool = char:FindFirstChildOfClass("Tool")
-            if not tool then return end
-            for _, v in ipairs(tool:GetDescendants()) do
+        if features._rof then features._rof:Disconnect() end
+        features._rof = RunService.Heartbeat:Connect(function()
+            local ch = Player.Character; if not ch then return end
+            local tool = ch:FindFirstChildOfClass("Tool"); if not tool then return end
+            for _,v in ipairs(tool:GetDescendants()) do
                 if v:IsA("NumberValue") or v:IsA("IntValue") then
                     local n = v.Name:lower()
                     if n:find("cooldown") or n:find("fire") or n:find("attack") or n:find("reload") or n:find("speed") then
@@ -253,23 +215,20 @@ function features.ToggleRapidFire(on)
             end
         end)
     else
-        if features._rofConn then features._rofConn:Disconnect(); features._rofConn=nil end
+        if features._rof then features._rof:Disconnect(); features._rof=nil end
     end
 end
 
-----------------------------------------------------------------
--- Kill Aura (15 stud menzil)
-----------------------------------------------------------------
 function features.ToggleKillAura(on)
     if on then
-        if features._auraConn then features._auraConn:Disconnect() end
-        features._auraConn = runService.Heartbeat:Connect(function()
-            local char = player.Character
-            local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-            local tool = char and char:FindFirstChildOfClass("Tool")
+        if features._aura then features._aura:Disconnect() end
+        features._aura = RunService.Heartbeat:Connect(function()
+            local ch = Player.Character
+            local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+            local tool = ch and ch:FindFirstChildOfClass("Tool")
             if not (hrp and tool) then return end
             for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                if plr ~= Player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     if (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude < 15 then
                         tool:Activate()
                     end
@@ -277,42 +236,49 @@ function features.ToggleKillAura(on)
             end
         end)
     else
-        if features._auraConn then features._auraConn:Disconnect(); features._auraConn=nil end
+        if features._aura then features._aura:Disconnect(); features._aura=nil end
     end
 end
 
 ----------------------------------------------------------------
--- ESP (Highlight + Billboard + takım rengi + NPC + rainbow isim)
+-- ESP (JOIN/LEAVE/RESPAWN dinamik + NPC + cleanup)
 ----------------------------------------------------------------
-features._espObjects = {}
-local function teamColor(plr)
-    local my = player.Team
-    if not my then return Color3.fromRGB(255,0,0) end -- deathmatch
-    return (plr.Team == my) and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
+features._espMap   = {}   -- [char] = {hl=, bb=, lbl=, conns={...}}
+features._espOn    = false
+features._espConns = {}   -- genel bağlantılar (player/world)
+
+local function _espCleanupChar(char)
+    local o = features._espMap[char]
+    if not o then return end
+    if o.conns then for _,c in ipairs(o.conns) do pcall(function() c:Disconnect() end) end end
+    if o.hl then pcall(function() o.hl:Destroy() end) end
+    if o.bb then pcall(function() o.bb:Destroy() end) end
+    features._espMap[char] = nil
 end
 
-local function espAdd(char, isNPC)
+local function _espAddForChar(char, isNPC)
     if not char or not char.Parent then return end
     local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
     if not head then return end
 
-    local obj = features._espObjects[char]
-    if not obj then obj = {}; features._espObjects[char] = obj end
+    local o = features._espMap[char]
+    if not o then o = { conns = {} }; features._espMap[char] = o end
 
-    if not obj.highlight or not obj.highlight.Parent then
+    if not o.hl or not o.hl.Parent then
         local hl = Instance.new("Highlight")
         hl.FillTransparency = 0.5
         hl.OutlineColor = Color3.fromRGB(255,255,255)
         hl.Parent = char
-        obj.highlight = hl
+        o.hl = hl
     end
 
-    if not obj.billboard or not obj.billboard.Parent then
+    if not o.bb or not o.bb.Parent then
         local bb = Instance.new("BillboardGui")
         bb.Size = UDim2.fromOffset(120, 20)
         bb.AlwaysOnTop = true
         bb.Adornee = head
         bb.Parent = head
+
         local tl = Instance.new("TextLabel")
         tl.Size = UDim2.fromScale(1,1)
         tl.BackgroundTransparency = 1
@@ -320,54 +286,73 @@ local function espAdd(char, isNPC)
         tl.Font = Enum.Font.SourceSansBold
         tl.TextStrokeTransparency = 0.3
         local pl = Players:GetPlayerFromCharacter(char)
-        tl.Text = isNPC and "NPC" or (pl and pl.Name or "?")
+        tl.Text = pl and pl.Name or (isNPC and "NPC" or "Enemy")
         tl.Parent = bb
-        obj.billboard, obj.label = bb, tl
+
+        o.bb, o.lbl = bb, tl
     end
+
+    -- Cleanup bağları
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        table.insert(o.conns, hum.Died:Connect(function() _espCleanupChar(char) end))
+    end
+    table.insert(o.conns, char.AncestryChanged:Connect(function(_, parent)
+        if not parent then _espCleanupChar(char) end
+    end))
 end
 
-local function espCleanup(char)
-    local obj = features._espObjects[char]
-    if not obj then return end
-    if obj.highlight then obj.highlight:Destroy() end
-    if obj.billboard then obj.billboard:Destroy() end
-    features._espObjects[char] = nil
+local function _espAttachPlayer(plr)
+    -- mevcut karakter
+    if plr.Character then _espAddForChar(plr.Character, false) end
+    -- respawn
+    table.insert(features._espConns, plr.CharacterAdded:Connect(function(c)
+        task.wait(0.2)
+        if features._espOn then _espAddForChar(c, false) end
+    end))
 end
 
 function features.ToggleESP(on)
     if on then
-        -- ilk yükleme
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr.Character then espAdd(plr.Character, false) end
-            plr.CharacterAdded:Connect(function(c) task.wait(1); if features._espOn then espAdd(c, false) end end)
-        end
-        -- NPC
-        for _, obj in ipairs(workspace:GetChildren()) do
-            if obj:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
-                espAdd(obj, true)
-            end
-        end
-        features._espWorldConn = workspace.ChildAdded:Connect(function(obj)
-            if obj:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
-                task.wait(1); if features._espOn then espAdd(obj, true) end
-            end
-        end)
-
-        -- update döngüleri
+        if features._espOn then return end
         features._espOn = true
-        if features._espConn then features._espConn:Disconnect() end
+
+        -- mevcut oyuncular
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr ~= Player then _espAttachPlayer(plr) end
+        end
+
+        -- join/leave
+        table.insert(features._espConns, Players.PlayerAdded:Connect(function(plr)
+            if not features._espOn then return end
+            _espAttachPlayer(plr)
+        end))
+        table.insert(features._espConns, Players.PlayerRemoving:Connect(function(plr)
+            if plr.Character then _espCleanupChar(plr.Character) end
+        end))
+
+        -- NPC takibi
+        table.insert(features._espConns, workspace.ChildAdded:Connect(function(obj)
+            if not features._espOn then return end
+            if obj:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
+                task.wait(0.2); _espAddForChar(obj, true)
+            end
+        end))
+
+        -- renk/isim update
+        if features._espTick then features._espTick:Disconnect() end
         local t = 0
-        features._espConn = runService.RenderStepped:Connect(function(dt)
+        features._espTick = RunService.RenderStepped:Connect(function(dt)
             t += dt
-            for char, obj in pairs(features._espObjects) do
-                if not char or not char.Parent then espCleanup(char) else
-                    if obj.label then obj.label.TextColor3 = Color3.fromHSV((t%1), 1, 1) end -- rainbow
-                    local pl = Players:GetPlayerFromCharacter(char)
-                    if obj.highlight then
-                        if pl then
-                            obj.highlight.FillColor = teamColor(pl)
+            for char, o in pairs(features._espMap) do
+                if not char or not char.Parent then _espCleanupChar(char) else
+                    if o.lbl then o.lbl.TextColor3 = Color3.fromHSV((t%1),1,1) end
+                    if o.hl then
+                        local pl = Players:GetPlayerFromCharacter(char)
+                        if pl and Player.Team then
+                            o.hl.FillColor = (pl.Team == Player.Team) and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
                         else
-                            obj.highlight.FillColor = Color3.fromRGB(160,60,200) -- NPC mor
+                            o.hl.FillColor = Color3.fromRGB(160,60,200) -- NPC
                         end
                     end
                 end
@@ -375,22 +360,23 @@ function features.ToggleESP(on)
         end)
     else
         features._espOn = false
-        if features._espConn then features._espConn:Disconnect() end
-        if features._espWorldConn then features._espWorldConn:Disconnect() end
-        for char,_ in pairs(features._espObjects) do espCleanup(char) end
-        features._espObjects = {}
+        if features._espTick then features._espTick:Disconnect(); features._espTick=nil end
+        for _,c in ipairs(features._espConns) do pcall(function() c:Disconnect() end) end
+        features._espConns = {}
+        for char,_ in pairs(features._espMap) do _espCleanupChar(char) end
+        features._espMap = {}
     end
 end
 
 ----------------------------------------------------------------
--- Noclip (restore’lu)
+-- NoClip (restore’lu)
 ----------------------------------------------------------------
 function features.ToggleNoclip(on)
     local function setChar(state)
         features._noclipRestore = features._noclipRestore or {}
-        local char = player.Character
-        if not char then return end
-        for _, part in ipairs(char:GetDescendants()) do
+        local ch = Player.Character
+        if not ch then return end
+        for _, part in ipairs(ch:GetDescendants()) do
             if part:IsA("BasePart") then
                 if state then
                     if features._noclipRestore[part] == nil then
@@ -407,12 +393,11 @@ function features.ToggleNoclip(on)
             end
         end
     end
-
     if on then
-        if features._noclipConn then features._noclipConn:Disconnect() end
-        features._noclipConn = runService.Stepped:Connect(function() setChar(true) end)
+        if features._noclip then features._noclip:Disconnect() end
+        features._noclip = RunService.Stepped:Connect(function() setChar(true) end)
     else
-        if features._noclipConn then features._noclipConn:Disconnect() end
+        if features._noclip then features._noclip:Disconnect() end
         setChar(false)
         features._noclipRestore = {}
     end
@@ -422,11 +407,11 @@ end
 -- Invisible
 ----------------------------------------------------------------
 function features.ToggleInvisible(on)
-    local char = player.Character or player.CharacterAdded:Wait()
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            part.Transparency = on and 1 or 0
-            if on and part:FindFirstChild("face") then part.face:Destroy() end
+    local ch = Player.Character or Player.CharacterAdded:Wait()
+    for _, p in ipairs(ch:GetDescendants()) do
+        if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+            p.Transparency = on and 1 or 0
+            if on and p:FindFirstChild("face") then p.face:Destroy() end
         end
     end
 end
