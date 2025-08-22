@@ -95,22 +95,61 @@ end
 -- Godmode
 ----------------------------------------------------------------
 function features.ToggleGodmode(on)
-    local function apply()
-        local h = Player.Character and Player.Character:FindFirstChild("Humanoid")
-        if h then h.Health, h.MaxHealth = math.huge, math.huge end
+    -- NOT: Player, RunService ve features zaten globalde var kabul ediliyor.
+    local BIG = 1e9  -- math.huge bazı oyunlarda NaN/inf tetikleyebiliyor
+
+    local function applyFor(char)
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            -- MaxHealth'i yukarı sabitle, Health'i doldur, ölümde eklemleri kırma
+            if hum.MaxHealth < BIG then hum.MaxHealth = BIG end
+            if hum.Health   < BIG then hum.Health   = BIG end
+            pcall(function() hum.BreakJointsOnDeath = false end)
+        end
     end
-    if on then
-        if features._god then features._god:Disconnect() end
-        features._god = RunService.Heartbeat:Connect(apply)
-        Player.CharacterAdded:Connect(function()
-            task.wait(0.5)
-            if features._god then features._god:Disconnect() end
-            features._god = RunService.Heartbeat:Connect(apply)
+
+    local function start()
+        -- Eski bağlantıları temizle (çift bağlanma/kaçak önler)
+        if features._god then features._god:Disconnect() features._god = nil end
+        if features._god_char then features._god_char:Disconnect() features._god_char = nil end
+        if features._god_health then features._god_health:Disconnect() features._god_health = nil end
+
+        -- Mevcut karaktere uygula
+        local char = Player.Character or Player.CharacterAdded:Wait()
+        applyFor(char)
+
+        -- Her frame’de zorla (server damage resetliyorsa geri doldurur)
+        features._god = RunService.Heartbeat:Connect(function()
+            local c = Player.Character
+            if c then applyFor(c) end
         end)
+
+        -- Respawn olduğunda yeniden kur
+        features._god_char = Player.CharacterAdded:Connect(function(newChar)
+            -- Humanoid gelene kadar bekle (time-out ile)
+            local hum = newChar:WaitForChild("Humanoid", 5)
+            if hum then
+                task.defer(applyFor, newChar)
+
+                -- Sağlık değişirse anında geri it
+                if features._god_health then features._god_health:Disconnect() features._god_health = nil end
+                features._god_health = hum.HealthChanged:Connect(function()
+                    applyFor(newChar)
+                end)
+            end
+        end)
+    end
+
+    if on then
+        start()
     else
-        if features._god then features._god:Disconnect() end
+        -- Tümüyle kapat
+        if features._god then features._god:Disconnect() features._god = nil end
+        if features._god_char then features._god_char:Disconnect() features._god_char = nil end
+        if features._god_health then features._god_health:Disconnect() features._god_health = nil end
     end
 end
+
 
 ----------------------------------------------------------------
 -- Fly (LeftControl aşağı)
