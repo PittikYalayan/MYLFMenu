@@ -1,0 +1,84 @@
+-- loader.lua — Linoria + sadece mevcut fonksiyonlar
+
+local Library      = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
+local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
+
+local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
+
+local Window = Library:CreateWindow({ Title = "⚡ MYLF | Hub ⚡", Center = true, AutoShow = true })
+
+local function bindToggle(group, flag, text, fn)
+    group:AddToggle(flag, { Text = text, Default = false }):OnChanged(function(v) if type(fn)=="function" then pcall(fn,v) end end)
+end
+
+local Tabs = {
+    Rage     = Window:AddTab("🔥 Rage"),
+    Visuals  = Window:AddTab("👁 Visuals"),
+    Player   = Window:AddTab("🕴 Player"),
+    Teleport = Window:AddTab("⚡ Teleport"),
+    World    = Window:AddTab("🌍 World"),
+    Misc     = Window:AddTab("🛠 Misc"),
+    Settings = Window:AddTab("⚙ Settings")
+}
+
+-- Rage
+do
+    local g = Tabs.Rage:AddLeftGroupbox("Rage")
+    bindToggle(g, "aimbot",   "Enable Aimbot",  features.ToggleAimbot)
+    bindToggle(g, "silent",   "Silent Aim",     features.ToggleSilentAim)
+    bindToggle(g, "rapid",    "Rapid Fire",     features.ToggleRapidFire)
+    bindToggle(g, "killaura", "Kill Aura",      features.ToggleKillAura)
+end
+
+-- Visuals
+do
+    local g = Tabs.Visuals:AddLeftGroupbox("Visuals")
+    bindToggle(g, "esp", "Enable ESP", features.ToggleESP) -- Skeleton/Rainbow ayrı toggle YOK → ESP içinde
+end
+
+-- Player
+do
+    local g = Tabs.Player:AddLeftGroupbox("Player Mods")
+    bindToggle(g, "speed",     "Speed Boost (50)", features.ToggleSpeed)   -- 50↔16 toggle
+    bindToggle(g, "fly",       "Fly",              features.ToggleFly)
+    bindToggle(g, "infjump",   "Infinite Jump",    features.ToggleInfiniteJump)
+    bindToggle(g, "god",       "God Mode",         features.ToggleGodmode)
+    bindToggle(g, "invisible", "Invisible",        features.ToggleInvisible)
+end
+
+-- Teleport
+do
+    local g = Tabs.Teleport:AddLeftGroupbox("Teleport")
+    bindToggle(g, "tpkey", "Teleport (T Key)", features.ToggleTeleport)
+end
+
+-- World
+do
+    local g = Tabs.World:AddLeftGroupbox("World")
+    bindToggle(g, "noclip", "NoClip", features.ToggleNoclip)
+end
+
+-- Misc
+do
+    local g = Tabs.Misc:AddLeftGroupbox("Misc")
+    bindToggle(g, "inspector", "Tool Inspector", features.ToggleInspector)
+end
+
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+ThemeManager:SetFolder("MYLFHub")
+SaveManager:SetFolder("MYLFHub/saves")
+SaveManager:BuildConfigSection(Tabs.Settings)
+ThemeManager:ApplyToTab(Tabs.Settings)
+
+-- Menü toggle tuşu
+Library.ToggleKeybind = Enum.KeyCode.LeftShift
+
+-- Tema (siyah-kırmızı)
+local th = ThemeManager:CurrentTheme()
+th.Accent     = Color3.fromRGB(230, 0, 35)
+th.Background = Color3.fromRGB(20, 20, 20)
+th.Outline    = Color3.fromRGB(180, 0, 0)
