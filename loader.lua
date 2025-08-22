@@ -1,12 +1,10 @@
 -- ⚡ MYLF | Hub ⚡
 -- Loader (features.lua'ya bağlı)
 
--- Lib yükleme
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
 
--- Features
 local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
 
 -- === Ana Pencere ===
@@ -18,31 +16,36 @@ local Window = Library:CreateWindow({
 
 -- === Sekmeler ===
 local Tabs = {
-    Legit    = Window:AddTab("Legit"),
-    Rage     = Window:AddTab("Rage"),
-    Visuals  = Window:AddTab("Visuals"),
-    Player   = Window:AddTab("Player"),
-    Teleport = Window:AddTab("Teleport"),
-    World    = Window:AddTab("World"),
-    Misc     = Window:AddTab("Misc"),
-    Settings = Window:AddTab("Settings"),
+    Rage     = Window:AddTab("🔥 Rage"),
+    Visuals  = Window:AddTab("👁 Visuals"),
+    Player   = Window:AddTab("🕴 Player"),
+    Teleport = Window:AddTab("⚡ Teleport"),
+    World    = Window:AddTab("🌍 World"),
+    Misc     = Window:AddTab("🛠 Misc"),
+    Settings = Window:AddTab("⚙ Settings"),
 }
-
--- === Legit ===
-local AimbotGroup = Tabs.Legit:AddLeftGroupbox("Aimbot")
-AimbotGroup:AddToggle("aimbot", { Text = "Enable Aimbot", Default = false }):OnChanged(features.ToggleAimbot)
 
 -- === Rage ===
 local RageGroup = Tabs.Rage:AddLeftGroupbox("Rage")
+RageGroup:AddToggle("aimbot", { Text = "Enable Aimbot", Default = false }):OnChanged(features.ToggleAimbot)
 RageGroup:AddToggle("silent", { Text = "Silent Aim", Default = false }):OnChanged(features.ToggleSilentAim)
 RageGroup:AddToggle("rapid", { Text = "Rapid Fire", Default = false }):OnChanged(features.ToggleRapidFire)
 RageGroup:AddToggle("killaura", { Text = "Kill Aura", Default = false }):OnChanged(features.ToggleKillAura)
 
 -- === Visuals ===
 local VisualsGroup = Tabs.Visuals:AddLeftGroupbox("Visuals")
-VisualsGroup:AddToggle("esp", { Text = "ESP", Default = false }):OnChanged(features.ToggleESP)
-VisualsGroup:AddToggle("skeleton", { Text = "ESP Skeleton", Default = false }):OnChanged(features.ToggleSkeleton)
-VisualsGroup:AddToggle("rainbownames", { Text = "Rainbow Names", Default = false }):OnChanged(features.ToggleRainbowName)
+VisualsGroup:AddToggle("esp", { Text = "Enable ESP", Default = false })
+    :OnChanged(function(val) features.ToggleESP(val) end)
+VisualsGroup:AddToggle("skeleton", { Text = "Show Skeleton", Default = false })
+    :OnChanged(function(val)
+        features.ToggleSkeleton(val)
+        if Library.Flags.esp then features.ToggleESP(true) end
+    end)
+VisualsGroup:AddToggle("rainbow", { Text = "Rainbow Names", Default = false })
+    :OnChanged(function(val)
+        features.ToggleRainbowName(val)
+        if Library.Flags.esp then features.ToggleESP(true) end
+    end)
 
 -- === Player ===
 local PlayerGroup = Tabs.Player:AddLeftGroupbox("Player Mods")
@@ -70,10 +73,8 @@ ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({})
-
 ThemeManager:SetFolder("MYLFHub")
 SaveManager:SetFolder("MYLFHub/saves")
-
 SaveManager:BuildConfigSection(Tabs.Settings)
 ThemeManager:ApplyToTab(Tabs.Settings)
 
@@ -82,6 +83,6 @@ Library.ToggleKeybind = Enum.KeyCode.LeftShift
 
 -- === Tema ===
 local theme = ThemeManager:CurrentTheme()
-theme.Accent = Color3.fromRGB(230, 0, 35)        -- kırmızı vurgu
-theme.Background = Color3.fromRGB(20, 20, 20)    -- koyu arka plan
-theme.Outline = Color3.fromRGB(180, 0, 0)        -- siyah/kırmızı kenar
+theme.Accent = Color3.fromRGB(230, 0, 35)
+theme.Background = Color3.fromRGB(20, 20, 20)
+theme.Outline = Color3.fromRGB(180, 0, 0)
