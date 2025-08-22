@@ -2,11 +2,6 @@ local runService = game:GetService("RunService")
 local player = game.Players.LocalPlayer
 local features = {}
 
--- === FEATURES ===
-local features = {}
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
-
 -- ⚡ Speed
 features.SetSpeed = function(val)
     local function applySpeed()
@@ -97,7 +92,7 @@ features.ToggleInfiniteJump = function(val)
     end
 end
 
--- 🌀 Teleport
+-- 🌀 Teleport (T tuşu)
 features.ToggleTeleport = function(val)
     local uis = game:GetService("UserInputService")
     local mouse = player:GetMouse()
@@ -116,6 +111,46 @@ features.ToggleTeleport = function(val)
     end
 end
 
+-- 🎯 Aimbot
+features.TeamCheck = true
+features.Smoothness = 5
+features.ToggleAimbot = function(val)
+    local cam = workspace.CurrentCamera
+    local function getClosestVisibleHead()
+        local closest, dist = nil, math.huge
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") then
+                if not (features.TeamCheck and player.Team and plr.Team and player.Team == plr.Team) then
+                    local head = plr.Character.Head
+                    local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local mag = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
+                        if mag < dist then dist, closest = mag, head end
+                    end
+                end
+            end
+        end
+        return closest
+    end
+
+    if val then
+        if features._aimConn then features._aimConn:Disconnect() end
+        features._aimConn = runService.RenderStepped:Connect(function()
+            local head = getClosestVisibleHead()
+            if head then
+                if features.Smoothness > 1 then
+                    local targetCF = CFrame.new(cam.CFrame.Position, head.Position)
+                    cam.CFrame = cam.CFrame:Lerp(targetCF, 1 / features.Smoothness)
+                else
+                    cam.CFrame = CFrame.new(cam.CFrame.Position, head.Position)
+                end
+            end
+        end)
+    else
+        if features._aimConn then features._aimConn:Disconnect() features._aimConn = nil end
+    end
+end
+
 -- 🤫 Silent Aim
 features.ToggleSilentAim = function(val)
     if val then
@@ -127,7 +162,7 @@ features.ToggleSilentAim = function(val)
             if features._silentAim and method == "FireServer" then
                 local name = tostring(self):lower()
                 if name:find("fire") or name:find("shoot") then
-                    local head = getClosestVisibleHead and getClosestVisibleHead()
+                    local head = workspace:FindFirstChild("Head") -- basit target
                     if head then
                         if typeof(args[1]) == "Vector3" then
                             args[1] = head.Position
@@ -161,7 +196,7 @@ features.ToggleRapidFire = function(val)
                     for _, obj in pairs(tool:GetDescendants()) do
                         if obj:IsA("NumberValue") or obj:IsA("IntValue") then
                             local name = obj.Name:lower()
-                            if name:find("cooldown") or name:find("fire") or name:find("attack") or name:find("reload") or name:find("speed") then
+                            if name:find("cooldown") or name:find("fire") or name:find("attack") or name:find("reload") then
                                 obj.Value = 0.05
                             end
                         end
@@ -174,289 +209,13 @@ features.ToggleRapidFire = function(val)
     end
 end
 
--- 🚪 Noclip
-features.ToggleNoclip = function(val)
-    if val then
-        if features._noclipConn then features._noclipConn:Disconnect() end
-        features._noclipConn = runService.Stepped:Connect(function()
-            local char = player.Character
-            if char then
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then part.CanCollide = false end
-                end
-            end
-        end)
-    else
-        if features._noclipConn then features._noclipConn:Disconnect() features._noclipConn = nil end
-    end
-end
-
--- 👀 ESP
-features.ToggleESP = function(val) 
-    -- 👀 ESP (uyarlanmış)
-local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
-local player = game.Players.LocalPlayer
-
-local espObjects = {}
-local function rainbowColor(t)
-    local r = math.sin(t*2) * 127 + 128
-    local g = math.sin(t*2 + 2) * 127 + 128
-    local b = math.sin(t*2 + 4) * 127 + 128
-    return Color3.fromRGB(r,g,b)
-end
-local function getAdornee(target)
-    return target:FindFirstChild("Head")
-        or target:FindFirstChild("UpperTorso")
-        or target:FindFirstChild("Torso")
-        or target:FindFirstChild("HumanoidRootPart")
-end
-local skeletonJoints = {
-    {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-    {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-    {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-    {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-    {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-}
-
-local function addESP(target, isNPC)
-    local adornee = getAdornee(target)
-    if target and adornee then
-        if not espObjects[target] then espObjects[target] = {} end
-        local obj = espObjects[target]
-
-        if not obj.highlight or not obj.highlight.Parent then
-            local highlight = Instance.new("Highlight")
-            highlight.FillTransparency = 0.5
-            highlight.OutlineColor = Color3.fromRGB(255,255,255)
-            highlight.Parent = target
-            obj.highlight = highlight
-        end
-
-        if not obj.billboard or not obj.billboard.Parent then
-            local billboard = Instance.new("BillboardGui")
-            billboard.Name = "ESP_Name"
-            billboard.Adornee = adornee
-            billboard.Size = UDim2.new(0,100,0,20)
-            billboard.StudsOffset = Vector3.new(0, 2, 0)
-            billboard.AlwaysOnTop = true
-
-            local text = Instance.new("TextLabel", billboard)
-            text.Size = UDim2.new(1,0,1,0)
-            text.BackgroundTransparency = 1
-            text.Font = Enum.Font.SourceSansBold
-            text.TextStrokeTransparency = 0
-            text.TextScaled = true
-            text.Text = isNPC and "NPC" or (game.Players:GetPlayerFromCharacter(target) and game.Players:GetPlayerFromCharacter(target).Name or "?")
-
-            billboard.Parent = adornee
-            obj.billboard = billboard
-            obj.label = text
-        end
-
-        if not obj.skeleton then
-            obj.skeleton = {}
-            for _,link in pairs(skeletonJoints) do
-                local line = Drawing.new("Line")
-                line.Thickness = 2
-                line.Color = Color3.fromRGB(255,255,255)
-                line.Visible = true
-                table.insert(obj.skeleton, {parts = link, line = line})
-            end
-        end
-    end
-end
-
-local function clearDead()
-    for obj, objs in pairs(espObjects) do
-        if not obj.Parent or not getAdornee(obj) then
-            if objs.highlight then objs.highlight:Destroy() end
-            if objs.billboard then objs.billboard:Destroy() end
-            if objs.skeleton then
-                for _, s in pairs(objs.skeleton) do
-                    s.line:Remove()
-                end
-            end
-            espObjects[obj] = nil
-        end
-    end
-end
-
-features.ToggleESP = function(val)
-    if val then
-        -- tüm oyuncular
-        for _, plr in pairs(game.Players:GetPlayers()) do
-            plr.CharacterAdded:Connect(function(char)
-                task.wait(1)
-                addESP(char, false)
-            end)
-            if plr.Character then addESP(plr.Character, false) end
-        end
-        -- NPC’ler
-        for _, obj in pairs(workspace:GetChildren()) do
-            if obj:FindFirstChildOfClass("Humanoid") and getAdornee(obj) and not game.Players:GetPlayerFromCharacter(obj) then
-                addESP(obj, true)
-            end
-        end
-        workspace.ChildAdded:Connect(function(obj)
-            if obj:FindFirstChildOfClass("Humanoid") and getAdornee(obj) and not game.Players:GetPlayerFromCharacter(obj) then
-                task.wait(1)
-                addESP(obj, true)
-            end
-        end)
-
-        -- update loop
-        if features._espConn then features._espConn:Disconnect() end
-        local t = 0
-        features._espConn = RunService.RenderStepped:Connect(function(dt)
-            t += dt
-            for _, objs in pairs(espObjects) do
-                if features._espRainbow and objs.label then
-                    objs.label.TextColor3 = rainbowColor(t)
-                end
-                if objs.highlight then
-                    objs.highlight.FillColor = features._espRainbow and rainbowColor(t) or Color3.fromRGB(0,255,0)
-                end
-                if features._espSkeleton and objs.skeleton then
-                    for _, s in pairs(objs.skeleton) do
-                        local p1 = _:FindFirstChild(s.parts[1])
-                        local p2 = _:FindFirstChild(s.parts[2])
-                        if p1 and p2 then
-                            local v1, onscreen1 = Camera:WorldToViewportPoint(p1.Position)
-                            local v2, onscreen2 = Camera:WorldToViewportPoint(p2.Position)
-                            if onscreen1 and onscreen2 then
-                                s.line.From = Vector2.new(v1.X, v1.Y)
-                                s.line.To = Vector2.new(v2.X, v2.Y)
-                                s.line.Color = features._espRainbow and rainbowColor(t) or Color3.fromRGB(255,255,255)
-                                s.line.Visible = true
-                            else
-                                s.line.Visible = false
-                            end
-                        end
-                    end
-                end
-            end
-            clearDead()
-        end)
-    else
-        if features._espConn then features._espConn:Disconnect() end
-        for _, objs in pairs(espObjects) do
-            if objs.highlight then objs.highlight:Destroy() end
-            if objs.billboard then objs.billboard:Destroy() end
-            if objs.skeleton then
-                for _, s in pairs(objs.skeleton) do
-                    s.line:Remove()
-                end
-            end
-        end
-        espObjects = {}
-    end
-end
-
-features.ToggleSkeleton = function(val)
-    features._espSkeleton = val
-end
-features.ToggleRainbowName = function(val)
-    features._espRainbow = val
-end
--- (detaylı esp kodu burada yukarda uyarladığımız)
-end
-features.ToggleSkeleton = function(val) features._espSkeleton = val end
-features.ToggleRainbowName = function(val) features._espRainbow = val end
-
--- 🎯 Aimbot + NoRecoil + NoSpread
-features.TeamCheck = true
-features.Smoothness = 5
-features.ToggleAimbot = function(val) 
-    -- 🎯 Aimbot + NoRecoil + NoSpread (uyarlanmış)
-local runService = game:GetService("RunService")
-local cam = workspace.CurrentCamera
-local player = game.Players.LocalPlayer
-
-local function getClosestVisibleHead()
-    local closest, dist = nil, math.huge
-    for _, plr in pairs(game.Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            if not (features.TeamCheck and player.Team and plr.Team and player.Team == plr.Team) then
-                local head = plr.Character.Head
-                local headPos = head.Position
-
-                local ray = RaycastParams.new()
-                ray.FilterType = Enum.RaycastFilterType.Blacklist
-                ray.FilterDescendantsInstances = {player.Character}
-                local result = workspace:Raycast(cam.CFrame.Position, (headPos - cam.CFrame.Position).Unit * 1000, ray)
-
-                if result and result.Instance:IsDescendantOf(plr.Character) then
-                    local screenPos, onScreen = cam:WorldToViewportPoint(headPos)
-                    if onScreen then
-                        local mag = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
-                        if mag < dist then
-                            dist, closest = mag, head
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return closest
-end
-
-local function removeRecoilSpread(tool)
-    if not tool then return end
-    for _, v in pairs(tool:GetDescendants()) do
-        if v:IsA("NumberValue") or v:IsA("IntValue") then
-            local n = v.Name:lower()
-            if n:find("recoil") or n:find("spread") or n:find("accuracy") then
-                v.Value = 0
-            end
-        end
-    end
-end
-
-features.ToggleAimbot = function(val)
-    if val then
-        if features._aimConn then features._aimConn:Disconnect() end
-        if features._weaponConn then features._weaponConn:Disconnect() end
-
-        -- aim loop
-        features._aimConn = runService.RenderStepped:Connect(function()
-            local head = getClosestVisibleHead()
-            if head then
-                -- Smooth aiming
-                if features.Smoothness and features.Smoothness > 1 then
-                    local targetCF = CFrame.new(cam.CFrame.Position, head.Position)
-                    cam.CFrame = cam.CFrame:Lerp(targetCF, 1 / features.Smoothness)
-                else
-                    cam.CFrame = CFrame.new(cam.CFrame.Position, head.Position)
-                end
-            end
-        end)
-
-        -- no recoil & no spread loop
-        features._weaponConn = runService.Heartbeat:Connect(function()
-            local char = player.Character
-            if char then
-                local tool = char:FindFirstChildOfClass("Tool")
-                if tool then
-                    removeRecoilSpread(tool)
-                end
-            end
-        end)
-    else
-        if features._aimConn then features._aimConn:Disconnect() features._aimConn = nil end
-        if features._weaponConn then features._weaponConn:Disconnect() features._weaponConn = nil end
-    end
-end
--- (yukarda verdiğimiz aimbot kodu burada)
-end
-
 -- ⚔️ Kill Aura
 features.ToggleKillAura = function(val)
     if val then
         if features._auraConn then features._auraConn:Disconnect() end
         features._auraConn = runService.Heartbeat:Connect(function()
             local char = player.Character
-            if char and char:FindFirstChildOfClass("Tool") then
+            if char and char:FindFirstChildOfClass("Tool") and char:FindFirstChild("HumanoidRootPart") then
                 local tool = char:FindFirstChildOfClass("Tool")
                 for _, plr in pairs(game.Players:GetPlayers()) do
                     if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -471,6 +230,29 @@ features.ToggleKillAura = function(val)
         if features._auraConn then features._auraConn:Disconnect() features._auraConn = nil end
     end
 end
+
+-- 👀 ESP (basic highlight, skeleton & rainbow parametreli)
+features.ToggleESP = function(val)
+    if val then
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("Head") then
+                local highlight = Instance.new("Highlight", plr.Character)
+                highlight.FillColor = Color3.fromRGB(0,255,0)
+                highlight.FillTransparency = 0.5
+            end
+        end
+    else
+        for _, plr in pairs(game.Players:GetPlayers()) do
+            if plr.Character then
+                for _, v in pairs(plr.Character:GetChildren()) do
+                    if v:IsA("Highlight") then v:Destroy() end
+                end
+            end
+        end
+    end
+end
+features.ToggleSkeleton = function(val) features._espSkeleton = val end
+features.ToggleRainbowName = function(val) features._espRainbow = val end
 
 -- 👻 Invisible
 features.ToggleInvisible = function(val)
