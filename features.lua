@@ -156,14 +156,44 @@ end
 ----------------------------------------------------------------
 function features.ToggleAimbot(on)
     local cam = workspace.CurrentCamera
+    local uis = game:GetService("UserInputService")
+
+    local function aimStep()
+        -- senin mevcut hedef seçicini kullanıyoruz:
+        local head = (getClosestVisibleHead and getClosestVisibleHead()) or nil
+        if head then
+            local target = CFrame.new(cam.CFrame.Position, head.Position)
+            local s = (features.Smoothness or 1)
+            cam.CFrame = (s > 1) and cam.CFrame:Lerp(target, 1/s) or target
+        end
+    end
+
     if on then
-        if features._aimConn then features._aimConn:Disconnect() end
-        features._aimConn = runService.RenderStepped:Connect(function()
-            local head = getClosestVisibleHead()
-            if head then cam.CFrame = CFrame.new(cam.CFrame.Position, head.Position) end
-        end)
+        -- eski ayarları sakla
+        features._oldMouseBehavior = uis.MouseBehavior
+        features._oldMouseIcon     = uis.MouseIconEnabled
+
+        -- RMB zorunluluğunu kaldır
+        uis.MouseBehavior   = Enum.MouseBehavior.LockCenter
+        uis.MouseIconEnabled = false
+
+        -- kamera modülünden sonra çalışsın (RMB gereksinimini by-pass eder)
+        local bindName = "MYLF_AIM_RS"
+        features._aimBindName = bindName
+        pcall(function() game:GetService("RunService"):UnbindFromRenderStep(bindName) end)
+        game:GetService("RunService"):BindToRenderStep(bindName, 201, aimStep)
     else
-        if features._aimConn then features._aimConn:Disconnect(); features._aimConn=nil end
+        -- unbind + restore
+        if features._aimBindName then
+            pcall(function() game:GetService("RunService"):UnbindFromRenderStep(features._aimBindName) end)
+            features._aimBindName = nil
+        end
+        uis.MouseBehavior    = features._oldMouseBehavior or Enum.MouseBehavior.Default
+        if features._oldMouseIcon ~= nil then
+            uis.MouseIconEnabled = features._oldMouseIcon
+        else
+            uis.MouseIconEnabled = true
+        end
     end
 end
 
