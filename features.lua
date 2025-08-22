@@ -17,7 +17,7 @@ features.Smoothness      = 1        -- 1 = anında bak; 3-6 = yumuşak
 features.AimRequireLOS   = false    -- true: çizgisel görüş şart (duvar arkası yok)
 features.AimUseFOV       = true    -- true: ekran içi açı sınırı uygula
 features.AimMaxAngleDeg  = 360      -- AimUseFOV=true iken geçerli
-features.AimMaxDistance  = 1e9      -- pratikte sınırsız
+features.AimMaxDistance  = 5e2      -- pratikte sınırsız
 
 features.TriggerOnAim    = true     -- hedefteyken otomatik ateş
 features.TriggerRate     = 0.12     -- tetikler arası min süre (sn)
