@@ -4,7 +4,8 @@ local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
 
 -- Features al
-local features = loadstring(readfile("features.lua"))()
+local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
+
 
 -- UI Setup
 local Window = Library:CreateWindow({
@@ -52,3 +53,4 @@ ThemeManager:ApplyToTab(Tabs.Misc)
 SaveManager:BuildConfigSection(Tabs.Misc)
 
 Library:Notify('MYLF Menu Loaded!', 3)
+
