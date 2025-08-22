@@ -1,104 +1,157 @@
--- ⚡ MYLF Premium Loader (Linoria) - Modern Design
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
-local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
+-- ⚡ MYLF Universal Hack Features ⚡
+-- Player / Aim / Visuals / Misc kategorili
 
--- ✅ Features Modülü
-local Features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
+local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
+local uis = game:GetService("UserInputService")
+local cam = workspace.CurrentCamera
+local mouse = player:GetMouse()
 
--- === Tema Ayarları (Modern) ===
-Library.BackgroundColor = Color3.fromRGB(25, 20, 30)
-Library.MainColor       = Color3.fromRGB(160, 60, 180)
-Library.AccentColor     = Color3.fromRGB(255, 0, 90)
-Library.OutlineColor    = Color3.fromRGB(40, 40, 60)
-Library.FontColor       = Color3.fromRGB(230, 230, 230)
+local features = {}
 
--- === Ana Pencere ===
-local Window = Library:CreateWindow({
-    Title = '⚡ MYLF | Hub ⚡',
-    Center = true,
-    AutoShow = true,
-})
+--------------------------------------------------
+-- PLAYER
+--------------------------------------------------
 
--- === Sekmeler (ikonlarla) ===
-local Tabs = {
-    Legit    = Window:AddTab('🎯 Legit'),
-    Rage     = Window:AddTab('🔥 Rage'),
-    Visuals  = Window:AddTab('👁 Visuals'),
-    Player   = Window:AddTab('🧍 Player'),
-    Teleport = Window:AddTab('⚡ Teleport'),
-    World    = Window:AddTab('🌍 World'),
-    Misc     = Window:AddTab('🛠 Misc'),
-    Settings = Window:AddTab('⚙️ Settings'),
+-- 🕊️ Fly (Slider ile hız ayarlı)
+features.Fly = {
+    Enabled = false,
+    Speed = 60,
 }
 
--- === Legit Tab ===
-local AimbotGroup = Tabs.Legit:AddLeftGroupbox('Aimbot')
-AimbotGroup:AddToggle('AimEnabled', {Text = 'Enable'}):OnChanged(function(val) Features.ToggleAimbot(val) end)
-AimbotGroup:AddToggle('AimWallCheck', {Text = 'Wall Check'}):OnChanged(function(val) Features.SetWallCheck(val) end)
-AimbotGroup:AddToggle('AimTeamCheck', {Text = 'Team Check'}):OnChanged(function(val) Features.SetTeamCheck(val) end)
-AimbotGroup:AddSlider('AimSmooth', {Text = 'Smoothness', Min = 1, Max = 10, Default = 5, Rounding = 1})
-    :OnChanged(function(val) Features.SetSmoothness(val) end)
-AimbotGroup:AddToggle('AimPrediction', {Text = 'Prediction'}):OnChanged(function(val) Features.SetPrediction(val) end)
-AimbotGroup:AddToggle('AimSticky', {Text = 'Sticky Aim'}):OnChanged(function(val) Features.SetSticky(val) end)
-AimbotGroup:AddKeyPicker('AimKey', {Default = 'MouseButton2', Mode = 'Hold', Text = 'Keybind'})
-    :OnClick(function(val) Features.SetAimKey(val) end)
+local flyConn
+local function applyFly()
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local hrp = char.HumanoidRootPart
+        if features.Fly.Enabled then
+            if not hrp:FindFirstChild("BodyVelocity") then
+                local bv = Instance.new("BodyVelocity", hrp)
+                bv.MaxForce = Vector3.new(4000,4000,4000)
+                bv.Velocity = Vector3.zero
+            end
+            flyConn = runService.RenderStepped:Connect(function()
+                if hrp:FindFirstChild("BodyVelocity") then
+                    local dir = Vector3.zero
+                    local camCFrame = workspace.CurrentCamera.CFrame
+                    if uis:IsKeyDown(Enum.KeyCode.W) then dir += camCFrame.LookVector end
+                    if uis:IsKeyDown(Enum.KeyCode.S) then dir -= camCFrame.LookVector end
+                    if uis:IsKeyDown(Enum.KeyCode.A) then dir -= camCFrame.RightVector end
+                    if uis:IsKeyDown(Enum.KeyCode.D) then dir += camCFrame.RightVector end
+                    if uis:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+                    if uis:IsKeyDown(Enum.KeyCode.LeftShift) then dir -= Vector3.new(0,1,0) end
+                    hrp.BodyVelocity.Velocity = dir * features.Fly.Speed
+                end
+            end)
+        else
+            if hrp:FindFirstChild("BodyVelocity") then hrp.BodyVelocity:Destroy() end
+            if flyConn then flyConn:Disconnect() end
+        end
+    end
+end
+features.ApplyFly = applyFly
 
--- === Rage Tab ===
-local RageGroup = Tabs.Rage:AddLeftGroupbox('Ragebot')
-RageGroup:AddToggle('RageAimbot', {Text = 'Rage Aimbot'}):OnChanged(function(val) Features.ToggleRageAimbot(val) end)
-RageGroup:AddToggle('SilentAim', {Text = 'Silent Aim'}):OnChanged(function(val) Features.ToggleSilentAim(val) end)
-RageGroup:AddToggle('NoRecoil', {Text = 'No Recoil / No Spread'}):OnChanged(function(val) Features.ToggleNoRecoilSpread(val) end)
-RageGroup:AddToggle('KillAura', {Text = 'Kill Aura'}):OnChanged(function(val) Features.ToggleKillAura(val) end)
-RageGroup:AddToggle('RapidFire', {Text = 'Rapid Fire'}):OnChanged(function(val) Features.ToggleRapidFire(val) end)
+-- ⚡ Speed Hack (Slider)
+features.Speed = {
+    Enabled = false,
+    Value = 50
+}
 
--- === Visuals Tab ===
-local VisualGroup = Tabs.Visuals:AddLeftGroupbox('ESP / Visuals')
-VisualGroup:AddToggle('ESP', {Text = 'ESP'}):OnChanged(function(val) Features.ToggleESP(val) end)
-VisualGroup:AddToggle('Skeleton', {Text = 'Skeleton ESP'}):OnChanged(function(val) Features.ToggleSkeleton(val) end)
-VisualGroup:AddToggle('Invisible', {Text = 'Invisible Mode'}):OnChanged(function(val) Features.ToggleInvisible(val) end)
-VisualGroup:AddToggle('RainbowESP', {Text = 'Rainbow ESP'}):OnChanged(function(val) Features.ToggleRainbowESP(val) end)
-VisualGroup:AddToggle('Tracers', {Text = 'Tracers'}):OnChanged(function(val) Features.ToggleTracers(val) end)
-VisualGroup:AddToggle('Chams', {Text = 'Chams'}):OnChanged(function(val) Features.ToggleChams(val) end)
+local speedConn
+local function applySpeed()
+    if features.Speed.Enabled then
+        speedConn = runService.Stepped:Connect(function()
+            local char = player.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                char:FindFirstChildOfClass("Humanoid").WalkSpeed = features.Speed.Value
+            end
+        end)
+    else
+        if speedConn then speedConn:Disconnect() end
+        local char = player.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            char:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+        end
+    end
+end
+features.ApplySpeed = applySpeed
 
--- === Player Tab ===
-local PlayerGroup = Tabs.Player:AddLeftGroupbox('Player Mods')
-PlayerGroup:AddToggle('Godmode', {Text = 'Godmode'}):OnChanged(function(val) Features.ToggleGodmode(val) end)
-PlayerGroup:AddToggle('Fly', {Text = 'Fly'}):OnChanged(function(val) Features.ToggleFly(val) end)
-PlayerGroup:AddToggle('InfJump', {Text = 'Infinite Jump'}):OnChanged(function(val) Features.ToggleInfiniteJump(val) end)
-PlayerGroup:AddSlider('Speed', {Text = 'Walk Speed', Min = 16, Max = 300, Default = 16})
-    :OnChanged(function(val) Features.SetSpeed(val) end)
+-- 🌀 Teleport Tool (T ile)
+features.Teleport = {
+    Enabled = false
+}
+function features.ToggleTeleport()
+    features.Teleport.Enabled = not features.Teleport.Enabled
+    if features.Teleport.Enabled then
+        spawn(function()
+            while features.Teleport.Enabled do
+                if uis:IsKeyDown(Enum.KeyCode.T) then
+                    local char = player.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        char:MoveTo(mouse.Hit.p + Vector3.new(0,3,0))
+                    end
+                end
+                task.wait(0.2)
+            end
+        end)
+    end
+end
 
--- === Teleport Tab ===
-local TPGroup = Tabs.Teleport:AddLeftGroupbox('Teleport')
-TPGroup:AddButton('Safe Zone', function() Features.TeleportSafeZone() end)
-TPGroup:AddButton('Enemy Base', function() Features.TeleportEnemyBase() end)
-TPGroup:AddButton('Random Player', function() Features.TeleportRandom() end)
+--------------------------------------------------
+-- AIM
+--------------------------------------------------
 
--- === World Tab ===
-local WorldGroup = Tabs.World:AddLeftGroupbox('World Mods')
-WorldGroup:AddToggle('FullBright', {Text = 'Full Bright'}):OnChanged(function(val) Features.ToggleFullBright(val) end)
-WorldGroup:AddToggle('NoFog', {Text = 'No Fog'}):OnChanged(function(val) Features.ToggleNoFog(val) end)
-WorldGroup:AddToggle('NightVision', {Text = 'Night Vision'}):OnChanged(function(val) Features.ToggleNightVision(val) end)
+-- 🎯 Aimbot (Takım kontrol + no recoil/no spread)
+features.Aimbot = {
+    Enabled = false,
+    TargetPart = "Head"
+}
 
--- === Misc Tab ===
-local MiscGroup = Tabs.Misc:AddLeftGroupbox('Misc')
-MiscGroup:AddButton('Tool Inspector', function() Features.ToggleInspector(true) end)
-MiscGroup:AddToggle('Noclip', {Text = 'Noclip'}):OnChanged(function(val) Features.ToggleNoclip(val) end)
-MiscGroup:AddToggle('Bhop', {Text = 'Bunny Hop'}):OnChanged(function(val) Features.ToggleBhop(val) end)
-MiscGroup:AddToggle('ThirdPerson', {Text = 'Third Person'}):OnChanged(function(val) Features.ToggleThirdPerson(val) end)
-MiscGroup:AddSlider('FOV', {Text = 'FOV Changer', Min = 70, Max = 120, Default = 90})
-    :OnChanged(function(val) Features.SetFov(val) end)
+local function getClosestVisibleHead()
+    local closest, dist = nil, math.huge
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
+            if not (player.Team and plr.Team and player.Team == plr.Team) then
+                local head = plr.Character.Head
+                local pos, vis = cam:WorldToViewportPoint(head.Position)
+                if vis then
+                    local mag = (Vector2.new(pos.X,pos.Y) - uis:GetMouseLocation()).Magnitude
+                    if mag < dist then
+                        closest, dist = head, mag
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+features.GetClosestVisibleHead = getClosestVisibleHead
 
--- === Tema & Kaydetme ===
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({})
-ThemeManager:SetFolder('MYLFHub')
-SaveManager:SetFolder('MYLFHub')
-SaveManager:BuildConfigSection(Tabs.Settings)
-ThemeManager:ApplyToTab(Tabs.Settings)
+--------------------------------------------------
+-- VISUALS
+--------------------------------------------------
 
--- === Aç/Kapa Tuşu (LeftShift) ===
-Library.ToggleKeybind = Enum.KeyCode.LeftShift
+-- 👀 ESP (Rainbow + NPC + Skeleton)
+features.ESP = {
+    Enabled = false,
+    Objects = {}
+}
+
+local function rainbowColor(t)
+    local r = math.sin(t*2) * 127 + 128
+    local g = math.sin(t*2 + 2) * 127 + 128
+    local b = math.sin(t*2 + 4) * 127 + 128
+    return Color3.fromRGB(r,g,b)
+end
+features.RainbowColor = rainbowColor
+
+--------------------------------------------------
+-- MISC
+--------------------------------------------------
+
+-- 🛠 Tool Inspector
+features.ToolInspector = {
+    Enabled = false
+}
+
+return features
