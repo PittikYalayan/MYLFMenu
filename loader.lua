@@ -6,13 +6,14 @@ local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 -- ✅ Features Modülü
 local Features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
 
--- === Tema Ayarları (Modern) ===
-Library.BackgroundColor = Color3.fromRGB(25, 20, 30)
-Library.MainColor       = Color3.fromRGB(160, 60, 180)
-Library.AccentColor     = Color3.fromRGB(255, 0, 90)
-Library.OutlineColor    = Color3.fromRGB(40, 40, 60)
-Library.FontColor       = Color3.fromRGB(230, 230, 230)
+-- === Tema Ayarları (Siyah-Kırmızı) ===
+Library.BackgroundColor = Color3.fromRGB(15, 15, 15)   -- siyah arka plan
+Library.MainColor       = Color3.fromRGB(200, 0, 0)    -- koyu kırmızı ana renk
+Library.AccentColor     = Color3.fromRGB(255, 50, 50)  -- parlak kırmızı accent
+Library.OutlineColor    = Color3.fromRGB(60, 0, 0)     -- koyu kırmızı outline
+Library.FontColor       = Color3.fromRGB(230, 230, 230) -- açık gri yazı
 
+-- === Ana Pencere ===
 -- === Ana Pencere ===
 local Window = Library:CreateWindow({
     Title = '⚡ MYLF | Hub ⚡',
@@ -20,16 +21,34 @@ local Window = Library:CreateWindow({
     AutoShow = true,
 })
 
+-- === Gradient Başlık Bar ===
+-- Not: Linoria'nın kendi UI objelerine gradient eklemek için Drawing/Instance tabanlı eklemeler yapılır.
+-- Burada örnek olarak üst kısımda görsel efekt için ekleniyor:
+do
+    local gradientFrame = Instance.new("Frame")
+    gradientFrame.Size = UDim2.new(1, 0, 0, 35)
+    gradientFrame.BackgroundTransparency = 0
+    gradientFrame.BorderSizePixel = 0
+    gradientFrame.Parent = game:GetService("CoreGui"):FindFirstChild("Linoria"):FindFirstChild("Main") or nil
+
+    local uiGradient = Instance.new("UIGradient", gradientFrame)
+    uiGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,50)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(120,0,0))
+    })
+    uiGradient.Rotation = 0
+end
+
 -- === Sekmeler (ikonlarla) ===
 local Tabs = {
-    Legit    = Window:AddTab('🎯 Legit'),
-    Rage     = Window:AddTab('🔥 Rage'),
-    Visuals  = Window:AddTab('👁 Visuals'),
-    Player   = Window:AddTab('🧍 Player'),
-    Teleport = Window:AddTab('⚡ Teleport'),
-    World    = Window:AddTab('🌍 World'),
-    Misc     = Window:AddTab('🛠 Misc'),
-    Settings = Window:AddTab('⚙️ Settings'),
+    Legit    = Window:AddTab('Legit'),
+    Rage     = Window:AddTab('Rage'),
+    Visuals  = Window:AddTab('Visuals'),
+    Player   = Window:AddTab('Player'),
+    Teleport = Window:AddTab('Teleport'),
+    World    = Window:AddTab('World'),
+    Misc     = Window:AddTab('Misc'),
+    Settings = Window:AddTab('Settings'),
 }
 
 -- === Legit Tab ===
@@ -102,3 +121,4 @@ ThemeManager:ApplyToTab(Tabs.Settings)
 
 -- === Aç/Kapa Tuşu (LeftShift) ===
 Library.ToggleKeybind = Enum.KeyCode.LeftShift
+
