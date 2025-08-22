@@ -1,4 +1,6 @@
--- ⚡ MYLF | Hub ⚡ — FEATURES (refreshli ESP + sade aimbot)
+-- ⚡ MYLF | Hub ⚡ — FEATURES (full)
+-- Not: Aimbot mesafe bağımsızdır; kameraya göre en küçük açıdaki düşmanı seçer.
+--      İstersen otomatik ateş (TriggerOnAim) açık gelir; kapatmak için false yap.
 
 local RunService = game:GetService("RunService")
 local UIS        = game:GetService("UserInputService")
@@ -8,32 +10,62 @@ local Player     = Players.LocalPlayer
 local features = {}
 
 ----------------------------------------------------------------
--- Utility: yakındaki hedef (LoS + takım kontrol + ekran)
+-- AIMBOT CONFIG
+----------------------------------------------------------------
+features.TeamCheck       = true     -- aynı takım hedeflenmez
+features.Smoothness      = 1        -- 1 = anında bak; 3-6 = yumuşak
+features.AimRequireLOS   = false    -- true: çizgisel görüş şart (duvar arkası yok)
+features.AimUseFOV       = false    -- true: ekran içi açı sınırı uygula
+features.AimMaxAngleDeg  = 360      -- AimUseFOV=true iken geçerli
+features.AimMaxDistance  = 1e9      -- pratikte sınırsız
+
+features.TriggerOnAim    = true     -- hedefteyken otomatik ateş
+features.TriggerRate     = 0.12     -- tetikler arası min süre (sn)
+features._lastTrigger    = 0        -- iç sayaç
+
+----------------------------------------------------------------
+-- Utility: en uygun hedef (mesafe önemsiz, açıya göre)
 ----------------------------------------------------------------
 local function getClosestVisibleHead()
     local cam = workspace.CurrentCamera
-    local best, dist = nil, math.huge
+    local origin = cam.CFrame.Position
+    local look   = cam.CFrame.LookVector
 
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    params.FilterDescendantsInstances = { Player.Character }
+    local bestHead, bestScore = nil, math.huge
+
+    local rcParams = RaycastParams.new()
+    rcParams.FilterType = Enum.RaycastFilterType.Blacklist
+    rcParams.FilterDescendantsInstances = { Player.Character }
 
     for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Player and plr.Character and plr.Character:FindFirstChild("Head") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
-            if not (Player.Team and plr.Team and Player.Team == plr.Team) then
-                local head = plr.Character.Head
-                local res = workspace:Raycast(cam.CFrame.Position, (head.Position - cam.CFrame.Position).Unit * 1e3, params)
-                if res and res.Instance and res.Instance:IsDescendantOf(plr.Character) then
-                    local sp, on = cam:WorldToViewportPoint(head.Position)
-                    if on then
-                        local m = (Vector2.new(sp.X, sp.Y) - Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)).Magnitude
-                        if m < dist then dist, best = m, head end
+        if plr ~= Player and plr.Character then
+            local hum  = plr.Character:FindFirstChildOfClass("Humanoid")
+            local head = plr.Character:FindFirstChild("Head")
+            if hum and head and hum.Health > 0 then
+                if not (features.TeamCheck and Player.Team and plr.Team and plr.Team == Player.Team) then
+                    local toHead = head.Position - origin
+                    local dist   = toHead.Magnitude
+                    if dist <= (features.AimMaxDistance or 1e9) then
+                        local dirUnit = toHead.Unit
+                        local dot   = math.clamp(look:Dot(dirUnit), -1, 1)
+                        local angle = math.deg(math.acos(dot)) -- 0° daha iyi
+
+                        if (not features.AimUseFOV) or (angle <= (features.AimMaxAngleDeg or 360)) then
+                            local ok = true
+                            if features.AimRequireLOS then
+                                local hit = workspace:Raycast(origin, dirUnit * dist, rcParams)
+                                ok = (hit and hit.Instance and hit.Instance:IsDescendantOf(plr.Character)) or false
+                            end
+                            if ok and angle < bestScore then
+                                bestScore, bestHead = angle, head
+                            end
+                        end
                     end
                 end
             end
         end
     end
-    return best
+    return bestHead
 end
 
 ----------------------------------------------------------------
@@ -76,7 +108,7 @@ function features.ToggleGodmode(on)
 end
 
 ----------------------------------------------------------------
--- Fly (LeftControl = aşağı)
+-- Fly (LeftControl aşağı)
 ----------------------------------------------------------------
 features._flySpeed = 60
 function features.ToggleFly(on)
@@ -150,28 +182,36 @@ function features.ToggleTeleport(on)
 end
 
 ----------------------------------------------------------------
--- Aimbot (ESKİ SADE SÜRÜM)
+-- AIMBOT (açı tabanlı + opsiyonel otomatik ateş)
 ----------------------------------------------------------------
-features.Smoothness = 5
 function features.ToggleAimbot(on)
     local cam = workspace.CurrentCamera
+    local function step()
+        local head = getClosestVisibleHead()
+        if not head then return end
+        local target = CFrame.new(cam.CFrame.Position, head.Position)
+        local s = tonumber(features.Smoothness) or 1
+        cam.CFrame = (s > 1) and cam.CFrame:Lerp(target, 1/s) or target
+
+        if features.TriggerOnAim then
+            local now = tick()
+            if (now - (features._lastTrigger or 0)) >= (features.TriggerRate or 0.12) then
+                local ch = Player.Character
+                local tool = ch and ch:FindFirstChildOfClass("Tool")
+                if tool then pcall(function() tool:Activate() end); features._lastTrigger = now end
+            end
+        end
+    end
     if on then
         if features._aim then features._aim:Disconnect() end
-        features._aim = RunService.RenderStepped:Connect(function()
-            local head = getClosestVisibleHead()
-            if head then
-                local target = CFrame.new(cam.CFrame.Position, head.Position)
-                local s = tonumber(features.Smoothness) or 1
-                cam.CFrame = (s > 1) and cam.CFrame:Lerp(target, 1/s) or target
-            end
-        end)
+        features._aim = RunService.RenderStepped:Connect(step)
     else
         if features._aim then features._aim:Disconnect(); features._aim=nil end
     end
 end
 
 ----------------------------------------------------------------
--- Silent Aim / Rapid Fire / Kill Aura (senin mantığına uygun basit hâl)
+-- Silent Aim (basit __namecall patch)
 ----------------------------------------------------------------
 function features.ToggleSilentAim(on)
     if on then
@@ -199,6 +239,9 @@ function features.ToggleSilentAim(on)
     end
 end
 
+----------------------------------------------------------------
+-- Rapid Fire
+----------------------------------------------------------------
 function features.ToggleRapidFire(on)
     if on then
         if features._rof then features._rof:Disconnect() end
@@ -219,6 +262,9 @@ function features.ToggleRapidFire(on)
     end
 end
 
+----------------------------------------------------------------
+-- Kill Aura (15 stud)
+----------------------------------------------------------------
 function features.ToggleKillAura(on)
     if on then
         if features._aura then features._aura:Disconnect() end
@@ -241,11 +287,11 @@ function features.ToggleKillAura(on)
 end
 
 ----------------------------------------------------------------
--- ESP (JOIN/LEAVE/RESPAWN dinamik + NPC + cleanup)
+-- ESP (join/leave/respawn canlı + NPC + cleanup)
 ----------------------------------------------------------------
-features._espMap   = {}   -- [char] = {hl=, bb=, lbl=, conns={...}}
+features._espMap   = {}   -- [char] = {hl, bb, lbl, conns={}}
 features._espOn    = false
-features._espConns = {}   -- genel bağlantılar (player/world)
+features._espConns = {}
 
 local function _espCleanupChar(char)
     local o = features._espMap[char]
@@ -292,23 +338,18 @@ local function _espAddForChar(char, isNPC)
         o.bb, o.lbl = bb, tl
     end
 
-    -- Cleanup bağları
+    -- Temizlik bağları
     local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        table.insert(o.conns, hum.Died:Connect(function() _espCleanupChar(char) end))
-    end
+    if hum then table.insert(o.conns, hum.Died:Connect(function() _espCleanupChar(char) end)) end
     table.insert(o.conns, char.AncestryChanged:Connect(function(_, parent)
         if not parent then _espCleanupChar(char) end
     end))
 end
 
 local function _espAttachPlayer(plr)
-    -- mevcut karakter
     if plr.Character then _espAddForChar(plr.Character, false) end
-    -- respawn
     table.insert(features._espConns, plr.CharacterAdded:Connect(function(c)
-        task.wait(0.2)
-        if features._espOn then _espAddForChar(c, false) end
+        task.wait(0.2); if features._espOn then _espAddForChar(c, false) end
     end))
 end
 
@@ -339,7 +380,7 @@ function features.ToggleESP(on)
             end
         end))
 
-        -- renk/isim update
+        -- renk/isim güncelle
         if features._espTick then features._espTick:Disconnect() end
         local t = 0
         features._espTick = RunService.RenderStepped:Connect(function(dt)
