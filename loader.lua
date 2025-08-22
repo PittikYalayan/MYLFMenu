@@ -1,85 +1,136 @@
--- Linoria Library yükle
+-- ⚡ MYLF Premium Loader (Linoria)
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
 
--- Features
-local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
+local Features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features.lua"))()
 
--- === UI ===
+-- === Pencere ===
 local Window = Library:CreateWindow({
-    Title = '⚡ MYLF Hack Menu ⚡',
+    Title = '⚡ MYLF Hub ⚡',
     Center = true,
     AutoShow = true,
 })
 
+-- === Sekmeler ===
 local Tabs = {
-    Legit = Window:AddTab('Legit'),
-    Rage = Window:AddTab('Rage'),
-    Visuals = Window:AddTab('Visuals'),
-    Player = Window:AddTab('Player'),
-    Teleport = Window:AddTab('Teleport'),
-    World = Window:AddTab('World'),
-    Misc = Window:AddTab('Misc'),
-    Settings = Window:AddTab('Settings'),
+    Legit   = Window:AddTab('🎯 Legit'),
+    Rage    = Window:AddTab('🔥 Rage'),
+    Visuals = Window:AddTab('👀 Visuals'),
+    Player  = Window:AddTab('👤 Player'),
+    Teleport= Window:AddTab('⚡ Teleport'),
+    World   = Window:AddTab('🌍 World'),
+    Misc    = Window:AddTab('🛠 Misc'),
+    Settings= Window:AddTab('⚙️ Settings'),
 }
 
--- === Legit (Aimbot) ===
-local LegitBox = Tabs.Legit:AddLeftGroupbox('Aimbot')
-LegitBox:AddToggle('AimbotEnable', { Text = 'Enable', Default = false })
-    :OnChanged(function(val) features.ToggleAimbot(val) end)
+-- === Legit Tab (Fotoğraftaki gibi) ===
+local AimbotGroup = Tabs.Legit:AddLeftGroupbox('Aimbot')
 
-LegitBox:AddToggle('WallCheck', { Text = 'Wall Check', Default = true })
-    :OnChanged(function(val) features.WallCheck = val end)
+AimbotGroup:AddToggle('AimEnabled', { Text = 'Enable', Default = false }):OnChanged(function(val)
+    Features.ToggleAimbot(val)
+end)
 
-LegitBox:AddToggle('TeamCheck', { Text = 'Team Check', Default = true })
-    :OnChanged(function(val) features.TeamCheck = val end)
+AimbotGroup:AddToggle('AimWallCheck', { Text = 'Wall Check', Default = false }):OnChanged(function(val)
+    Features.SetWallCheck(val)
+end)
 
-LegitBox:AddSlider('Smoothness', { Text = 'Smoothness', Min = 1, Max = 10, Default = 5, Rounding = 1 })
-    :OnChanged(function(val) features.Smoothness = val end)
+AimbotGroup:AddToggle('AimTeamCheck', { Text = 'Team Check', Default = false }):OnChanged(function(val)
+    Features.SetTeamCheck(val)
+end)
 
-LegitBox:AddToggle('EnablePrediction', { Text = 'Enable Prediction', Default = false })
-    :OnChanged(function(val) features.EnablePrediction = val end)
+AimbotGroup:AddSlider('AimSmooth', {
+    Text = 'Smoothness',
+    Min = 1,
+    Max = 10,
+    Default = 5,
+    Rounding = 1,
+    Callback = function(val) Features.SetSmoothness(val) end
+})
 
-LegitBox:AddToggle('StickyAim', { Text = 'Sticky Aim', Default = false })
-    :OnChanged(function(val) features.StickyAim = val end)
+AimbotGroup:AddToggle('AimPrediction', { Text = 'Enable Prediction', Default = false }):OnChanged(function(val)
+    Features.SetPrediction(val)
+end)
 
-LegitBox:AddDropdown('Keybind', { Text = 'Keybind', Values = { 'Mouse Button1', 'Mouse Button2', 'Mouse Button3', 'E', 'Q' }, Default = 'Mouse Button2' })
-    :OnChanged(function(val) features.AimbotKey = val end)
+AimbotGroup:AddToggle('AimSticky', { Text = 'Sticky Aim', Default = false }):OnChanged(function(val)
+    Features.SetSticky(val)
+end)
 
--- === Player ===
-local PlayerBox = Tabs.Player:AddLeftGroupbox('Player Hacks')
-PlayerBox:AddToggle('Godmode', { Text = 'Godmode', Default = false }):OnChanged(function(val) features.ToggleGodmode(val) end)
+AimbotGroup:AddKeyPicker('AimKey', {
+    Default = 'MouseButton2',
+    SyncToggleState = false,
+    Text = 'Keybind',
+    Mode = 'Hold',
+    Callback = function(val) Features.SetAimKey(val) end,
+})
 
-PlayerBox:AddSlider('SpeedSlider', { Text = 'Speed', Min = 1, Max = 300, Default = 16, Rounding = 0 })
-    :OnChanged(function(val) features.SetSpeed(val) end)
+-- === Rage Tab ===
+local RageGroup = Tabs.Rage:AddLeftGroupbox('Ragebot')
+RageGroup:AddToggle('RageAimbot', { Text = 'Enable Rage Aimbot', Default = false }):OnChanged(function(val)
+    Features.ToggleRageAimbot(val)
+end)
 
-PlayerBox:AddSlider('FlySlider', { Text = 'Fly Speed', Min = 1, Max = 300, Default = 50, Rounding = 0 })
-    :OnChanged(function(val) features.SetFlySpeed(val) end)
+RageGroup:AddToggle('SilentAim', { Text = 'Silent Aim', Default = false }):OnChanged(function(val)
+    Features.ToggleSilentAim(val)
+end)
 
-PlayerBox:AddToggle('InfiniteJump', { Text = 'Infinite Jump', Default = false })
-    :OnChanged(function(val) features.ToggleInfiniteJump(val) end)
+RageGroup:AddToggle('NoRecoil', { Text = 'No Recoil / No Spread', Default = false }):OnChanged(function(val)
+    Features.ToggleNoRecoilSpread(val)
+end)
 
--- === Teleport ===
-local TeleportBox = Tabs.Teleport:AddLeftGroupbox('Teleport')
-TeleportBox:AddToggle('TP', { Text = 'Teleport Tool (T)', Default = false })
-    :OnChanged(function(val) features.ToggleTeleport(val) end)
+RageGroup:AddToggle('KillAura', { Text = 'Kill Aura', Default = false }):OnChanged(function(val)
+    Features.ToggleKillAura(val)
+end)
 
--- === Visuals ===
-local VisualsBox = Tabs.Visuals:AddLeftGroupbox('Visuals')
-VisualsBox:AddToggle('ESP', { Text = 'ESP Master Toggle', Default = false }):OnChanged(function(val) features.ToggleESP(val) end)
-VisualsBox:AddToggle('Skeleton', { Text = 'ESP Skeleton', Default = false }):OnChanged(function(val) features.ToggleSkeleton(val) end)
-VisualsBox:AddToggle('Rainbow', { Text = 'ESP Rainbow Names', Default = false }):OnChanged(function(val) features.ToggleRainbowName(val) end)
+RageGroup:AddToggle('RapidFire', { Text = 'Rapid Fire', Default = false }):OnChanged(function(val)
+    Features.ToggleRapidFire(val)
+end)
 
--- === Misc ===
-local MiscBox = Tabs.Misc:AddLeftGroupbox('Misc')
-MiscBox:AddToggle('Invisible', { Text = 'Invisible', Default = false }):OnChanged(function(val) features.ToggleInvisible(val) end)
-MiscBox:AddToggle('Inspector', { Text = 'Tool Inspector', Default = false }):OnChanged(function(val) features.ToggleInspector(val) end)
+-- === Visuals Tab ===
+local VisualGroup = Tabs.Visuals:AddLeftGroupbox('ESP / Visuals')
+VisualGroup:AddToggle('ESP', { Text = 'ESP', Default = false }):OnChanged(function(val)
+    Features.ToggleESP(val)
+end)
+VisualGroup:AddToggle('Skeleton', { Text = 'Skeleton ESP', Default = false }):OnChanged(function(val)
+    Features.ToggleSkeleton(val)
+end)
+VisualGroup:AddToggle('Invisible', { Text = 'Invisible Mode', Default = false }):OnChanged(function(val)
+    Features.ToggleInvisible(val)
+end)
 
--- === Theme/Save ===
+-- === Player Tab ===
+local PlayerGroup = Tabs.Player:AddLeftGroupbox('Player Mods')
+PlayerGroup:AddToggle('Godmode', { Text = 'Godmode', Default = false }):OnChanged(function(val)
+    Features.ToggleGodmode(val)
+end)
+PlayerGroup:AddToggle('Fly', { Text = 'Fly', Default = false }):OnChanged(function(val)
+    Features.ToggleFly(val)
+end)
+PlayerGroup:AddToggle('InfJump', { Text = 'Infinite Jump', Default = false }):OnChanged(function(val)
+    Features.ToggleInfiniteJump(val)
+end)
+PlayerGroup:AddSlider('Speed', {
+    Text = 'Walk Speed',
+    Min = 16, Max = 300, Default = 16,
+    Callback = function(val) Features.SetSpeed(val) end
+})
+
+-- === Misc Tab ===
+local MiscGroup = Tabs.Misc:AddLeftGroupbox('Misc')
+MiscGroup:AddButton('Tool Inspector', function() Features.ToggleInspector(true) end)
+MiscGroup:AddToggle('Noclip', { Text = 'Noclip', Default = false }):OnChanged(function(val)
+    Features.ToggleNoclip(val)
+end)
+
+-- === Tema & Save ===
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
-ThemeManager:ApplyToTab(Tabs.Settings)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ })
+ThemeManager:SetFolder('MYLFHub')
+SaveManager:SetFolder('MYLFHub')
 SaveManager:BuildConfigSection(Tabs.Settings)
+ThemeManager:ApplyToTab(Tabs.Settings)
 
-Library:Notify('⚡ MYLF Menu Loaded!', 3)
+-- === Aç/Kapa Tuşu (LeftShift) ===
+Library.ToggleKeybind = Enum.KeyCode.LeftShift
