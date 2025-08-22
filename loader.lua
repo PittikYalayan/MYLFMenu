@@ -22,14 +22,14 @@ local Window = Library:CreateWindow({
 
 -- === Sekmeler ===
 local Tabs = {
-    Legit    = Window:AddTab('Legit'),
-    Rage     = Window:AddTab('Rage'),
-    Visuals  = Window:AddTab('Visuals'),
-    Player   = Window:AddTab('Player'),
-    Teleport = Window:AddTab('Teleport'),
-    World    = Window:AddTab('World'),
-    Misc     = Window:AddTab('Misc'),
-    Settings = Window:AddTab('Settings'),
+    Legit    = Window:AddTab('🎯 Legit'),
+    Rage     = Window:AddTab('🔥 Rage'),
+    Visuals  = Window:AddTab('👁 Visuals'),
+    Player   = Window:AddTab('🧍 Player'),
+    Teleport = Window:AddTab('⚡ Teleport'),
+    World    = Window:AddTab('🌍 World'),
+    Misc     = Window:AddTab('🛠 Misc'),
+    Settings = Window:AddTab('⚙️ Settings'),
 }
 
 -- === Rage Tab ===
