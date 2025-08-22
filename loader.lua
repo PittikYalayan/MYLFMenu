@@ -2186,3 +2186,115 @@ end)
 
 
 
+
+
+
+
+
+-- =======================
+-- Feature Fonksiyonları
+-- =======================
+local features = {}
+
+-- Speed
+function features.ToggleSpeed(state)
+    if state then
+        print("[Speed] Açıldı")
+        -- speed kodları buraya
+    else
+        print("[Speed] Kapandı")
+    end
+end
+
+-- Godmode
+function features.ToggleGodmode(state)
+    if state then
+        print("[Godmode] Açıldı")
+        -- godmode kodları buraya
+    else
+        print("[Godmode] Kapandı")
+    end
+end
+
+-- Fly
+function features.ToggleFly(state)
+    if state then
+        print("[Fly] Açıldı")
+        -- fly kodları buraya
+    else
+        print("[Fly] Kapandı")
+    end
+end
+
+-- Aimbot
+function features.ToggleAimbot(state)
+    if state then
+        print("[Aimbot] Açıldı")
+        -- aimbot kodları buraya
+    else
+        print("[Aimbot] Kapandı")
+    end
+end
+
+-- Teleport
+function features.ToggleTeleport(state)
+    if state then
+        print("[Teleport] Açıldı")
+        -- teleport kodları buraya
+    else
+        print("[Teleport] Kapandı")
+    end
+end
+
+-- Kill Aura
+function features.ToggleKillAura(state)
+    if state then
+        print("[KillAura] Açıldı")
+        -- aura kodları buraya
+    else
+        print("[KillAura] Kapandı")
+    end
+end
+
+-- Infinite Jump
+function features.ToggleInfiniteJump(state)
+    if state then
+        print("[InfiniteJump] Açıldı")
+        -- jump kodları buraya
+    else
+        print("[InfiniteJump] Kapandı")
+    end
+end
+
+-- Invisible
+function features.ToggleInvisible(state)
+    if state then
+        print("[Invisible] Açıldı")
+        -- invisible kodları buraya
+    else
+        print("[Invisible] Kapandı")
+    end
+end
+
+-- Tool Inspector
+function features.ToggleInspector(state)
+    if state then
+        print("[Inspector] Açıldı")
+        -- inspector kodları buraya
+    else
+        print("[Inspector] Kapandı")
+    end
+end
+
+-- ESP
+function features.ToggleESP(state)
+    if state then
+        print("[ESP] Açıldı")
+        -- esp kodları buraya
+    else
+        print("[ESP] Kapandı")
+    end
+end
+
+return features
+
