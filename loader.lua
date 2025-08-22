@@ -1,4 +1,4 @@
--- ⚡ MYLF Premium Loader (Linoria) - Modern Design v2
+-- ⚡ MYLF Premium Loader (Linoria) - Modern Design
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
@@ -32,34 +32,21 @@ local Tabs = {
     Settings = Window:AddTab('⚙️ Settings'),
 }
 
--- === Rage Tab === (Aimbot buraya taşındı)
-local RageGroup = Tabs.Rage:AddLeftGroupbox('Ragebot')
-
-RageGroup:AddToggle('RageAimbot', {Text = 'Enable Rage Aimbot'}):OnChanged(function(val)
-    Features.ToggleAimbot(val)
-end)
-RageGroup:AddToggle('RageWallCheck', {Text = 'Wall Check'}):OnChanged(function(val)
-    Features.SetWallCheck(val)
-end)
-RageGroup:AddToggle('RageTeamCheck', {Text = 'Team Check'}):OnChanged(function(val)
-    Features.SetTeamCheck(val)
-end)
-RageGroup:AddSlider('RageSmooth', {Text = 'Smoothness', Min = 1, Max = 10, Default = 5, Rounding = 1})
+-- === Legit Tab ===
+local AimbotGroup = Tabs.Legit:AddLeftGroupbox('Aimbot')
+AimbotGroup:AddToggle('AimEnabled', {Text = 'Enable'}):OnChanged(function(val) Features.ToggleAimbot(val) end)
+AimbotGroup:AddToggle('AimWallCheck', {Text = 'Wall Check'}):OnChanged(function(val) Features.SetWallCheck(val) end)
+AimbotGroup:AddToggle('AimTeamCheck', {Text = 'Team Check'}):OnChanged(function(val) Features.SetTeamCheck(val) end)
+AimbotGroup:AddSlider('AimSmooth', {Text = 'Smoothness', Min = 1, Max = 10, Default = 5, Rounding = 1})
     :OnChanged(function(val) Features.SetSmoothness(val) end)
-RageGroup:AddToggle('RagePrediction', {Text = 'Prediction'}):OnChanged(function(val)
-    Features.SetPrediction(val)
-end)
-RageGroup:AddToggle('RageSticky', {Text = 'Sticky Aim'}):OnChanged(function(val)
-    Features.SetSticky(val)
-end)
-RageGroup:AddKeyPicker('RageAimKey', {
-    Default = 'MouseButton2',
-    Mode = 'Hold',
-    Text = 'Aimbot Key',
-    Callback = function(val) Features.SetAimKey(val) end
-})
+AimbotGroup:AddToggle('AimPrediction', {Text = 'Prediction'}):OnChanged(function(val) Features.SetPrediction(val) end)
+AimbotGroup:AddToggle('AimSticky', {Text = 'Sticky Aim'}):OnChanged(function(val) Features.SetSticky(val) end)
+AimbotGroup:AddKeyPicker('AimKey', {Default = 'MouseButton2', Mode = 'Hold', Text = 'Keybind'})
+    :OnClick(function(val) Features.SetAimKey(val) end)
 
--- Diğer Rage özellikleri
+-- === Rage Tab ===
+local RageGroup = Tabs.Rage:AddLeftGroupbox('Ragebot')
+RageGroup:AddToggle('RageAimbot', {Text = 'Rage Aimbot'}):OnChanged(function(val) Features.ToggleRageAimbot(val) end)
 RageGroup:AddToggle('SilentAim', {Text = 'Silent Aim'}):OnChanged(function(val) Features.ToggleSilentAim(val) end)
 RageGroup:AddToggle('NoRecoil', {Text = 'No Recoil / No Spread'}):OnChanged(function(val) Features.ToggleNoRecoilSpread(val) end)
 RageGroup:AddToggle('KillAura', {Text = 'Kill Aura'}):OnChanged(function(val) Features.ToggleKillAura(val) end)
@@ -76,46 +63,11 @@ VisualGroup:AddToggle('Chams', {Text = 'Chams'}):OnChanged(function(val) Feature
 
 -- === Player Tab ===
 local PlayerGroup = Tabs.Player:AddLeftGroupbox('Player Mods')
-
--- Godmode
-PlayerGroup:AddToggle('Godmode', {Text = 'Godmode'}):OnChanged(function(val)
-    Features.ToggleGodmode(val)
-end)
-
--- Fly (Enable + keybind)
-PlayerGroup:AddToggle('FlyEnabled', {Text = 'Enable Fly'}):OnChanged(function(val)
-    Features.ToggleFly(val)
-end)
-PlayerGroup:AddKeyPicker('FlyKey', {
-    Default = 'F',
-    Mode = 'Toggle',
-    Text = 'Fly Key',
-    Callback = function(val) Features.SetFlyKey(val) end
-})
-
--- Speed (Enable + slider + keybind)
-PlayerGroup:AddToggle('SpeedEnabled', {Text = 'Enable Walk Speed'}):OnChanged(function(val)
-    Features.ToggleSpeed(val)
-end)
-PlayerGroup:AddSlider('SpeedValue', {Text = 'Walk Speed', Min = 16, Max = 300, Default = 16})
+PlayerGroup:AddToggle('Godmode', {Text = 'Godmode'}):OnChanged(function(val) Features.ToggleGodmode(val) end)
+PlayerGroup:AddToggle('Fly', {Text = 'Fly'}):OnChanged(function(val) Features.ToggleFly(val) end)
+PlayerGroup:AddToggle('InfJump', {Text = 'Infinite Jump'}):OnChanged(function(val) Features.ToggleInfiniteJump(val) end)
+PlayerGroup:AddSlider('Speed', {Text = 'Walk Speed', Min = 16, Max = 300, Default = 16})
     :OnChanged(function(val) Features.SetSpeed(val) end)
-PlayerGroup:AddKeyPicker('SpeedKey', {
-    Default = 'LeftShift',
-    Mode = 'Hold',
-    Text = 'Speed Key',
-    Callback = function(val) Features.SetSpeedKey(val) end
-})
-
--- Infinite Jump (Enable + keybind)
-PlayerGroup:AddToggle('InfJumpEnabled', {Text = 'Enable Infinite Jump'}):OnChanged(function(val)
-    Features.ToggleInfiniteJump(val)
-end)
-PlayerGroup:AddKeyPicker('InfJumpKey', {
-    Default = 'Space',
-    Mode = 'Hold',
-    Text = 'Infinite Jump Key',
-    Callback = function(val) Features.SetInfiniteJumpKey(val) end
-})
 
 -- === Teleport Tab ===
 local TPGroup = Tabs.Teleport:AddLeftGroupbox('Teleport')
