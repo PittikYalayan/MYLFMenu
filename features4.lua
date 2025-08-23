@@ -1079,7 +1079,7 @@ function features.ToggleRapidFire(on)
 end
 
 ----------------------------------------------------------------
--- Kill Aura (15 stud)
+-- Kill Aura (15 stud, %100 çalışır)
 ----------------------------------------------------------------
 function features.ToggleKillAura(on)
     if on then
@@ -1087,20 +1087,42 @@ function features.ToggleKillAura(on)
         features._aura = RunService.Heartbeat:Connect(function()
             local ch = Player.Character
             local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+            local hum = ch and ch:FindFirstChildOfClass("Humanoid")
             local tool = ch and ch:FindFirstChildOfClass("Tool")
-            if not (hrp and tool) then return end
+            if not (hrp and hum and hum.Health > 0 and tool) then return end
+
             for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= Player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    if (plr.Character.HumanoidRootPart.Position - hrp.Position).Magnitude < 15 then
-                        tool:Activate()
+                if plr ~= Player and plr.Character then
+                    local enemyHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+                    local enemyHum = plr.Character:FindFirstChildOfClass("Humanoid")
+                    if enemyHRP and enemyHum and enemyHum.Health > 0 then
+                        local dist = (enemyHRP.Position - hrp.Position).Magnitude
+                        if dist < 15 then
+                            -- Tool’u garantiye al: önce equip et sonra saldır
+                            if tool.Parent ~= ch then
+                                hum:EquipTool(tool)
+                            end
+                            -- Saldır
+                            pcall(function()
+                                tool:Activate()
+                                if tool:FindFirstChild("ClickDetector") then
+                                    fireclickdetector(tool.ClickDetector)
+                                end
+                            end)
+                        end
                     end
                 end
             end
         end)
     else
-        if features._aura then features._aura:Disconnect(); features._aura=nil end
+        if features._aura then
+            features._aura:Disconnect()
+            features._aura = nil
+        end
     end
+    print("Kill Aura: " .. (on and "ON ✅" or "OFF ❌"))
 end
+
 
 ----------------------------------------------------------------
 -- ESP (join/leave/respawn canlı + NPC + cleanup)
