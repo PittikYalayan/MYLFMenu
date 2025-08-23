@@ -3,35 +3,67 @@ local Library      = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
 
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
+local Players   = game:GetService("Players")
+local RunService= game:GetService("RunService")
+local UIS       = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Player = Players.LocalPlayer
 local features = {
+    SilentAim = false,
+    DeathMode = false,
     espObjects = {},
-    envObjects = {},
-    SilentAim = false
+    envObjects = {}
 }
 
 ----------------------------------------------------------------
--- Combat
+-- Aimbot (Smooth + WallCheck + TeamCheck)
 ----------------------------------------------------------------
+local function getClosestTarget()
+    local cam = Workspace.CurrentCamera
+    local origin = cam.CFrame.Position
+    local look   = cam.CFrame.LookVector
+    local best, bestScore = nil, math.huge
+
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    params.FilterDescendantsInstances = {Player.Character}
+
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player and plr.Character then
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local head= plr.Character:FindFirstChild("Head")
+            if hum and head and hum.Health > 0 then
+                if not (Toggles.espTeam and Player.Team and plr.Team and Player.Team == plr.Team) then
+                    local dir = (head.Position - origin)
+                    local dist= dir.Magnitude
+                    local dot = look:Dot(dir.Unit)
+                    local angle = math.deg(math.acos(dot))
+
+                    -- WallCheck
+                    local ray = Workspace:Raycast(origin, dir, params)
+                    if (not ray or ray.Instance:IsDescendantOf(plr.Character)) then
+                        if angle < bestScore then
+                            best, bestScore = plr, angle
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
 function features.ToggleAimbot(on)
     if on then
         if features._aim then features._aim:Disconnect() end
         features._aim = RunService.RenderStepped:Connect(function()
-            local cam = Workspace.CurrentCamera
-            local target
-            for _,plr in ipairs(Players:GetPlayers()) do
-                if plr ~= Player and plr.Character and plr.Character:FindFirstChild("Head") then
-                    target = plr.Character.Head
-                    break
-                end
-            end
-            if target then
-                cam.CFrame = CFrame.new(cam.CFrame.Position, target.Position)
+            local target = getClosestTarget()
+            if target and target.Character:FindFirstChild("Head") then
+                local cam = Workspace.CurrentCamera
+                local s = (Options.Smoothness and Options.Smoothness.Value) or 1
+                local new = CFrame.new(cam.CFrame.Position, target.Character.Head.Position)
+                cam.CFrame = (s>1) and cam.CFrame:Lerp(new,1/s) or new
             end
         end)
     else
@@ -39,53 +71,111 @@ function features.ToggleAimbot(on)
     end
 end
 
+----------------------------------------------------------------
+-- Silent Aim (Normal + Hard Hook)
+----------------------------------------------------------------
 function features.ToggleSilentAim(on)
     features.SilentAim = on
     if on and not features._ncHooked then
         features._ncHooked = true
         local old
-        old = hookmetamethod(game, "__namecall", function(self, ...)
+        old = hookmetamethod(game, "__namecall", function(self,...)
             local method = getnamecallmethod()
-            local args = {...}
-            if features.SilentAim and self:IsA("RemoteEvent") and method == "FireServer" then
-                for _,plr in ipairs(Players:GetPlayers()) do
-                    if plr ~= Player and plr.Character and plr.Character:FindFirstChild("Head") then
-                        args[1] = plr.Character.Head.Position
-                        return old(self, unpack(args))
+            local args   = {...}
+            if features.SilentAim and self:IsA("RemoteEvent") and (method=="FireServer" or method=="InvokeServer") then
+                local target = getClosestTarget()
+                if target and target.Character and target.Character:FindFirstChild("Head") then
+                    local aimPos = target.Character.Head.Position
+                    if features.DeathMode and target.Character:FindFirstChild("MYLF_GhostHRP") then
+                        aimPos = target.Character.MYLF_GhostHRP.Position
                     end
+                    for i=1,#args do
+                        if typeof(args[i])=="Vector3" then args[i]=aimPos break end
+                        if typeof(args[i])=="CFrame" then args[i]=CFrame.new(args[i].Position,aimPos) break end
+                    end
+                    return old(self, unpack(args))
                 end
             end
-            return old(self, ...)
+            return old(self,...)
         end)
     end
 end
 
-function features.ToggleNoRecoil(on)
+----------------------------------------------------------------
+-- DeathMode (FarmBot tarzı)
+----------------------------------------------------------------
+function features.ToggleDeathMode(on)
+    features.DeathMode = on
     if on then
-        local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
-        if tool then
-            for _,v in ipairs(tool:GetDescendants()) do
-                if v:IsA("NumberValue") and v.Name:lower():find("recoil") then
-                    v.Value = 0
+        if features._death then features._death:Disconnect() end
+        features._death = RunService.Heartbeat:Connect(function()
+            local myChar = Player.Character
+            local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if not myHRP then return end
+            local target = getClosestTarget()
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = target.Character.HumanoidRootPart
+                if not target.Character:FindFirstChild("MYLF_GhostHRP") then
+                    local ghost = hrp:Clone()
+                    ghost.Name = "MYLF_GhostHRP"
+                    ghost.CanCollide = false
+                    ghost.Transparency = 1
+                    ghost.Parent = target.Character
+                end
+                local ghost = target.Character:FindFirstChild("MYLF_GhostHRP")
+                if ghost then
+                    ghost.CFrame = myHRP.CFrame * CFrame.new(0,0,-3)
                 end
             end
+        end)
+    else
+        if features._death then features._death:Disconnect(); features._death=nil end
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("MYLF_GhostHRP") then
+                plr.Character.MYLF_GhostHRP:Destroy()
+            end
         end
+    end
+end
+
+----------------------------------------------------------------
+-- NoRecoil / NoSpread
+----------------------------------------------------------------
+function features.ToggleNoRecoil(on)
+    if on then
+        if features._norc then features._norc:Disconnect() end
+        features._norc = RunService.Heartbeat:Connect(function()
+            local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                for _,v in ipairs(tool:GetDescendants()) do
+                    if v:IsA("NumberValue") and v.Name:lower():find("recoil") then
+                        v.Value = 0
+                    end
+                end
+            end
+        end)
+    else
+        if features._norc then features._norc:Disconnect(); features._norc=nil end
     end
 end
 
 function features.ToggleNoSpread(on)
     if on then
-        local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
-        if tool then
-            for _,v in ipairs(tool:GetDescendants()) do
-                if v:IsA("NumberValue") and (v.Name:lower():find("spread") or v.Name:lower():find("accuracy")) then
-                    v.Value = 0
+        if features._nosp then features._nosp:Disconnect() end
+        features._nosp = RunService.Heartbeat:Connect(function()
+            local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
+            if tool then
+                for _,v in ipairs(tool:GetDescendants()) do
+                    if v:IsA("NumberValue") and (v.Name:lower():find("spread") or v.Name:lower():find("accuracy")) then
+                        v.Value = 0
+                    end
                 end
             end
-        end
+        end)
+    else
+        if features._nosp then features._nosp:Disconnect(); features._nosp=nil end
     end
 end
-
 ----------------------------------------------------------------
 -- Player ESP
 ----------------------------------------------------------------
@@ -154,7 +244,7 @@ local function ApplyPlayerESP(plr)
         text.TextColor3 = Color3.fromRGB(255,255,0)
         text.TextScaled = true
         RunService.RenderStepped:Connect(function()
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
                 local dist = (Player.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
                 text.Text = string.format("[%dm]", dist)
             end
@@ -282,13 +372,14 @@ Players.PlayerAdded:Connect(function(plr)
         ApplyPlayerESP(plr)
     end)
 end)
-
 ----------------------------------------------------------------
--- Environment ESP (kısaltılmış)
+-- Environment ESP
 ----------------------------------------------------------------
 local function ApplyEnvESP(obj)
     if not Toggles.envMaster.Value then return end
     if not obj:IsA("BasePart") then return end
+
+    -- ▣ 3D Box
     if Toggles.envBox.Value and not obj:FindFirstChild("MYLF_EnvBox") then
         local box = Instance.new("SelectionBox")
         box.Name = "MYLF_EnvBox"
@@ -296,19 +387,41 @@ local function ApplyEnvESP(obj)
         box.Color3 = Color3.fromRGB(0,200,200)
         box.Parent = obj
     end
+
+    -- ✨ Highlight
+    if Toggles.envHighlight.Value and not obj:FindFirstChild("MYLF_EnvHL") then
+        local hl = Instance.new("Highlight")
+        hl.Name = "MYLF_EnvHL"
+        hl.FillColor = Color3.fromRGB(0,0,255)
+        hl.OutlineColor = Color3.fromRGB(255,255,0)
+        hl.Parent = obj
+    end
 end
-Workspace.DescendantAdded:Connect(ApplyEnvESP)
 
+-- Auto add environment
+Workspace.DescendantAdded:Connect(function(obj)
+    if Toggles.envMaster.Value then
+        ApplyEnvESP(obj)
+    end
+end)
 ----------------------------------------------------------------
--- Menü Kurulumu (Combat / Player ESP / Env ESP / Misc)
+-- Menü Kurulumu
 ----------------------------------------------------------------
-local Window = Library:CreateWindow({Title="⚡ MYLF Universal Hub ⚡",Center=true,AutoShow=true})
+local Window = Library:CreateWindow({
+    Title = "⚡ MYLF Universal Hub ⚡",
+    Center = true,
+    AutoShow = true
+})
+
+-- Combat
 local CombatBox = Window:AddTab("Combat"):AddLeftGroupbox("Combat")
-CombatBox:AddToggle("Aimbot", { Text="Aimbot" }):OnChanged(features.ToggleAimbot)
-CombatBox:AddToggle("SilentAim", { Text="Silent Aim" }):OnChanged(features.ToggleSilentAim)
-CombatBox:AddToggle("NoRecoil", { Text="No Recoil" }):OnChanged(features.ToggleNoRecoil)
-CombatBox:AddToggle("NoSpread", { Text="No Spread" }):OnChanged(features.ToggleNoSpread)
+CombatBox:AddToggle("Aimbot", { Text="🎯 Aimbot" }):OnChanged(features.ToggleAimbot)
+CombatBox:AddToggle("SilentAim", { Text="👀 Silent Aim" }):OnChanged(features.ToggleSilentAim)
+CombatBox:AddToggle("DeathMode", { Text="☠ Death Mode" }):OnChanged(features.ToggleDeathMode)
+CombatBox:AddToggle("NoRecoil", { Text="🔫 No Recoil" }):OnChanged(features.ToggleNoRecoil)
+CombatBox:AddToggle("NoSpread", { Text="🎲 No Spread" }):OnChanged(features.ToggleNoSpread)
 
+-- Player ESP
 local PlayerESP = Window:AddTab("Visuals"):AddLeftGroupbox("Player ESP")
 PlayerESP:AddToggle("espMaster", { Text="Enable Player ESP" })
 PlayerESP:AddToggle("espRainbow", { Text="🌈 Rainbow Name" })
@@ -320,26 +433,33 @@ PlayerESP:AddToggle("espTracers", { Text="〽 Tracers" })
 PlayerESP:AddToggle("espArrows", { Text="⬅ Offscreen Arrows" })
 PlayerESP:AddToggle("espCorner", { Text="⌞⌝ Corner Box 2D" })
 
+-- Environment ESP
 local EnvESP = Window:AddTab("Visuals"):AddRightGroupbox("Environment ESP")
 EnvESP:AddToggle("envMaster", { Text="Enable Env ESP" })
 EnvESP:AddToggle("envBox", { Text="▣ 3D Box" })
 EnvESP:AddToggle("envHighlight", { Text="✨ Highlight" })
 
-local MiscBox = Window:AddTab("Misc"):AddLeftGroupbox("Scanner")
-MiscBox:AddButton("🔍 Refresh ESP", function()
-    RefreshAllPlayers()
-    Library:Notify("ESP refreshed", 5)
+-- Misc
+local MiscBox = Window:AddTab("Misc"):AddLeftGroupbox("Misc Tools")
+MiscBox:AddButton("Refresh Players", function()
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player then ApplyPlayerESP(plr) end
+    end
 end)
-
+MiscBox:AddButton("Refresh Env", function()
+    for _,obj in ipairs(Workspace:GetDescendants()) do
+        ApplyEnvESP(obj)
+    end
+end)
 ----------------------------------------------------------------
--- Tema & Save
+-- Tema & Save Manager
 ----------------------------------------------------------------
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 ThemeManager:SetFolder("MYLFHub")
 SaveManager:SetFolder("MYLFHub")
-SaveManager:BuildConfigSection(Window:AddTab("Misc"))
-ThemeManager:ApplyToTab(Window:AddTab("Misc"))
+SaveManager:BuildConfigSection(Window:AddTab("Config"))
+ThemeManager:ApplyToTab(Window:AddTab("Config"))
 
 ----------------------------------------------------------------
 -- CTRL Gizle/Göster
