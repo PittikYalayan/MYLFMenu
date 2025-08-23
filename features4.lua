@@ -33,6 +33,7 @@ features._lastTrigger    = 0
 -- ============== ESP STATE / OPTIONS ==========================================
 --------------------------------------------------------------------------------
 features._espEnabled = false
+features._espPerf    = "HIGH"           -- HIGH / MED / LOW (throttle)
 features._espObjects = {}   -- [Model] = { highlight=..., billboard=..., label=TextLabel, ... }
 features._espConns   = {}   -- bağlantılar (Disconnect için)
 features._friends    = {}   -- whitelist
@@ -55,8 +56,7 @@ local opt = {
   friendIgnore= false,
 }
 
--- Performans modu (update throttle)
-features._espPerf = "HIGH"  -- HIGH / MED / LOW
+
 
 -- API: Friend whitelist
 function features.ESP_AddFriend(name) if name and #name>0 then features._friends[name]=true end end
@@ -65,9 +65,7 @@ function features.ESP_ClearFriends() features._friends = {} end
 
 
 
---------------------------------------------------------------------------------
--- ============== HELPERS ======================================================
---------------------------------------------------------------------------------
+-- ====== HELPERS ======
 local function rainbowColor(t)
   local r = math.clamp(math.floor(math.sin(t*2)    *127+128),0,255)
   local g = math.clamp(math.floor(math.sin(t*2 +2) *127+128),0,255)
@@ -142,18 +140,16 @@ local function tryDrawing(kind)
   return nil
 end
 
---------------------------------------------------------------------------------
--- ============== BUILDERS (OBJECT PARTS) ======================================
---------------------------------------------------------------------------------
+-- ====== BUILDERS ======
 local function ensureBox(model, o)
   if not o.selectionBox then
     local sb = Instance.new("SelectionBox")
-    sb.LineThickness = 0.04
+    sb.LineThickness       = 0.04
     sb.SurfaceTransparency = 0.85
-    sb.SurfaceColor3 = Color3.fromRGB(255,255,255)
-    sb.Color3 = sb.SurfaceColor3
-    sb.Adornee = model
-    sb.Parent = model
+    sb.SurfaceColor3       = Color3.fromRGB(255,255,255)
+    sb.Color3              = sb.SurfaceColor3
+    sb.Adornee             = model
+    sb.Parent              = model
     o.selectionBox = sb
   end
   o.selectionBox.Visible = true
@@ -166,7 +162,7 @@ local function ensureStripes(model, o)
   local size=({model:GetBoundingBox()})[2]
   for _,n in ipairs(names) do
     if not o.atts[n] then
-      o.atts[n] = Instance.new("Attachment"); o.atts[n].Name="MYLF_"..n; o.atts[n].Parent = hrp
+      o.atts[n] = Instance.new("Attachment"); o.atts[n].Name="MYLF_"..n; o.atts[n].Parent=hrp
     end
   end
   o.atts.Top.CFrame    = CFrame.new(0,  size.Y/2, 0)
@@ -178,8 +174,8 @@ local function ensureStripes(model, o)
   local function mk(i,a0,a1)
     if not o.stripeBeams[i] then
       local beam = Instance.new("Beam")
-      beam.Width0 = 0.14; beam.Width1 = 0.14; beam.LightEmission = 1; beam.FaceCamera=false; beam.Parent=hrp
-      o.stripeBeams[i] = beam
+      beam.Width0=0.14; beam.Width1=0.14; beam.LightEmission=1; beam.FaceCamera=false; beam.Parent=hrp
+      o.stripeBeams[i]=beam
     end
     o.stripeBeams[i].Attachment0=a0; o.stripeBeams[i].Attachment1=a1; o.stripeBeams[i].Enabled=true
   end
@@ -266,9 +262,7 @@ local function ensureSkeleton(model, o)
   end
 end
 
---------------------------------------------------------------------------------
--- ============== CORE: addESP / clearDead / scan / render =====================
---------------------------------------------------------------------------------
+-- ====== CORE ======
 local function addESP(target, isNPC)
   local adornee = getAdornee(target)
   if not (target and adornee) then return end
@@ -276,7 +270,11 @@ local function addESP(target, isNPC)
 
   if not o.highlight or not o.highlight.Parent then
     local hl = Instance.new("Highlight")
-    hl.FillTransparency=0.5; hl.OutlineColor=Color3.fromRGB(255,255,255); hl.Parent=target
+    hl.FillTransparency = 0.5
+    hl.OutlineColor    = Color3.fromRGB(255,255,255)
+    hl.OutlineTransparency = 0
+    hl.DepthMode       = Enum.HighlightDepthMode.AlwaysOnTop -- 🔧 görünürlük
+    hl.Parent = target
     o.highlight = hl
   end
 
@@ -301,9 +299,7 @@ local function clearDead()
       if o.billboard then pcall(function() o.billboard:Destroy() end) end
       if o.skeleton then for _,s in pairs(o.skeleton) do pcall(function() s.line:Remove() end) end end
       if o.tracer then pcall(function() o.tracer:Remove() end) end
-      if o.arrow then pcall(function()
-        if o.arrowIsTri then o.arrow.Visible=false else o.arrow:Remove() end
-      end) end
+      if o.arrow then pcall(function() if o.arrowIsTri then o.arrow.Visible=false else o.arrow:Remove() end end) end
       if o.corners then for _,ln in ipairs(o.corners) do pcall(function() ln:Remove() end) end end
       features._espObjects[model]=nil
     end
@@ -330,9 +326,8 @@ local function initialScan()
   end
 end
 
--- Yeni giren/respawn olanlar için otomatik refresh
 local function bindAutoRefresh()
-  -- temiz eski conns
+  -- eski conns kapat
   for k, c in pairs(features._espConns) do pcall(function() c:Disconnect() end); features._espConns[k]=nil end
 
   features._espConns.playerAdded = Players.PlayerAdded:Connect(function(plr)
@@ -361,11 +356,11 @@ local function bindAutoRefresh()
   end
 end
 
--- 2D yardımcılar
 local function worldToScreen(p3)
   local v, on = Camera:WorldToViewportPoint(p3)
   return Vector2.new(v.X, v.Y), on, v.Z
 end
+
 local function modelAABB2D(model)
   local ok, cf, size = pcall(model.GetBoundingBox, model)
   if not ok then return nil end
@@ -393,7 +388,6 @@ local function modelAABB2D(model)
   return minV, maxV
 end
 
--- Render loop
 local _renderConn
 local function bindRender()
   if _renderConn then _renderConn:Disconnect(); _renderConn=nil end
@@ -401,7 +395,7 @@ local function bindRender()
   _renderConn = RunService.RenderStepped:Connect(function(dt)
     if not features._espEnabled then return end
 
-    -- Perf throttle
+    -- perf throttle
     local step = (features._espPerf=="HIGH" and 0) or (features._espPerf=="MED" and 0.016) or 0.04
     if step>0 then acc += dt; if acc < step then return end; acc = 0 end
 
@@ -417,7 +411,7 @@ local function bindRender()
       local pass  = alive and not sameTeam(model) and not isFriend(model) and withinRange(model) and losVisible(model)
 
       if pass then
-        -- LABEL (+distance + rainbow)
+        -- Label + Dist + Rainbow
         if o.label then
           local base = o.label.Text
           if opt.showDist then
@@ -434,7 +428,7 @@ local function bindRender()
           o.label.TextColor3 = opt.rainbow and col or Color3.fromRGB(255,255,255)
         end
 
-        -- HIGHLIGHT (glow / rainbow)
+        -- Glow (Highlight)
         if o.highlight then
           if opt.glow or opt.rainbow then
             o.highlight.Enabled = true
@@ -445,7 +439,7 @@ local function bindRender()
           end
         end
 
-        -- HEALTH
+        -- Health
         if opt.healthBar then
           ensureHealthBar(o)
           local hum = model:FindFirstChildOfClass("Humanoid")
@@ -459,7 +453,7 @@ local function bindRender()
           o.hpBack.Visible=false
         end
 
-        -- SKELETON
+        -- Skeleton (Drawing)
         if opt.skeleton then
           ensureSkeleton(model, o)
           if o.skeleton then
@@ -483,7 +477,7 @@ local function bindRender()
           for _, s in pairs(o.skeleton) do s.line.Visible=false end
         end
 
-        -- BOX
+        -- 3D Box
         if opt.box then
           ensureBox(model, o)
           if o.selectionBox then
@@ -495,7 +489,7 @@ local function bindRender()
           o.selectionBox.Visible=false
         end
 
-        -- STRIPES
+        -- Stripes
         if opt.stripes then
           ensureStripes(model, o)
           if o.stripeBeams then
@@ -506,7 +500,7 @@ local function bindRender()
           for _, b in pairs(o.stripeBeams) do b.Enabled=false end
         end
 
-        -- CORNER 2D
+        -- Corner 2D
         if opt.corner2D then
           ensureCorner(o)
           local minV,maxV = modelAABB2D(model)
@@ -515,7 +509,7 @@ local function bindRender()
           hideCorners(o)
         end
 
-        -- TRACERS
+        -- Tracers
         if opt.tracers then
           local hrp = model:FindFirstChild("HumanoidRootPart")
           if hrp then
@@ -536,12 +530,13 @@ local function bindRender()
           o.tracer.Visible=false
         end
 
-        -- OFFSCREEN ARROWS
+        -- Offscreen Arrows
         if opt.arrows then
           local hrp = model:FindFirstChild("HumanoidRootPart")
           if hrp then
             ensureArrow(o)
             local v, on, z = Camera:WorldToViewportPoint(hrp.Position)
+            local vp = Camera.ViewportSize
             local onScreen = on and z>0 and v.X>0 and v.X<vp.X and v.Y>0 and v.Y<vp.Y
             if not onScreen and o.arrow then
               local dir = (Vector2.new(v.X, v.Y) - center)
@@ -551,7 +546,7 @@ local function bindRender()
               local scale = math.min(sx, sy)
               local pos = center + dir*scale
               setArrow(o, pos, dir, col)
-            elseif o.arrow then
+            else
               o.arrow.Visible=false
             end
           end
@@ -576,9 +571,7 @@ local function bindRender()
   end)
 end
 
---------------------------------------------------------------------------------
--- ============== PUBLIC CONTROLS (Start/Stop/Refresh/Perf) ====================
---------------------------------------------------------------------------------
+-- ====== PUBLIC START/STOP ======
 function features._espStart()
   if features._espEnabled then
     initialScan()
@@ -605,59 +598,36 @@ function features._espStop()
   features._espObjects = {}
 end
 
-function features.RefreshESP()
-  -- sahayı temizle + yeniden tara (auto-refresh’i de açık tutar)
-  for _, o in pairs(features._espObjects) do
-    if o.highlight then pcall(function() o.highlight:Destroy() end) end
-    if o.billboard then pcall(function() o.billboard:Destroy() end) end
-    if o.skeleton then for _,s in pairs(o.skeleton) do pcall(function() s.line:Remove() end) end end
-    if o.tracer then pcall(function() o.tracer:Remove() end) end
-    if o.arrow then pcall(function() if o.arrowIsTri then o.arrow.Visible=false else o.arrow:Remove() end end) end
-    if o.corners then for _,ln in ipairs(o.corners) do pcall(function() ln:Remove() end) end end
-  end
-  features._espObjects = {}
-  if features._espEnabled then
-    initialScan()
-  end
-end
-
-function features.SetESPPerf(mode)  -- "HIGH" / "MED" / "LOW"
-  if mode=="HIGH" or mode=="MED" or mode=="LOW" then
-    features._espPerf = mode
-  end
-end
-
---------------------------------------------------------------------------------
--- ============== TOGGLES (Loader bunlara bağlanacak) ==========================
---------------------------------------------------------------------------------
-local function ensureOn()
-  if not features._espEnabled then
-    features._espEnabled = true
-    features._espStart()
-  end
-end
-
--- İstersen master toggle da kullanabilirsin (opsiyonel)
+-- ====== MASTER & ALT TOGGLE’LAR ======
+-- MASTER: Kapalı iken alt toggle çağrıları YOK sayılır (çalışmaz).
 function features.ToggleESP(on)
+  if on == features._espEnabled then return end
   features._espEnabled = on
   if on then features._espStart() else features._espStop() end
 end
 
-function features.ToggleESPRainbow(on)     opt.rainbow = on;      ensureOn() end
-function features.ToggleESPSkeleton(on)    opt.skeleton = on;     ensureOn() end
-function features.ToggleESPGlow(on)        opt.glow = on;         ensureOn() end
-function features.ToggleESPBox(on)         opt.box = on;          ensureOn() end
-function features.ToggleESPStripes(on)     opt.stripes = on;      ensureOn() end
-function features.ToggleESPDistance(on)    opt.showDist = on;     ensureOn() end
-function features.ToggleESPHealth(on)      opt.healthBar = on;    ensureOn() end
-function features.ToggleESPTracers(on)     opt.tracers = on;      ensureOn() end
-function features.ToggleESPArrows(on)      opt.arrows = on;       ensureOn() end
-function features.ToggleESPCorner(on)      opt.corner2D = on;     ensureOn() end
-function features.ToggleESPTeam(on)        opt.teamCheck = on;    ensureOn() end
-function features.ToggleESPLos(on)         opt.losOnly = on;      ensureOn() end
-function features.ToggleESPRange(on)       opt.rangeLimit = on;   ensureOn() end
-function features.ToggleESPFriends(on)     opt.friendIgnore = on; ensureOn() end
+local function guard(on)  -- master kapalıysa alt toggle'lar çalışmaz
+  if not features._espEnabled then
+    -- istersen buraya notify/print koy: print("[ESP] Önce 'Enable ESP'yi aç.")
+    return false
+  end
+  return true
+end
 
+function features.ToggleESPRainbow(on)     if not guard(on) then return end opt.rainbow      = on end
+function features.ToggleESPSkeleton(on)    if not guard(on) then return end opt.skeleton     = on end
+function features.ToggleESPGlow(on)        if not guard(on) then return end opt.glow         = on end
+function features.ToggleESPBox(on)         if not guard(on) then return end opt.box          = on end
+function features.ToggleESPStripes(on)     if not guard(on) then return end opt.stripes      = on end
+function features.ToggleESPDistance(on)    if not guard(on) then return end opt.showDist     = on end
+function features.ToggleESPHealth(on)      if not guard(on) then return end opt.healthBar    = on end
+function features.ToggleESPTracers(on)     if not guard(on) then return end opt.tracers      = on end
+function features.ToggleESPArrows(on)      if not guard(on) then return end opt.arrows       = on end
+function features.ToggleESPCorner(on)      if not guard(on) then return end opt.corner2D     = on end
+function features.ToggleESPTeam(on)        if not guard(on) then return end opt.teamCheck    = on end
+function features.ToggleESPLos(on)         if not guard(on) then return end opt.losOnly      = on end
+function features.ToggleESPRange(on)       if not guard(on) then return end opt.rangeLimit   = on end
+function features.ToggleESPFriends(on)     if not guard(on) then return end opt.friendIgnore = on end
 
 ----------------------------------------------------------------
 -- Hedef seçimi (mesafe önemsiz, açıya göre en iyi düşman)
