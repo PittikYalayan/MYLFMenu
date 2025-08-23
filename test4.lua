@@ -3,8 +3,8 @@ local Library      = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
 
-local Player = game.Players.LocalPlayer
 local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 
@@ -41,7 +41,7 @@ local function ApplyESP(plr)
         hl.Parent = plr.Character
     end
 
-    -- Rainbow Name (head Billboard)
+    -- Rainbow Name
     if Toggles.espRainbow.Value and not head:FindFirstChild("MYLF_Name") then
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "MYLF_Name"
@@ -97,7 +97,6 @@ local function ApplyEnvESP(obj)
     if not Toggles.envMaster.Value then return end
     if not obj:IsA("BasePart") then return end
 
-    -- 3D Box
     if Toggles.envBox.Value and not obj:FindFirstChild("MYLF_EnvBox") then
         local box = Instance.new("SelectionBox")
         box.Name = "MYLF_EnvBox"
@@ -106,7 +105,6 @@ local function ApplyEnvESP(obj)
         box.Parent = obj
     end
 
-    -- Highlight
     if Toggles.envHighlight.Value and not obj:FindFirstChild("MYLF_EnvHL") then
         local hl = Instance.new("Highlight")
         hl.Name = "MYLF_EnvHL"
@@ -129,23 +127,15 @@ workspace.DescendantAdded:Connect(function(obj)
 end)
 
 ----------------------------------------------------------------
--- Combat (Dummy placeholders bağlanabilir)
+-- Combat (dummy bağlanabilir)
 ----------------------------------------------------------------
-function features.ToggleAimbot(on)
-    print("Aimbot: ", on)
-end
-function features.ToggleSilentAim(on)
-    print("Silent Aim: ", on)
-end
-function features.ToggleNoRecoil(on)
-    print("No Recoil: ", on)
-end
-function features.ToggleNoSpread(on)
-    print("No Spread: ", on)
-end
+function features.ToggleAimbot(on) print("Aimbot:", on) end
+function features.ToggleSilentAim(on) print("Silent Aim:", on) end
+function features.ToggleNoRecoil(on) print("No Recoil:", on) end
+function features.ToggleNoSpread(on) print("No Spread:", on) end
 
 ----------------------------------------------------------------
--- Menu Setup
+-- Menü Kurulumu
 ----------------------------------------------------------------
 local Window = Library:CreateWindow({
     Title = "⚡ MYLF Universal Hub ⚡",
@@ -209,6 +199,6 @@ ThemeManager:ApplyToTab(Window:AddTab("Misc"))
 UIS.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.LeftControl then
-        Library.MainFrame.Visible = not Library.MainFrame.Visible
+        Library:ToggleUI()
     end
 end)
