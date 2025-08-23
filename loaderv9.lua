@@ -46,6 +46,7 @@ end
 -- Visuals
 do
     local g = Tabs.Visuals:AddLeftGroupbox("Esp")
+        bindToggle(g, "espMaster", "Enable", features.ToggleESP)
     bindToggle(g, "espRainbow", "🌈 Rainbow Name", features.ToggleESPRainbow)
     bindToggle(g, "espSkeleton", "🦴 Skeleton", features.ToggleESPSkeleton)
     bindToggle(g, "espGlow", "✨ Glow", features.ToggleESPGlow)
@@ -60,6 +61,13 @@ do
     bindToggle(g, "espLOS", "🔭 LOS Only", features.ToggleESPLos)
     bindToggle(g, "espRange", "📡 Range 300", features.ToggleESPRange)
     bindToggle(g, "espFriend", "⭐ Friend Ignore", features.ToggleESPFriends)
+     -- performans seçici istersen:
+    g:AddDropdown("espPerf", {
+        Text = "⚡ ESP Perf",
+        Values = {"HIGH","MED","LOW"},
+        Default = "HIGH",
+        Callback = function(v) features.SetESPPerf(v) end
+      })
 
 end
 
