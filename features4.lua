@@ -865,19 +865,25 @@ end
 ----------------------------------------------------------------
 -- =========================
 -- TEK __namecall HOOK
---  - Silent Aim ve Magic Bullet bu hook üstünden çalışır
+--  - Silent Aim ve Magic Bullet tek hook üstünden
 --  - Öncelik: Silent Aim > Magic Bullet
 -- =========================
 ----------------------------------------------------------------
 features._nc_hooked  = false
 features._nc_oldcall = nil
 
+-- Silent Aim flag
+features.SilentAim = false
+
 -- Magic Bullet yapılandırma
 features._mb_on        = false
-features._mb_patterns  = { "shoot", "fire", "ray", "bullet", "projectile", "weapon", "hit", "remote" }
+features._mb_patterns  = { "shoot","fire","ray","bullet","projectile","weapon","hit","remote" }
 features._mb_whitelist = {}  -- [Instance]=true
 features._mb_conns     = {}  -- event bağlantıları
 
+----------------------------------------------------------------
+-- Magic Bullet Yardımcı
+----------------------------------------------------------------
 local function MB_MatchName(str)
     str = tostring(str):lower()
     for _,p in ipairs(features._mb_patterns) do
@@ -919,7 +925,9 @@ local function MB_RebuildWhitelist()
 end
 
 local function MB_DisconnectAll()
-    for _,c in ipairs(features._mb_conns) do pcall(function() c:Disconnect() end) end
+    for _,c in ipairs(features._mb_conns) do
+        pcall(function() c:Disconnect() end)
+    end
     features._mb_conns = {}
 end
 
@@ -951,6 +959,9 @@ local function MB_AttachWatchers()
     end))
 end
 
+----------------------------------------------------------------
+-- Argüman Retarget
+----------------------------------------------------------------
 local function RetargetArgsTo(headPos, args)
     for i=1,#args do
         local a = args[i]
@@ -966,6 +977,9 @@ local function RetargetArgsTo(headPos, args)
     return args
 end
 
+----------------------------------------------------------------
+-- __namecall HOOK
+----------------------------------------------------------------
 local function EnsureNamecallHook()
     if features._nc_hooked then return end
     features._nc_hooked = true
@@ -978,12 +992,12 @@ local function EnsureNamecallHook()
         local isRemote = self:IsA("RemoteEvent") or self:IsA("RemoteFunction")
         if isRemote and (method == "FireServer" or method == "InvokeServer") then
             -- Önce Silent Aim
-            if features._silent then
+            if features.SilentAim then
                 local head = getClosestVisibleHead()
                 if head then
                     return old(self, unpack(RetargetArgsTo(head.Position, args)))
                 end
-            -- Sonra Magic Bullet (fallback)
+            -- Sonra Magic Bullet
             elseif features._mb_on then
                 local ok = features._mb_whitelist[self] or MB_MatchName(self.Name)
                 if ok then
@@ -1002,15 +1016,16 @@ local function EnsureNamecallHook()
 end
 
 ----------------------------------------------------------------
--- Silent Aim (yalnızca flag; hook tek)
+-- Silent Aim Toggle
 ----------------------------------------------------------------
 function features.ToggleSilentAim(on)
-    features._silent = not not on
+    features.SilentAim = not not on
     EnsureNamecallHook()
+    print("Silent Aim: " .. (on and "ON" or "OFF"))
 end
 
 ----------------------------------------------------------------
--- Magic Bullet (Fallback) — toggle + yardımcı
+-- Magic Bullet Toggle
 ----------------------------------------------------------------
 function features.ToggleMagicBullet(on)
     features._mb_on = not not on
@@ -1022,6 +1037,7 @@ function features.ToggleMagicBullet(on)
         MB_DisconnectAll()
         features._mb_whitelist = {}
     end
+    print("Magic Bullet: " .. (on and "ON" or "OFF"))
 end
 
 function features.MagicBulletOnce()
@@ -1035,11 +1051,11 @@ function features.MagicBulletOnce()
             return
         end
     end
-    warn("MB Once: uygun remote bulunamadı")
+    warn("MB Once: uygun remote yok")
 end
 
 ----------------------------------------------------------------
--- Rapid Fire
+-- Rapid Fire Toggle
 ----------------------------------------------------------------
 function features.ToggleRapidFire(on)
     if on then
@@ -1059,6 +1075,7 @@ function features.ToggleRapidFire(on)
     else
         if features._rof then features._rof:Disconnect(); features._rof=nil end
     end
+    print("RapidFire: " .. (on and "ON" or "OFF"))
 end
 
 ----------------------------------------------------------------
@@ -1239,16 +1256,45 @@ function features.ToggleNoclip(on)
 end
 
 ----------------------------------------------------------------
--- Invisible
+-- Invisible (Local + Remote Attempt)
 ----------------------------------------------------------------
 function features.ToggleInvisible(on)
     local ch = Player.Character or Player.CharacterAdded:Wait()
+
+    -- 🔹 Local invisible (sadece sende görünmez)
     for _, p in ipairs(ch:GetDescendants()) do
         if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
             p.Transparency = on and 1 or 0
             if on and p:FindFirstChild("face") then p.face:Destroy() end
         end
     end
+
+    -- 🔹 Server-side invisibility (oyunda varsa remote tetikle)
+    local function tryRemote(remote)
+        pcall(function()
+            if remote:IsA("RemoteEvent") then
+                remote:FireServer(on)
+            elseif remote:IsA("RemoteFunction") then
+                remote:InvokeServer(on)
+            end
+            warn("[Invisible] Remote tetiklendi:", remote:GetFullName())
+        end)
+    end
+
+    -- Remote araması
+    local patterns = { "invis", "invisible", "vanish", "cloak", "hide" }
+    for _, d in ipairs(game:GetDescendants()) do
+        if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then
+            local name = d.Name:lower()
+            for _, p in ipairs(patterns) do
+                if string.find(name, p) then
+                    tryRemote(d)
+                end
+            end
+        end
+    end
+
+    print("Invisible: " .. (on and "ON" or "OFF"))
 end
 
 return features
