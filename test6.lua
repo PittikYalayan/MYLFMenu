@@ -3,6 +3,9 @@ local Library      = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
 
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
+
 local Players   = game:GetService("Players")
 local RunService= game:GetService("RunService")
 local UIS       = game:GetService("UserInputService")
@@ -467,6 +470,10 @@ ThemeManager:ApplyToTab(Window:AddTab("Config"))
 UIS.InputBegan:Connect(function(input,gpe)
     if gpe then return end
     if input.KeyCode==Enum.KeyCode.LeftControl then
-        Library:ToggleUI()
+        Library.Unloaded = not Library.Unloaded
+        if Library.MainFrame then
+            Library.MainFrame.Visible = not Library.Unloaded
+        end
     end
 end)
+
