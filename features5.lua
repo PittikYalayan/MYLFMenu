@@ -635,7 +635,7 @@ function features.RefreshESP()
   if features._espEnabled then initialScan() end
 end
 ----------------------------------------------------------------
--- Hedef seçimi (mesafe önemsiz, açıya göre en iyi düşman)
+-- Hedef seçimi (LOS kontrollü, açıya göre en iyi)
 ----------------------------------------------------------------
 local function getClosestVisibleHead()
     local cam    = workspace.CurrentCamera
@@ -659,15 +659,12 @@ local function getClosestVisibleHead()
                     if dist <= (features.AimMaxDistance or 1e9) then
                         local dirUnit = toHead.Unit
                         local dot   = math.clamp(look:Dot(dirUnit), -1, 1)
-                        local angle = math.deg(math.acos(dot)) -- 0° en iyi
+                        local angle = math.deg(math.acos(dot))
 
                         if (not features.AimUseFOV) or (angle <= (features.AimMaxAngleDeg or 360)) then
-                            -- 🔒 Duvar arkası engelleme (zorunlu LOS)
                             local rayLen = math.min(dist, features.AimMaxDistance or 1e6)
                             local hit = workspace:Raycast(origin, dirUnit * rayLen, rcParams)
-
                             if hit and hit.Instance and hit.Instance:IsDescendantOf(plr.Character) then
-                                -- ✅ sadece gerçekten görünüyorsa kitlenecek
                                 if angle < bestScore then
                                     bestScore, bestHead = angle, head
                                 end
@@ -834,26 +831,48 @@ function features.ToggleTeleport(on)
 end
 
 ----------------------------------------------------------------
--- Aimbot (açı tabanlı + opsiyonel otomatik ateş)
+-- Aimbot (kamera + el + tool handle)
 ----------------------------------------------------------------
 function features.ToggleAimbot(on)
     local cam = workspace.CurrentCamera
+
     local function step()
         local head = getClosestVisibleHead()
         if not head then return end
-        local target = CFrame.new(cam.CFrame.Position, head.Position)
-        local s = tonumber(features.Smoothness) or 1
-        cam.CFrame = (s > 1) and cam.CFrame:Lerp(target, 1/s) or target
 
+        -- 🎯 Kamera hedefe döner
+        local targetCF = CFrame.new(cam.CFrame.Position, head.Position)
+        local s = tonumber(features.Smoothness) or 1
+        cam.CFrame = (s > 1) and cam.CFrame:Lerp(targetCF, 1/s) or targetCF
+
+        -- 🤲 Oyuncunun eli / silahı da hedefe döner
+        local ch = Player.Character
+        if ch then
+            local tool = ch:FindFirstChildOfClass("Tool")
+            local hand = ch:FindFirstChild("RightHand") or ch:FindFirstChild("Right Arm")
+
+            if tool and tool:FindFirstChild("Handle") then
+                local handle = tool.Handle
+                handle.CFrame = CFrame.new(handle.Position, head.Position)
+            elseif hand then
+                hand.CFrame = CFrame.new(hand.Position, head.Position)
+            end
+        end
+
+        -- 🔫 Otomatik ateş (opsiyonel)
         if features.TriggerOnAim then
             local now = tick()
             if (now - (features._lastTrigger or 0)) >= (features.TriggerRate or 0.12) then
                 local ch = Player.Character
                 local tool = ch and ch:FindFirstChildOfClass("Tool")
-                if tool then pcall(function() tool:Activate() end); features._lastTrigger = now end
+                if tool then
+                    pcall(function() tool:Activate() end)
+                    features._lastTrigger = now
+                end
             end
         end
     end
+
     if on then
         if features._aim then features._aim:Disconnect() end
         features._aim = RunService.RenderStepped:Connect(step)
@@ -861,7 +880,6 @@ function features.ToggleAimbot(on)
         if features._aim then features._aim:Disconnect(); features._aim=nil end
     end
 end
-
 ----------------------------------------------------------------
 -- TEK HOOK (Silent Aim + Magic Bullet)
 -- Universal PatchArg ile güçlendirilmiş
