@@ -1,10 +1,8 @@
--- ⚡ MYLF Universal Hub ⚡
+-- ⚡ MYLF | Hub ⚡ Core + Combat
+
 local Library      = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
 local SaveManager  = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
-
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
 
 local Players   = game:GetService("Players")
 local RunService= game:GetService("RunService")
@@ -12,15 +10,10 @@ local UIS       = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local Player = Players.LocalPlayer
-local features = {
-    SilentAim = false,
-    DeathMode = false,
-    espObjects = {},
-    envObjects = {}
-}
+local features = { SilentAim=false, DeathMode=false, espObjects={}, envObjects={} }
 
 ----------------------------------------------------------------
--- Aimbot (Smooth + WallCheck + TeamCheck)
+-- Hedef bulucu (Aimbot + SilentAim için)
 ----------------------------------------------------------------
 local function getClosestTarget()
     local cam = Workspace.CurrentCamera
@@ -37,6 +30,7 @@ local function getClosestTarget()
             local hum = plr.Character:FindFirstChildOfClass("Humanoid")
             local head= plr.Character:FindFirstChild("Head")
             if hum and head and hum.Health > 0 then
+                -- TeamCheck
                 if not (Toggles.espTeam and Player.Team and plr.Team and Player.Team == plr.Team) then
                     local dir = (head.Position - origin)
                     local dist= dir.Magnitude
@@ -57,6 +51,9 @@ local function getClosestTarget()
     return best
 end
 
+----------------------------------------------------------------
+-- Aimbot (Smooth + WallCheck + TeamCheck)
+----------------------------------------------------------------
 function features.ToggleAimbot(on)
     if on then
         if features._aim then features._aim:Disconnect() end
@@ -105,7 +102,7 @@ function features.ToggleSilentAim(on)
 end
 
 ----------------------------------------------------------------
--- DeathMode (FarmBot tarzı)
+-- DeathMode (FarmBot tarzı, Ghost HRP)
 ----------------------------------------------------------------
 function features.ToggleDeathMode(on)
     features.DeathMode = on
@@ -180,9 +177,39 @@ function features.ToggleNoSpread(on)
     end
 end
 ----------------------------------------------------------------
--- Player ESP
+-- === ESP Motoru (espmenu2’den entegre)
 ----------------------------------------------------------------
-local function ApplyPlayerESP(plr)
+
+local espSettings = {
+    Rainbow = false,
+    Skeleton = false,
+    Glow = false,
+    Box3D = false,
+    Stripes = false,
+    Distance = false,
+    Health = false,
+    Tracers = false,
+    TeamCheck = false,
+    LOS = false,
+    Range = 300,
+    Arrows = false,
+    CornerBox = false,
+    FriendIgnore = false,
+    Performance = "HIGH"
+}
+
+local espObjects = {}
+
+-- 🌈 Rainbow Color
+local function rainbowColor(t)
+    local r = math.sin(t*2) * 127 + 128
+    local g = math.sin(t*2 + 2) * 127 + 128
+    local b = math.sin(t*2 + 4) * 127 + 128
+    return Color3.fromRGB(r,g,b)
+end
+
+-- === Ana ESP Apply ===
+function ApplyPlayerESP(plr)
     if not Toggles.espMaster.Value then return end
     if not plr.Character then return end
     local head = plr.Character:FindFirstChild("Head")
@@ -204,11 +231,7 @@ local function ApplyPlayerESP(plr)
         text.TextScaled = true
         task.spawn(function()
             while Toggles.espRainbow.Value and billboard.Parent do
-                local t = tick()*2
-                local r = math.sin(t)*127+128
-                local g = math.sin(t+2)*127+128
-                local b = math.sin(t+4)*127+128
-                text.TextColor3 = Color3.fromRGB(r,g,b)
+                text.TextColor3 = rainbowColor(tick())
                 task.wait(0.1)
             end
         end)
@@ -279,7 +302,7 @@ local function ApplyPlayerESP(plr)
         end)
     end
 
-    -- 〽 Tracers
+       -- 〽 Tracers
     if Toggles.espTracers.Value then
         local line = Drawing.new("Line")
         line.Thickness = 1.5
@@ -359,16 +382,71 @@ local function ApplyPlayerESP(plr)
             end
         end)
     end
+
+    -- 🦴 Skeleton (Motor6D çizim)
+    if Toggles.espSkeleton.Value and plr.Character then
+        local bones = {}
+        RunService.RenderStepped:Connect(function()
+            if plr.Character then
+                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                if hum and hum.RigType == Enum.HumanoidRigType.R15 then
+                    local parts = {
+                        { "Head","UpperTorso" },
+                        { "UpperTorso","LowerTorso" },
+                        { "UpperTorso","LeftUpperArm" },
+                        { "LeftUpperArm","LeftLowerArm" },
+                        { "LeftLowerArm","LeftHand" },
+                        { "UpperTorso","RightUpperArm" },
+                        { "RightUpperArm","RightLowerArm" },
+                        { "RightLowerArm","RightHand" },
+                        { "LowerTorso","LeftUpperLeg" },
+                        { "LeftUpperLeg","LeftLowerLeg" },
+                        { "LeftLowerLeg","LeftFoot" },
+                        { "LowerTorso","RightUpperLeg" },
+                        { "RightUpperLeg","RightLowerLeg" },
+                        { "RightLowerLeg","RightFoot" },
+                    }
+                    for _,pair in ipairs(parts) do
+                        local a = plr.Character:FindFirstChild(pair[1])
+                        local b = plr.Character:FindFirstChild(pair[2])
+                        if a and b then
+                            local line = bones[pair] or Drawing.new("Line")
+                            line.Color = Color3.fromRGB(255,255,255)
+                            line.Thickness = 1
+                            local p1,ok1 = Workspace.CurrentCamera:WorldToViewportPoint(a.Position)
+                            local p2,ok2 = Workspace.CurrentCamera:WorldToViewportPoint(b.Position)
+                            if ok1 and ok2 then
+                                line.From = Vector2.new(p1.X,p1.Y)
+                                line.To   = Vector2.new(p2.X,p2.Y)
+                                line.Visible = true
+                            else
+                                line.Visible = false
+                            end
+                            bones[pair] = line
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
+    -- ≡ Box Stripes (Beam benzeri)
+    if Toggles.espStripes.Value and not plr.Character:FindFirstChild("MYLF_Stripes") then
+        local att1 = Instance.new("Attachment", plr.Character:FindFirstChild("HumanoidRootPart"))
+        local att2 = Instance.new("Attachment", plr.Character:FindFirstChild("Head"))
+        local beam = Instance.new("Beam")
+        beam.Name = "MYLF_Stripes"
+        beam.Attachment0 = att1
+        beam.Attachment1 = att2
+        beam.Width0 = 0.2
+        beam.Width1 = 0.2
+        beam.Color = ColorSequence.new(Color3.fromRGB(255,0,255))
+        beam.Parent = plr.Character
+    end
+
 end
 
--- Refresh + Auto Add
-local function RefreshAllPlayers()
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Player then
-            ApplyPlayerESP(plr)
-        end
-    end
-end
+-- === Auto Add ===
 Players.PlayerAdded:Connect(function(plr)
     plr.CharacterAdded:Connect(function()
         task.wait(1)
@@ -376,47 +454,107 @@ Players.PlayerAdded:Connect(function(plr)
     end)
 end)
 ----------------------------------------------------------------
--- Environment ESP
+-- === Environment ESP
 ----------------------------------------------------------------
-local function ApplyEnvESP(obj)
+function ApplyEnvESP(obj)
     if not Toggles.envMaster.Value then return end
     if not obj:IsA("BasePart") then return end
+    local head = obj -- environment için "head" yerine objenin kendisini baz alıyoruz
 
-    -- ▣ 3D Box
-    if Toggles.envBox.Value and not obj:FindFirstChild("MYLF_EnvBox") then
-        local box = Instance.new("SelectionBox")
-        box.Name = "MYLF_EnvBox"
-        box.Adornee = obj
-        box.Color3 = Color3.fromRGB(0,200,200)
-        box.Parent = obj
+    -- 🌈 Rainbow Label
+    if Toggles.envRainbow and not obj:FindFirstChild("MYLF_EnvName") then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "MYLF_EnvName"
+        billboard.Adornee = obj
+        billboard.Size = UDim2.new(0,150,0,50)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = obj
+        local text = Instance.new("TextLabel", billboard)
+        text.Size = UDim2.new(1,0,1,0)
+        text.BackgroundTransparency = 1
+        text.Text = obj.Name
+        text.TextColor3 = Color3.fromRGB(255,255,255)
+        text.TextScaled = true
+        task.spawn(function()
+            while Toggles.envRainbow.Value and billboard.Parent do
+                text.TextColor3 = Color3.fromRGB(
+                    math.sin(tick()*2)*127+128,
+                    math.sin(tick()*2+2)*127+128,
+                    math.sin(tick()*2+4)*127+128
+                )
+                task.wait(0.1)
+            end
+        end)
     end
 
     -- ✨ Highlight
     if Toggles.envHighlight.Value and not obj:FindFirstChild("MYLF_EnvHL") then
         local hl = Instance.new("Highlight")
         hl.Name = "MYLF_EnvHL"
-        hl.FillColor = Color3.fromRGB(0,0,255)
-        hl.OutlineColor = Color3.fromRGB(255,255,0)
+        hl.FillColor = Color3.fromRGB(0,200,255)
+        hl.OutlineColor = Color3.fromRGB(255,255,255)
         hl.Parent = obj
+    end
+
+    -- ▣ 3D Box
+    if Toggles.envBox.Value and not obj:FindFirstChild("MYLF_EnvBox") then
+        local box = Instance.new("SelectionBox")
+        box.Name = "MYLF_EnvBox"
+        box.Adornee = obj
+        box.Color3 = Color3.fromRGB(0,255,0)
+        box.Parent = obj
+    end
+
+    -- 📏 Distance (kamera mesafesi)
+    if Toggles.envDist and not obj:FindFirstChild("MYLF_EnvDist") then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "MYLF_EnvDist"
+        billboard.Adornee = obj
+        billboard.Size = UDim2.new(0,100,0,50)
+        billboard.StudsOffset = Vector3.new(0,2,0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = obj
+        local text = Instance.new("TextLabel", billboard)
+        text.Size = UDim2.new(1,0,1,0)
+        text.BackgroundTransparency = 1
+        text.TextColor3 = Color3.fromRGB(255,255,0)
+        text.TextScaled = true
+        RunService.RenderStepped:Connect(function()
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local dist = (Player.Character.HumanoidRootPart.Position - obj.Position).Magnitude
+                text.Text = string.format("[%dm]", dist)
+            end
+        end)
     end
 end
 
--- Auto add environment
+-- Auto add environment (her yeni obje geldiğinde)
 Workspace.DescendantAdded:Connect(function(obj)
     if Toggles.envMaster.Value then
         ApplyEnvESP(obj)
     end
 end)
+
+-- Auto refresh environment (her 5 saniyede bir)
+task.spawn(function()
+    while task.wait(5) do
+        pcall(function()
+            for _,obj in ipairs(Workspace:GetDescendants()) do
+                ApplyEnvESP(obj)
+            end
+        end)
+    end
+end)
 ----------------------------------------------------------------
--- Menü Kurulumu
+-- === Menü Kurulumu
 ----------------------------------------------------------------
-local Window = Library:CreateWindow({
-    Title = "⚡ MYLF Universal Hub ⚡",
-    Center = true,
-    AutoShow = true
+local Window = Library:CreateWindow({ 
+    Title = "⚡ MYLF | Hub ⚡", 
+    Center = true, 
+    AutoShow = false 
 })
 
--- Combat
+-- Combat Tab
 local CombatBox = Window:AddTab("Combat"):AddLeftGroupbox("Combat")
 CombatBox:AddToggle("Aimbot", { Text="🎯 Aimbot" }):OnChanged(features.ToggleAimbot)
 CombatBox:AddToggle("SilentAim", { Text="👀 Silent Aim" }):OnChanged(features.ToggleSilentAim)
@@ -424,38 +562,35 @@ CombatBox:AddToggle("DeathMode", { Text="☠ Death Mode" }):OnChanged(features.T
 CombatBox:AddToggle("NoRecoil", { Text="🔫 No Recoil" }):OnChanged(features.ToggleNoRecoil)
 CombatBox:AddToggle("NoSpread", { Text="🎲 No Spread" }):OnChanged(features.ToggleNoSpread)
 
--- Player ESP
+-- Player ESP Tab
 local PlayerESP = Window:AddTab("Visuals"):AddLeftGroupbox("Player ESP")
 PlayerESP:AddToggle("espMaster", { Text="Enable Player ESP" })
 PlayerESP:AddToggle("espRainbow", { Text="🌈 Rainbow Name" })
+PlayerESP:AddToggle("espSkeleton", { Text="🦴 Skeleton" })
 PlayerESP:AddToggle("espGlow", { Text="✨ Glow" })
 PlayerESP:AddToggle("espBox", { Text="▣ 3D Box" })
+PlayerESP:AddToggle("espStripes", { Text="≡ Box Stripes" })
 PlayerESP:AddToggle("espDist", { Text="📏 Distance" })
 PlayerESP:AddToggle("espHP", { Text="❤️ Health Bar" })
 PlayerESP:AddToggle("espTracers", { Text="〽 Tracers" })
 PlayerESP:AddToggle("espArrows", { Text="⬅ Offscreen Arrows" })
 PlayerESP:AddToggle("espCorner", { Text="⌞⌝ Corner Box 2D" })
+PlayerESP:AddToggle("espTeam", { Text="👥 Team Check" })
+PlayerESP:AddToggle("espLOS", { Text="🔭 LOS Only" })
+PlayerESP:AddToggle("espRange", { Text="📡 Range 300" })
+PlayerESP:AddToggle("espFriend", { Text="⭐ Friend Ignore" })
+PlayerESP:AddDropdown("espPerf", { Values={"HIGH","MED","LOW"}, Default=1, Text="Performance" })
 
--- Environment ESP
+-- Environment ESP Tab
 local EnvESP = Window:AddTab("Visuals"):AddRightGroupbox("Environment ESP")
 EnvESP:AddToggle("envMaster", { Text="Enable Env ESP" })
+EnvESP:AddToggle("envRainbow", { Text="🌈 Rainbow Name" })
 EnvESP:AddToggle("envBox", { Text="▣ 3D Box" })
+EnvESP:AddToggle("envDist", { Text="📏 Distance" })
 EnvESP:AddToggle("envHighlight", { Text="✨ Highlight" })
 
--- Misc
-local MiscBox = Window:AddTab("Misc"):AddLeftGroupbox("Misc Tools")
-MiscBox:AddButton("Refresh Players", function()
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Player then ApplyPlayerESP(plr) end
-    end
-end)
-MiscBox:AddButton("Refresh Env", function()
-    for _,obj in ipairs(Workspace:GetDescendants()) do
-        ApplyEnvESP(obj)
-    end
-end)
 ----------------------------------------------------------------
--- Tema & Save Manager
+-- === Config, Theme Manager
 ----------------------------------------------------------------
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
@@ -465,15 +600,17 @@ SaveManager:BuildConfigSection(Window:AddTab("Config"))
 ThemeManager:ApplyToTab(Window:AddTab("Config"))
 
 ----------------------------------------------------------------
--- CTRL Gizle/Göster
+-- === Menü Toggle (LeftShift)
 ----------------------------------------------------------------
-UIS.InputBegan:Connect(function(input,gpe)
-    if gpe then return end
-    if input.KeyCode==Enum.KeyCode.LeftControl then
-        Library.Unloaded = not Library.Unloaded
-        if Library.MainFrame then
-            Library.MainFrame.Visible = not Library.Unloaded
-        end
+local MENU_KEY = Enum.KeyCode.LeftShift
+local function ToggleMenu() 
+    if Library.MainFrame then
+        Library.MainFrame.Visible = not Library.MainFrame.Visible
+    else
+        Library:Toggle()
     end
+end
+Library.ToggleKeybind = MENU_KEY
+UIS.InputBegan:Connect(function(inp,gp)
+    if not gp and inp.KeyCode == MENU_KEY then ToggleMenu() end
 end)
-
