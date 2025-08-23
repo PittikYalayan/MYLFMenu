@@ -1067,7 +1067,7 @@ function features.ToggleRapidFire(on)
                 if v:IsA("NumberValue") or v:IsA("IntValue") then
                     local n = v.Name:lower()
                     if n:find("cooldown") or n:find("fire") or n:find("attack") or n:find("reload") or n:find("speed") then
-                        v.Value = 0.05
+                        v.Value = 0.001
                     end
                 end
             end
