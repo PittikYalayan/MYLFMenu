@@ -863,17 +863,14 @@ function features.ToggleAimbot(on)
 end
 
 ----------------------------------------------------------------
--- =========================
--- TEK __namecall HOOK
---  - Silent Aim ve Magic Bullet tek hook üstünden
---  - Öncelik: Silent Aim > Magic Bullet
--- =========================
+-- TEK HOOK (Silent Aim + Magic Bullet)
+-- Universal PatchArg ile güçlendirilmiş
 ----------------------------------------------------------------
 features._nc_hooked  = false
 features._nc_oldcall = nil
 
 -- Silent Aim flag
-features.SilentAim = false
+features.SilentAim   = false
 
 -- Magic Bullet yapılandırma
 features._mb_on        = false
@@ -960,18 +957,26 @@ local function MB_AttachWatchers()
 end
 
 ----------------------------------------------------------------
--- Argüman Retarget
+-- Universal Argüman Patch
 ----------------------------------------------------------------
-local function RetargetArgsTo(headPos, args)
-    for i=1,#args do
-        local a = args[i]
-        local t = typeof(a)
+local function PatchArgs(args, headPos)
+    for i,v in ipairs(args) do
+        local t = typeof(v)
         if t == "Vector3" then
             args[i] = headPos
-            return args
         elseif t == "CFrame" then
-            args[i] = CFrame.new(a.Position, headPos)
-            return args
+            args[i] = CFrame.new(v.Position, headPos)
+        elseif t == "table" then
+            for k,val in pairs(v) do
+                local key = tostring(k):lower()
+                if key:find("pos") or key:find("hit") or key:find("cf") or key:find("aim") or key:find("target") then
+                    if typeof(val) == "Vector3" then
+                        v[k] = headPos
+                    elseif typeof(val) == "CFrame" then
+                        v[k] = CFrame.new(val.Position, headPos)
+                    end
+                end
+            end
         end
     end
     return args
@@ -987,23 +992,25 @@ local function EnsureNamecallHook()
     local old
     old = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
-        local args   = { ... }
+        local args   = {...}
 
-        local isRemote = self:IsA("RemoteEvent") or self:IsA("RemoteFunction")
-        if isRemote and (method == "FireServer" or method == "InvokeServer") then
-            -- Önce Silent Aim
+        if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        and (method == "FireServer" or method == "InvokeServer") then
+
+            -- Öncelik Silent Aim
             if features.SilentAim then
                 local head = getClosestVisibleHead()
                 if head then
-                    return old(self, unpack(RetargetArgsTo(head.Position, args)))
+                    return old(self, unpack(PatchArgs(args, head.Position)))
                 end
+
             -- Sonra Magic Bullet
             elseif features._mb_on then
                 local ok = features._mb_whitelist[self] or MB_MatchName(self.Name)
                 if ok then
                     local head = getClosestVisibleHead()
                     if head then
-                        return old(self, unpack(RetargetArgsTo(head.Position, args)))
+                        return old(self, unpack(PatchArgs(args, head.Position)))
                     end
                 end
             end
@@ -1040,6 +1047,9 @@ function features.ToggleMagicBullet(on)
     print("Magic Bullet: " .. (on and "ON" or "OFF"))
 end
 
+----------------------------------------------------------------
+-- Magic Bullet Once
+----------------------------------------------------------------
 function features.MagicBulletOnce()
     MB_RebuildWhitelist()
     local head = getClosestVisibleHead()
