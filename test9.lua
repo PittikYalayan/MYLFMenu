@@ -199,21 +199,12 @@ local espSettings = {
 }
 
 local espObjects = {}
-
--- 🌈 Rainbow Color
-local function rainbowColor(t)
-    local r = math.sin(t*2) * 127 + 128
-    local g = math.sin(t*2 + 2) * 127 + 128
-    local b = math.sin(t*2 + 4) * 127 + 128
-    return Color3.fromRGB(r,g,b)
-end
-
--- === Ana ESP Apply ===
 function ApplyPlayerESP(plr)
-    if not Toggles.espMaster.Value then return end
+    if not Toggles or not Toggles.espMaster or not Toggles.espMaster.Value then return end
     if not plr.Character then return end
     local head = plr.Character:FindFirstChild("Head")
-    if not head then return end
+    local hrp  = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not head or not hrp then return end
 
     -- 🌈 Rainbow Name
     if Toggles.espRainbow.Value and not head:FindFirstChild("MYLF_Name") then
@@ -231,7 +222,11 @@ function ApplyPlayerESP(plr)
         text.TextScaled = true
         task.spawn(function()
             while Toggles.espRainbow.Value and billboard.Parent do
-                text.TextColor3 = rainbowColor(tick())
+                text.TextColor3 = Color3.fromRGB(
+                    math.sin(tick()*2)*127+128,
+                    math.sin(tick()*2+2)*127+128,
+                    math.sin(tick()*2+4)*127+128
+                )
                 task.wait(0.1)
             end
         end)
@@ -270,8 +265,8 @@ function ApplyPlayerESP(plr)
         text.TextColor3 = Color3.fromRGB(255,255,0)
         text.TextScaled = true
         RunService.RenderStepped:Connect(function()
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                local dist = (Player.Character.HumanoidRootPart.Position - plr.Character.HumanoidRootPart.Position).Magnitude
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") and plr.Character and hrp then
+                local dist = (Player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
                 text.Text = string.format("[%dm]", dist)
             end
         end)
@@ -302,14 +297,14 @@ function ApplyPlayerESP(plr)
         end)
     end
 
-       -- 〽 Tracers
-    if Toggles.espTracers.Value then
+    -- 〽 Tracers
+    if Drawing and Toggles.espTracers.Value then
         local line = Drawing.new("Line")
         line.Thickness = 1.5
         line.Color = Color3.fromRGB(0,255,0)
         RunService.RenderStepped:Connect(function()
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local pos, onscreen = Workspace.CurrentCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+            if hrp and plr.Character then
+                local pos, onscreen = Workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
                 if onscreen then
                     local screenSize = Workspace.CurrentCamera.ViewportSize
                     line.From = Vector2.new(screenSize.X/2, screenSize.Y)
@@ -325,13 +320,13 @@ function ApplyPlayerESP(plr)
     end
 
     -- ⬅ Offscreen Arrows
-    if Toggles.espArrows.Value then
+    if Drawing and Toggles.espArrows.Value then
         local arrow = Drawing.new("Triangle")
         arrow.Color = Color3.fromRGB(255,255,0)
         arrow.Filled = true
         RunService.RenderStepped:Connect(function()
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local pos, onscreen = Workspace.CurrentCamera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+            if hrp and plr.Character then
+                local pos, onscreen = Workspace.CurrentCamera:WorldToViewportPoint(hrp.Position)
                 local screenSize = Workspace.CurrentCamera.ViewportSize
                 if not onscreen then
                     local center = Vector2.new(screenSize.X/2, screenSize.Y/2)
@@ -351,7 +346,7 @@ function ApplyPlayerESP(plr)
     end
 
     -- ⌞⌝ Corner Box 2D
-    if Toggles.espCorner.Value then
+    if Drawing and Toggles.espCorner.Value then
         local lines = {}
         for i=1,4 do
             local l = Drawing.new("Line")
@@ -360,8 +355,7 @@ function ApplyPlayerESP(plr)
             table.insert(lines,l)
         end
         RunService.RenderStepped:Connect(function()
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = plr.Character.HumanoidRootPart
+            if hrp and plr.Character then
                 local min,max = hrp.Position-Vector3.new(2,3,1), hrp.Position+Vector3.new(2,3,1)
                 local cam = Workspace.CurrentCamera
                 local a,visA = cam:WorldToViewportPoint(min)
@@ -383,28 +377,19 @@ function ApplyPlayerESP(plr)
         end)
     end
 
-    -- 🦴 Skeleton (Motor6D çizim)
-    if Toggles.espSkeleton.Value and plr.Character then
+    -- 🦴 Skeleton
+    if Drawing and Toggles.espSkeleton.Value and plr.Character then
         local bones = {}
         RunService.RenderStepped:Connect(function()
             if plr.Character then
                 local hum = plr.Character:FindFirstChildOfClass("Humanoid")
                 if hum and hum.RigType == Enum.HumanoidRigType.R15 then
                     local parts = {
-                        { "Head","UpperTorso" },
-                        { "UpperTorso","LowerTorso" },
-                        { "UpperTorso","LeftUpperArm" },
-                        { "LeftUpperArm","LeftLowerArm" },
-                        { "LeftLowerArm","LeftHand" },
-                        { "UpperTorso","RightUpperArm" },
-                        { "RightUpperArm","RightLowerArm" },
-                        { "RightLowerArm","RightHand" },
-                        { "LowerTorso","LeftUpperLeg" },
-                        { "LeftUpperLeg","LeftLowerLeg" },
-                        { "LeftLowerLeg","LeftFoot" },
-                        { "LowerTorso","RightUpperLeg" },
-                        { "RightUpperLeg","RightLowerLeg" },
-                        { "RightLowerLeg","RightFoot" },
+                        { "Head","UpperTorso" },{ "UpperTorso","LowerTorso" },
+                        { "UpperTorso","LeftUpperArm" },{ "LeftUpperArm","LeftLowerArm" },{ "LeftLowerArm","LeftHand" },
+                        { "UpperTorso","RightUpperArm" },{ "RightUpperArm","RightLowerArm" },{ "RightLowerArm","RightHand" },
+                        { "LowerTorso","LeftUpperLeg" },{ "LeftUpperLeg","LeftLowerLeg" },{ "LeftLowerLeg","LeftFoot" },
+                        { "LowerTorso","RightUpperLeg" },{ "RightUpperLeg","RightLowerLeg" },{ "RightLowerLeg","RightFoot" },
                     }
                     for _,pair in ipairs(parts) do
                         local a = plr.Character:FindFirstChild(pair[1])
@@ -430,20 +415,21 @@ function ApplyPlayerESP(plr)
         end)
     end
 
-    -- ≡ Box Stripes (Beam benzeri)
+    -- ≡ Box Stripes
     if Toggles.espStripes.Value and not plr.Character:FindFirstChild("MYLF_Stripes") then
-        local att1 = Instance.new("Attachment", plr.Character:FindFirstChild("HumanoidRootPart"))
-        local att2 = Instance.new("Attachment", plr.Character:FindFirstChild("Head"))
-        local beam = Instance.new("Beam")
-        beam.Name = "MYLF_Stripes"
-        beam.Attachment0 = att1
-        beam.Attachment1 = att2
-        beam.Width0 = 0.2
-        beam.Width1 = 0.2
-        beam.Color = ColorSequence.new(Color3.fromRGB(255,0,255))
-        beam.Parent = plr.Character
+        if hrp and head then
+            local att1 = Instance.new("Attachment", hrp)
+            local att2 = Instance.new("Attachment", head)
+            local beam = Instance.new("Beam")
+            beam.Name = "MYLF_Stripes"
+            beam.Attachment0 = att1
+            beam.Attachment1 = att2
+            beam.Width0 = 0.2
+            beam.Width1 = 0.2
+            beam.Color = ColorSequence.new(Color3.fromRGB(255,0,255))
+            beam.Parent = plr.Character
+        end
     end
-
 end
 
 -- === Auto Add ===
