@@ -565,7 +565,7 @@ end)
 local Window = Library:CreateWindow({
     Title = "⚡ MYLF | Hub ⚡",
     Center = true,
-    AutoShow = false
+    AutoShow = true
 })
 
 -- Combat Tab
@@ -610,12 +610,22 @@ ThemeManager:ApplyToTab(ConfigTab)
 ----------------------------------------------------------------
 -- === Menü Toggle (LeftShift)
 ----------------------------------------------------------------
+-- Menü toggle (garantili)
+local UIS = game:GetService("UserInputService")
 local MENU_KEY = Enum.KeyCode.LeftShift
+
 local function ToggleMenu()
-    if Library and Library.MainFrame then
-        Library.MainFrame.Visible = not Library.MainFrame.Visible
+    if Library.Toggle then
+        Library:Toggle()
+    elseif Library.ToggleUI then
+        Library:ToggleUI()
     end
 end
-UIS.InputBegan:Connect(function(inp,gp)
-    if not gp and inp.KeyCode == MENU_KEY then ToggleMenu() end
+
+-- Hem Linoria keybind, hem bizim fallback
+Library.ToggleKeybind = MENU_KEY
+UIS.InputBegan:Connect(function(inp, gp)
+    if not gp and inp.KeyCode == MENU_KEY then
+        ToggleMenu()
+    end
 end)
