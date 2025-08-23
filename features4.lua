@@ -58,14 +58,16 @@ local opt = {
 
 
 
--- API: Friend whitelist
+-- ===== PUBLIC: Friends / Perf =====
 function features.ESP_AddFriend(name) if name and #name>0 then features._friends[name]=true end end
 function features.ESP_RemoveFriend(name) if name then features._friends[name]=nil end end
 function features.ESP_ClearFriends() features._friends = {} end
+function features.SetESPPerf(mode) if mode=="HIGH" or mode=="MED" or mode=="LOW" then features._espPerf = mode end end
 
 
 
--- ====== HELPERS ======
+
+-- ===== HELPERS =====
 local function rainbowColor(t)
   local r = math.clamp(math.floor(math.sin(t*2)    *127+128),0,255)
   local g = math.clamp(math.floor(math.sin(t*2 +2) *127+128),0,255)
@@ -140,7 +142,7 @@ local function tryDrawing(kind)
   return nil
 end
 
--- ====== BUILDERS ======
+-- ===== BUILDERS =====
 local function ensureBox(model, o)
   if not o.selectionBox then
     local sb = Instance.new("SelectionBox")
@@ -262,7 +264,7 @@ local function ensureSkeleton(model, o)
   end
 end
 
--- ====== CORE ======
+-- ===== CORE: addESP / clearDead / scans / render =====
 local function addESP(target, isNPC)
   local adornee = getAdornee(target)
   if not (target and adornee) then return end
@@ -270,10 +272,10 @@ local function addESP(target, isNPC)
 
   if not o.highlight or not o.highlight.Parent then
     local hl = Instance.new("Highlight")
-    hl.FillTransparency = 0.5
-    hl.OutlineColor    = Color3.fromRGB(255,255,255)
-    hl.OutlineTransparency = 0
-    hl.DepthMode       = Enum.HighlightDepthMode.AlwaysOnTop -- 🔧 görünürlük
+    hl.FillTransparency     = 0.5
+    hl.OutlineColor         = Color3.fromRGB(255,255,255)
+    hl.OutlineTransparency  = 0
+    hl.DepthMode            = Enum.HighlightDepthMode.AlwaysOnTop -- görünürlük
     hl.Parent = target
     o.highlight = hl
   end
@@ -307,17 +309,14 @@ local function clearDead()
 end
 
 local function initialScan()
-  -- players
   for _, plr in ipairs(Players:GetPlayers()) do
     if plr~=Player and plr.Character then addESP(plr.Character,false) end
   end
-  -- NPCs
   for _, obj in ipairs(Workspace:GetChildren()) do
     if obj:FindFirstChildOfClass("Humanoid") and getAdornee(obj) and not Players:GetPlayerFromCharacter(obj) then
       addESP(obj,true)
     end
   end
-  -- Bots (opsiyonel klasör)
   local bots = Workspace:FindFirstChild("Bots")
   if bots then
     for _, bot in ipairs(bots:GetChildren()) do
@@ -327,7 +326,7 @@ local function initialScan()
 end
 
 local function bindAutoRefresh()
-  -- eski conns kapat
+  -- eski conns off
   for k, c in pairs(features._espConns) do pcall(function() c:Disconnect() end); features._espConns[k]=nil end
 
   features._espConns.playerAdded = Players.PlayerAdded:Connect(function(plr)
@@ -395,7 +394,6 @@ local function bindRender()
   _renderConn = RunService.RenderStepped:Connect(function(dt)
     if not features._espEnabled then return end
 
-    -- perf throttle
     local step = (features._espPerf=="HIGH" and 0) or (features._espPerf=="MED" and 0.016) or 0.04
     if step>0 then acc += dt; if acc < step then return end; acc = 0 end
 
@@ -411,7 +409,7 @@ local function bindRender()
       local pass  = alive and not sameTeam(model) and not isFriend(model) and withinRange(model) and losVisible(model)
 
       if pass then
-        -- Label + Dist + Rainbow
+        -- Name (rainbow + distance)
         if o.label then
           local base = o.label.Text
           if opt.showDist then
@@ -530,13 +528,12 @@ local function bindRender()
           o.tracer.Visible=false
         end
 
-        -- Offscreen Arrows
+        -- Offscreen arrows
         if opt.arrows then
           local hrp = model:FindFirstChild("HumanoidRootPart")
           if hrp then
             ensureArrow(o)
             local v, on, z = Camera:WorldToViewportPoint(hrp.Position)
-            local vp = Camera.ViewportSize
             local onScreen = on and z>0 and v.X>0 and v.X<vp.X and v.Y>0 and v.Y<vp.Y
             if not onScreen and o.arrow then
               local dir = (Vector2.new(v.X, v.Y) - center)
@@ -555,7 +552,7 @@ local function bindRender()
         end
 
       else
-        -- filtreye takılanları gizle
+        -- filtreye girenleri gizle
         if o.label then o.label.TextColor3 = Color3.fromRGB(255,255,255) end
         if o.highlight then o.highlight.Enabled = false end
         if o.selectionBox then o.selectionBox.Visible=false end
@@ -571,7 +568,7 @@ local function bindRender()
   end)
 end
 
--- ====== PUBLIC START/STOP ======
+-- ===== PUBLIC START/STOP =====
 function features._espStart()
   if features._espEnabled then
     initialScan()
@@ -598,37 +595,45 @@ function features._espStop()
   features._espObjects = {}
 end
 
--- ====== MASTER & ALT TOGGLE’LAR ======
--- MASTER: Kapalı iken alt toggle çağrıları YOK sayılır (çalışmaz).
+-- ===== MASTER & ALT TOGGLES =====
 function features.ToggleESP(on)
+  on = not not on
   if on == features._espEnabled then return end
   features._espEnabled = on
   if on then features._espStart() else features._espStop() end
 end
 
-local function guard(on)  -- master kapalıysa alt toggle'lar çalışmaz
-  if not features._espEnabled then
-    -- istersen buraya notify/print koy: print("[ESP] Önce 'Enable ESP'yi aç.")
-    return false
+local function guard() return features._espEnabled end
+
+function features.ToggleESPRainbow(on)     if not guard() then return end opt.rainbow      = on end
+function features.ToggleESPSkeleton(on)    if not guard() then return end opt.skeleton     = on end
+function features.ToggleESPGlow(on)        if not guard() then return end opt.glow         = on end
+function features.ToggleESPBox(on)         if not guard() then return end opt.box          = on end
+function features.ToggleESPStripes(on)     if not guard() then return end opt.stripes      = on end
+function features.ToggleESPDistance(on)    if not guard() then return end opt.showDist     = on end
+function features.ToggleESPHealth(on)      if not guard() then return end opt.healthBar    = on end
+function features.ToggleESPTracers(on)     if not guard() then return end opt.tracers      = on end
+function features.ToggleESPArrows(on)      if not guard() then return end opt.arrows       = on end
+function features.ToggleESPCorner(on)      if not guard() then return end opt.corner2D     = on end
+function features.ToggleESPTeam(on)        if not guard() then return end opt.teamCheck    = on end
+function features.ToggleESPLos(on)         if not guard() then return end opt.losOnly      = on end
+function features.ToggleESPRange(on)       if not guard() then return end opt.rangeLimit   = on end
+function features.ToggleESPFriends(on)     if not guard() then return end opt.friendIgnore = on end
+
+-- Manuel refresh (buton istersen)
+function features.RefreshESP()
+  -- render açık kalır; sahayı temizleyip yeniden tarar
+  for _, o in pairs(features._espObjects) do
+    if o.highlight then pcall(function() o.highlight:Destroy() end) end
+    if o.billboard then pcall(function() o.billboard:Destroy() end) end
+    if o.skeleton then for _,s in pairs(o.skeleton) do pcall(function() s.line:Remove() end) end end
+    if o.tracer then pcall(function() o.tracer:Remove() end) end
+    if o.arrow then pcall(function() if o.arrowIsTri then o.arrow.Visible=false else o.arrow:Remove() end end) end
+    if o.corners then for _,ln in ipairs(o.corners) do pcall(function() ln:Remove() end) end end
   end
-  return true
+  features._espObjects = {}
+  if features._espEnabled then initialScan() end
 end
-
-function features.ToggleESPRainbow(on)     if not guard(on) then return end opt.rainbow      = on end
-function features.ToggleESPSkeleton(on)    if not guard(on) then return end opt.skeleton     = on end
-function features.ToggleESPGlow(on)        if not guard(on) then return end opt.glow         = on end
-function features.ToggleESPBox(on)         if not guard(on) then return end opt.box          = on end
-function features.ToggleESPStripes(on)     if not guard(on) then return end opt.stripes      = on end
-function features.ToggleESPDistance(on)    if not guard(on) then return end opt.showDist     = on end
-function features.ToggleESPHealth(on)      if not guard(on) then return end opt.healthBar    = on end
-function features.ToggleESPTracers(on)     if not guard(on) then return end opt.tracers      = on end
-function features.ToggleESPArrows(on)      if not guard(on) then return end opt.arrows       = on end
-function features.ToggleESPCorner(on)      if not guard(on) then return end opt.corner2D     = on end
-function features.ToggleESPTeam(on)        if not guard(on) then return end opt.teamCheck    = on end
-function features.ToggleESPLos(on)         if not guard(on) then return end opt.losOnly      = on end
-function features.ToggleESPRange(on)       if not guard(on) then return end opt.rangeLimit   = on end
-function features.ToggleESPFriends(on)     if not guard(on) then return end opt.friendIgnore = on end
-
 ----------------------------------------------------------------
 -- Hedef seçimi (mesafe önemsiz, açıya göre en iyi düşman)
 ----------------------------------------------------------------
