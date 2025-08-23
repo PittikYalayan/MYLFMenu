@@ -662,14 +662,15 @@ local function getClosestVisibleHead()
                         local angle = math.deg(math.acos(dot)) -- 0° en iyi
 
                         if (not features.AimUseFOV) or (angle <= (features.AimMaxAngleDeg or 360)) then
-                            local ok = true
-                            if features.AimRequireLOS then
-                                local rayLen = math.min(dist, features.AimMaxDistance or 1e6)
-                                local hit = workspace:Raycast(origin, dirUnit * rayLen, rcParams)
-                                ok = (hit and hit.Instance and hit.Instance:IsDescendantOf(plr.Character)) or false
-                            end
-                            if ok and angle < bestScore then
-                                bestScore, bestHead = angle, head
+                            -- 🔒 Duvar arkası engelleme (zorunlu LOS)
+                            local rayLen = math.min(dist, features.AimMaxDistance or 1e6)
+                            local hit = workspace:Raycast(origin, dirUnit * rayLen, rcParams)
+
+                            if hit and hit.Instance and hit.Instance:IsDescendantOf(plr.Character) then
+                                -- ✅ sadece gerçekten görünüyorsa kitlenecek
+                                if angle < bestScore then
+                                    bestScore, bestHead = angle, head
+                                end
                             end
                         end
                     end
