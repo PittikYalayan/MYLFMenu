@@ -62,12 +62,14 @@ do
     bindToggle(g, "espRange", "📡 Range 300", features.ToggleESPRange)
     bindToggle(g, "espFriend", "⭐ Friend Ignore", features.ToggleESPFriends)
      -- performans seçici istersen:
-    g:AddDropdown("espPerf", {
-        Text = "⚡ ESP Perf",
-        Values = {"HIGH","MED","LOW"},
-        Default = "HIGH",
-        Callback = function(v) features.SetESPPerf(v) end
-      })
+   
+  g:AddDropdown("espPerf", {
+    Text = "⚡ ESP Perf",
+    Values = {"HIGH","MED","LOW"},
+    Default = "HIGH",
+    Callback = function(v) features.SetESPPerf(v) end
+  })
+  g:AddButton({ Text = "⟲ Refresh ESP", Func = function() features.RefreshESP() end })
 
 end
 
