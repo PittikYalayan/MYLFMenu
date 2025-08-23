@@ -635,7 +635,7 @@ function features.RefreshESP()
   if features._espEnabled then initialScan() end
 end
 ----------------------------------------------------------------
--- Hedef seçimi (LOS kontrollü, açıya göre en iyi)
+-- Hedef seçimi (mesafe önemsiz, açıya göre en iyi düşman)
 ----------------------------------------------------------------
 local function getClosestVisibleHead()
     local cam    = workspace.CurrentCamera
@@ -659,12 +659,15 @@ local function getClosestVisibleHead()
                     if dist <= (features.AimMaxDistance or 1e9) then
                         local dirUnit = toHead.Unit
                         local dot   = math.clamp(look:Dot(dirUnit), -1, 1)
-                        local angle = math.deg(math.acos(dot))
+                        local angle = math.deg(math.acos(dot)) -- 0° en iyi
 
                         if (not features.AimUseFOV) or (angle <= (features.AimMaxAngleDeg or 360)) then
+                            -- 🔒 Duvar arkası engelleme (zorunlu LOS)
                             local rayLen = math.min(dist, features.AimMaxDistance or 1e6)
                             local hit = workspace:Raycast(origin, dirUnit * rayLen, rcParams)
+
                             if hit and hit.Instance and hit.Instance:IsDescendantOf(plr.Character) then
+                                -- ✅ sadece gerçekten görünüyorsa kitlenecek
                                 if angle < bestScore then
                                     bestScore, bestHead = angle, head
                                 end
