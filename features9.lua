@@ -838,47 +838,32 @@ end
 ----------------------------------------------------------------
 function features.ToggleAimbot(on)
     local cam = workspace.CurrentCamera
-
     local function step()
         local head = getClosestVisibleHead()
         if not head then return end
-
-        -- Kamera yönü hedefe döner
         local target = CFrame.new(cam.CFrame.Position, head.Position)
         local s = tonumber(features.Smoothness) or 1
         cam.CFrame = (s > 1) and cam.CFrame:Lerp(target, 1/s) or target
 
-        -- Opsiyonel otomatik ateş
         if features.TriggerOnAim then
             local now = tick()
             if (now - (features._lastTrigger or 0)) >= (features.TriggerRate or 0.12) then
                 local ch = Player.Character
                 local tool = ch and ch:FindFirstChildOfClass("Tool")
-                if tool and tool:IsA("Tool") then
-                    pcall(function() tool:Activate() end)
-                    features._lastTrigger = now
+                if tool then 
+                    pcall(function() tool:Activate() end) 
+                    features._lastTrigger = now 
                 end
             end
         end
     end
-
     if on then
-        -- Eski bağlantı varsa kes
         if features._aim then features._aim:Disconnect() end
-        -- RenderStepped ile çalıştır
         features._aim = RunService.RenderStepped:Connect(step)
-
-        -- Respawn olunca yeniden bağlan
-        Player.CharacterAdded:Connect(function()
-            task.wait(1)
-            if features._aim then features._aim:Disconnect() end
-            features._aim = RunService.RenderStepped:Connect(step)
-        end)
-
     else
-        if features._aim then
+        if features._aim then 
             features._aim:Disconnect()
-            features._aim = nil
+            features._aim=nil 
         end
     end
 end
