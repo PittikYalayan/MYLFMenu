@@ -38,9 +38,9 @@ do
     local g = Tabs.Rage:AddLeftGroupbox("Rage")
     bindToggle(g, "aimbot",   "Enable Aimbot",          features.ToggleAimbot)
     bindToggle(g, "headshotRedirect", "Force Headshot", features.ToggleHeadshotRedirect)
+    bindToggle(g, "fireRate", "Hard Fire Rate", features.ToggleFireRate)
     bindToggle(g, "silent",   "Silent Aim",             features.ToggleSilentAim)
     bindToggle(g, "magic",    "Magic Bullet (Fallback)",features.ToggleMagicBullet) -- ✅ eklendi
-    bindToggle(g, "rapid",    "Rapid Fire",             features.ToggleRapidFire)
     bindToggle(g, "killaura", "Kill Aura",              features.ToggleKillAura)
 end
 
