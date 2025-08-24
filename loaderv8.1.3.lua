@@ -67,13 +67,13 @@ do
     bindToggle(g, "tpkey", "Teleport (T Key)", features.ToggleTeleport)
     bindToggle(g, "autoBehind", "⚡ Always Behind Enemy", features.ToggleAutoBehind)
     bindToggle(combatGroup, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleportToEnemy)
-combatGroup:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=1})
-combatGroup:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=1})
-combatGroup:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=1})
+g:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=1})
+g:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=1})
+g:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=1})
 
-Options.tpX:OnChanged(function(val) features.SetTeleportOffset(val, features._tpY, features._tpZ) end)
-Options.tpY:OnChanged(function(val) features.SetTeleportOffset(features._tpX, val, features._tpZ) end)
-Options.tpZ:OnChanged(function(val) features.SetTeleportOffset(features._tpX, features._tpY, val) end)
+g.tpX:OnChanged(function(val) features.SetTeleportOffset(val, features._tpY, features._tpZ) end)
+g.tpY:OnChanged(function(val) features.SetTeleportOffset(features._tpX, val, features._tpZ) end)
+g.tpZ:OnChanged(function(val) features.SetTeleportOffset(features._tpX, features._tpY, val) end)
 
 
 
