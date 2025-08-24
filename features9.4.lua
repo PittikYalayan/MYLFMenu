@@ -1708,91 +1708,71 @@ function features.ToggleAutoTeleportToEnemy(on)
     end
 end
 
-----------------------------------------------------------------
--- Multi-Hook Guard (Namecall + Index + NewIndex)
-----------------------------------------------------------------
-features._hooked = false
 
-local function EnsureHooks()
-    if features._hooked then return end
-    features._hooked = true
+----------------------------------------------------------------
+-- Hitbox Shrinker (Mini & Tiny) + Hooklu
+----------------------------------------------------------------
+features._miniHB_on   = false
+features._tinyHB_on   = false
 
-    -- Orijinal metamethodlar
-   -- Orijinal metamethodlar
+-- Orijinal metamethodlar
 local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
 local oldIndex    = mt.__index
 local oldNewIndex = mt.__newindex
 
 setreadonly(mt, false)
 
-----------------------------------------------------------------
--- MiniHitbox Toggle
-----------------------------------------------------------------
-features._miniHitbox = false
-
-function features.ToggleMiniHitbox(on)
-    features._miniHitbox = on
-    print("⚡ MiniHitbox:", on and "ON ✅" or "OFF ❌")
-end
-
-----------------------------------------------------------------
--- __index hook (değer okuma → fake dön)
-----------------------------------------------------------------
+-- __index hook → Anti-cheat senin hitbox boyunu okuduğunda hep normal döndürür
 mt.__index = newcclosure(function(self, key)
-    if features._miniHitbox and tostring(key):lower() == "size" then
-        return Vector3.new(0.01,0.01,0.01) -- hep minik göster
+    if (key == "Size" or key == "Mass" or key == "CanCollide") 
+    and (self:IsA("BasePart") and self.Name=="HumanoidRootPart") then
+        -- Normal görünmesini sağla (default hitbox)
+        return Vector3.new(2,2,1) 
     end
     return oldIndex(self, key)
 end)
 
-----------------------------------------------------------------
--- __newindex hook (değer setleme → zorla mini yap)
-----------------------------------------------------------------
+-- __newindex hook → Oyun boyutu değiştirmek istese engelle + kendi shrink uygula
 mt.__newindex = newcclosure(function(self, key, val)
-    if features._miniHitbox and tostring(key):lower() == "size" then
-        return oldNewIndex(self, key, Vector3.new(0.01,0.01,0.01))
+    if self:IsA("BasePart") and self.Name=="HumanoidRootPart" and key=="Size" then
+        -- Eğer özellikler açıksa kendi değerini uygula
+        if features._tinyHB_on then
+            return oldNewIndex(self, key, Vector3.new(0.01,0.01,0.01))
+        elseif features._miniHB_on then
+            return oldNewIndex(self, key, Vector3.new(1,1,1))
+        end
     end
     return oldNewIndex(self, key, val)
 end)
 
-----------------------------------------------------------------
--- __namecall hook (örnek: SilentAim / MB entegre)
-----------------------------------------------------------------
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args   = {...}
+setreadonly(mt, true)
 
-    if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
-    and (method == "FireServer" or method == "InvokeServer") then
-        if features.SilentAim then
-            local head = getClosestVisibleHead()
-            if head then
-                args[1] = head.Position
-                return oldNamecall(self, unpack(args))
-            end
+----------------------------------------------------------------
+-- Toggle’lar
+----------------------------------------------------------------
+function features.ToggleMiniHitbox(on)
+    features._miniHB_on = on
+    if on then
+        local char = Player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.Size = Vector3.new(1,1,1) end
         end
     end
-
-    return oldNamecall(self, ...)
-end)
-
-setreadonly(mt, true)
-print("✅ Multi-Hook + MiniHitbox aktif")
-
-----------------------------------------------------------------
--- Toggle Hooks
-----------------------------------------------------------------
-function features.ToggleMultiHook(on)
-    if on then
-        EnsureHooks()
-    else
-        -- devre dışı bırakmak için normalde restore lazım
-        -- ama exploit ortamında genelde kalıcı olur.
-        warn("MultiHook OFF (restore edilmedi)")
-    end
+    print("⚡ Mini Hitbox: ".. (on and "ON ✅" or "OFF ❌"))
 end
 
+function features.ToggleTinyHitbox(on)
+    features._tinyHB_on = on
+    if on then
+        local char = Player.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.Size = Vector3.new(0.01,0.01,0.01) end
+        end
+    end
+    print("🛡️ Tiny Hitbox: ".. (on and "ON ✅" or "OFF ❌"))
+end
 
 
 return features
