@@ -12,10 +12,15 @@ local Window = Library:CreateWindow({ Title = "⚡ MYLF | Hub ⚡", Center = tru
 -- Menü toggle (fallback’lı)
 local UIS = game:GetService("UserInputService")
 local MENU_KEY = Enum.KeyCode.LeftShift
-local function ToggleMenu() Library:Toggle() end
+local function ToggleMenu() 
+    Library:ToggleUI() -- ✅ Doğru fonksiyon
+end
+
 Library.ToggleKeybind = MENU_KEY
 UIS.InputBegan:Connect(function(inp, gp)
-    if not gp and inp.KeyCode == MENU_KEY then ToggleMenu() end
+    if not gp and inp.KeyCode == MENU_KEY then 
+        ToggleMenu() 
+    end
 end)
 
 -- Tabs
