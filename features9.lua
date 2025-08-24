@@ -1366,4 +1366,51 @@ function features.ToggleInvisible(on)
     print("Invisible: " .. (on and "ON" or "OFF"))
 end
 
+----------------------------------------------------------------
+-- AutoTeleportToEnemy (10m yanına ışınlanma, ölüm sonrası refresh)
+----------------------------------------------------------------
+features._autoTP = nil
+function features.ToggleAutoTeleport(on)
+    local function getClosestEnemy()
+        local camPos = workspace.CurrentCamera.CFrame.Position
+        local closest, closestDist = nil, 9999
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr ~= Player and plr.Character then
+                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                if hum and hrp and hum.Health > 0 then
+                    local dist = (hrp.Position - camPos).Magnitude
+                    if dist < closestDist then
+                        closestDist, closest = dist, plr
+                    end
+                end
+            end
+        end
+        return closest
+    end
+
+    if on then
+        if features._autoTP then features._autoTP:Disconnect() end
+        features._autoTP = RunService.Heartbeat:Connect(function()
+            local plr = getClosestEnemy()
+            if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local enemyHRP = plr.Character.HumanoidRootPart
+                local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                if myHRP then
+                    -- Hedefin 10m yanına ışınla
+                    local dir = (myHRP.Position - enemyHRP.Position).Unit
+                    local offset = dir * 10
+                    myHRP.CFrame = CFrame.new(enemyHRP.Position + offset)
+                end
+            end
+        end)
+    else
+        if features._autoTP then
+            features._autoTP:Disconnect()
+            features._autoTP=nil
+        end
+    end
+end
+
+
 return features
