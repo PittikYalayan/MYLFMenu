@@ -767,63 +767,36 @@ end
 -- Fly / Hover Modes
 -- Mode: "BV" (BodyVelocity), "BT" (BodyThrust), "AV" (AlignVelocity)
 ----------------------------------------------------------------
-features._flyMode  = "AV"   -- default: BodyVelocity
+----------------------------------------------------------------
+-- Fly (WASD + Space / Ctrl)
+----------------------------------------------------------------
 features._flySpeed = 60
-
-function features.ToggleFly(on, mode)
-    if mode then features._flyMode = mode end
-
-    local function ensureMover()
-        local ch  = Player.Character
+function features.ToggleFly(on)
+    local function ensureBV()
+        local ch = Player.Character
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        if features._flyMode == "BV" then
-            local bv = hrp:FindFirstChild("MYLF_FlyBV")
-            if not bv then
-                bv = Instance.new("BodyVelocity")
-                bv.Name = "MYLF_FlyBV"
-                bv.MaxForce = Vector3.new(1e5,1e5,1e5)
-                bv.Velocity = Vector3.zero
-                bv.Parent = hrp
-            end
-            return bv, hrp
-
-        elseif features._flyMode == "BT" then
-            local bt = hrp:FindFirstChild("MYLF_FlyBT")
-            if not bt then
-                bt = Instance.new("BodyThrust")
-                bt.Name = "MYLF_FlyBT"
-                bt.Force = Vector3.new(0,0,0)
-                bt.Parent = hrp
-            end
-            return bt, hrp
-
-        elseif features._flyMode == "AV" then
-            local av = hrp:FindFirstChild("MYLF_FlyAV")
-            if not av then
-                local att = Instance.new("Attachment", hrp)
-                att.Name = "MYLF_Att"
-                av = Instance.new("AlignVelocity")
-                av.Name = "MYLF_FlyAV"
-                av.Attachment0 = att
-                av.MaxForce = 1e5
-                av.Mode = Enum.VelocityAlignmentMode.Vector
-                av.Velocity = Vector3.zero
-                av.Parent = hrp
-            end
-            return av, hrp
+        local bv = hrp:FindFirstChild("MYLF_Fly") -- özel isimlendirme
+        if not bv then
+            bv = Instance.new("BodyVelocity")
+            bv.Name = "MYLF_Fly"
+            bv.MaxForce = Vector3.new(1e5,1e5,1e5) -- çok yüksek kuvvet
+            bv.Velocity = Vector3.zero
+            bv.Parent = hrp
         end
+        return bv, hrp
     end
 
     if on then
         if features._fly then features._fly:Disconnect() end
         features._fly = RunService.Heartbeat:Connect(function()
-            local mover, hrp = ensureMover()
-            if not mover then return end
+            local bv, hrp = ensureBV()
+            if not bv then return end
 
             local dir = Vector3.zero
             local cf  = workspace.CurrentCamera.CFrame
+
             if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cf.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cf.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cf.RightVector end
@@ -831,29 +804,20 @@ function features.ToggleFly(on, mode)
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-            dir = dir.Unit * (features._flySpeed or 60)
-
-            if features._flyMode == "BV" then
-                mover.Velocity = dir
-            elseif features._flyMode == "BT" then
-                mover.Force = dir * 4000
-            elseif features._flyMode == "AV" then
-                mover.Velocity = dir
-            end
+            bv.Velocity = dir * (features._flySpeed or 60)
         end)
 
+        -- respawn sonrası tekrar kur
         Player.CharacterAdded:Connect(function()
             task.wait(0.5)
-            if on then features.ToggleFly(true, features._flyMode) end
+            if on then features.ToggleFly(true) end
         end)
     else
         if features._fly then features._fly:Disconnect(); features._fly=nil end
         local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
-            for _,name in ipairs({"MYLF_FlyBV","MYLF_FlyBT","MYLF_FlyAV","MYLF_Att"}) do
-                local obj = hrp:FindFirstChild(name)
-                if obj then obj:Destroy() end
-            end
+            local bv = hrp:FindFirstChild("MYLF_Fly")
+            if bv then bv:Destroy() end
         end
     end
 end
