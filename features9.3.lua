@@ -1810,7 +1810,8 @@ local function shrink(char)
 end
 
 -- Metatable hook (anti-cheat’e fake göstermek için)
-local raw = getrawmetatable(game)
+local raw = (getrawmetatable or debug.getmetatable)(game)
+setreadonly(raw, false)
 setreadonly(raw,false)
 local oldNew, oldIndex = raw.__newindex, raw.__index
 
