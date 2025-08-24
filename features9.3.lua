@@ -1596,6 +1596,44 @@ function features.ToggleMultiHook(on)
 
     print("Multi-Hook: " .. (on and "ON ✅" or "OFF ❌"))
 end
+----------------------------------------------------------------
+-- Auto Teleport To Enemy (Always Behind / In Front)
+----------------------------------------------------------------
+features._tpEnemy = nil
+
+local function teleportEnemyBehindEnemy(enemy)
+    if not enemy or not enemy.Character then return end
+    local hrp = enemy.Character:FindFirstChild("HumanoidRootPart")
+    local myhrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp or not myhrp then return end
+
+    -- Kamera yönü → hep senin önünde olacak
+    local look = workspace.CurrentCamera.CFrame.LookVector
+    local offset = look * 5 -- 5 stud önünde (arkasında istiyorsan -look yap)
+    hrp.CFrame = CFrame.new(myhrp.Position + offset, myhrp.Position)
+end
+
+function features.ToggleAutoTeleport(on)
+    if on then
+        if features._tpEnemy then features._tpEnemy:Disconnect() end
+        features._tpEnemy = RunService.Heartbeat:Connect(function()
+            local head = getClosestVisibleHead()
+            if head and head.Parent then
+                local plr = Players:GetPlayerFromCharacter(head.Parent)
+                if plr and plr ~= Player then
+                    teleportEnemyBehindEnemy(plr)
+                end
+            end
+        end)
+        print("⚡ AutoTeleportToEnemy: ON")
+    else
+        if features._tpEnemy then 
+            features._tpEnemy:Disconnect() 
+            features._tpEnemy=nil 
+        end
+        print("⚡ AutoTeleportToEnemy: OFF")
+    end
+end
 
 
 return features
