@@ -66,10 +66,9 @@ do
     local g = Tabs.Teleport:AddLeftGroupbox("Teleport")
     bindToggle(g, "tpkey", "Teleport (T Key)", features.ToggleTeleport)
     bindToggle(g, "autoBehind", "⚡ Always Behind Enemy", features.ToggleAutoBehind)
-    bindToggle(g, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleport)
     -- Toggle
 g:AddToggle("tpEnemy", {
-    Text = "⚡ Auto Teleport Enemy",
+    Text = "⚡ Auto Farm Enemy",
     Default = false,
     Callback = function(on) features.ToggleAutoTeleportToEnemy(on) end
 })
@@ -91,7 +90,7 @@ g:AddSlider("tpY", {
 
 g:AddSlider("tpZ", {
     Text = "Offset Z (Ön mesafe)",
-    Default = 5,
+    Default = 25,
     Min = 1, Max = 50, Rounding = 1,
     Callback = function(val) features.SetTeleportOffset(Toggles.tpX.Value, Toggles.tpY.Value, val) end
 })
