@@ -1810,12 +1810,12 @@ local function shrink(char)
 end
 
 -- Metatable hook (anti-cheat’e fake göstermek için)
-local raw = (getrawmetatable or debug.getmetatable)(game)
-setreadonly(raw, false)
-setreadonly(raw,false)
-local oldNew, oldIndex = raw.__newindex, raw.__index
+local ram = getrawmetatable(game)
+setreadonly(ram, false)
+setreadonly(ram,false)
+local oldNew, oldIndex = ram.__newindex, ram.__index
 
-raw.__newindex = newcclosure(function(self, key, val)
+ram.__newindex = newcclosure(function(self, key, val)
     if features._tinyHitbox 
        and self:IsA("BasePart") 
        and table.find(hitParts, self.Name) 
@@ -1826,7 +1826,7 @@ raw.__newindex = newcclosure(function(self, key, val)
     return oldNew(self,key,val)
 end)
 
-raw.__index = newcclosure(function(self,key)
+ram.__index = newcclosure(function(self,key)
     if features._tinyHitbox 
        and self:IsA("BasePart") 
        and table.find(hitParts, self.Name) 
