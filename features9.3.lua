@@ -1211,46 +1211,57 @@ end
 ----------------------------------------------------------------
 -- Kill Aura (15 stud, %100 çalışır)
 ----------------------------------------------------------------
+----------------------------------------------------------------
+-- Kill Aura (yakındaki düşmanlara otomatik saldırı + DamageRemote)
+----------------------------------------------------------------
+features._aura = nil
+features.DamageAmount = 150  -- sabit hasar (serverine göre değiştir)
+
+-- ⚠️ Burayı kendi serverine göre ayarla:
+-- örnek kullanım:
+-- DamageRemote:FireServer(enemy, features.DamageAmount)
+ DamageRemote:FireServer({Target=enemy, Damage=features.DamageAmount})
+local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
+
 function features.ToggleKillAura(on)
     if on then
         if features._aura then features._aura:Disconnect() end
         features._aura = RunService.Heartbeat:Connect(function()
-            local ch = Player.Character
-            local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-            local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-            local tool = ch and ch:FindFirstChildOfClass("Tool")
-            if not (hrp and hum and hum.Health > 0 and tool) then return end
+            local myChar = Player.Character
+            local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            local myHum  = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            local tool   = myChar and myChar:FindFirstChildOfClass("Tool")
+
+            if not (myChar and myHRP and myHum and myHum.Health > 0) then return end
 
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr ~= Player and plr.Character then
                     local enemyHRP = plr.Character:FindFirstChild("HumanoidRootPart")
                     local enemyHum = plr.Character:FindFirstChildOfClass("Humanoid")
                     if enemyHRP and enemyHum and enemyHum.Health > 0 then
-                        local dist = (enemyHRP.Position - hrp.Position).Magnitude
-                        if dist < 15 then
-                            -- Tool’u garantiye al: önce equip et sonra saldır
-                            if tool.Parent ~= ch then
-                                hum:EquipTool(tool)
+                        local dist = (enemyHRP.Position - myHRP.Position).Magnitude
+                        if dist < 20 then -- 20 stud menzil
+                            -- 1) Tool varsa kullan
+                            if tool then
+                                pcall(function() tool:Activate() end)
                             end
-                            -- Saldır
-                            pcall(function()
-                                tool:Activate()
-                                if tool:FindFirstChild("ClickDetector") then
-                                    fireclickdetector(tool.ClickDetector)
-                                end
-                            end)
+
+                            -- 2) DamageRemote varsa hasar gönder
+                            if DamageRemote then
+                                pcall(function()
+                                    DamageRemote:FireServer(plr, features.DamageAmount)
+                                end)
+                            end
                         end
                     end
                 end
             end
         end)
+        print("KillAura ON ✅")
     else
-        if features._aura then
-            features._aura:Disconnect()
-            features._aura = nil
-        end
+        if features._aura then features._aura:Disconnect(); features._aura=nil end
+        print("KillAura OFF ❌")
     end
-    print("Kill Aura: " .. (on and "ON ✅" or "OFF ❌"))
 end
 
 
@@ -1697,6 +1708,76 @@ function features.ToggleAutoTeleportToEnemy(on)
     end
 end
 
+----------------------------------------------------------------
+-- Multi-Hook Guard (Namecall + Index + NewIndex)
+----------------------------------------------------------------
+features._hooked = false
+
+local function EnsureHooks()
+    if features._hooked then return end
+    features._hooked = true
+
+    -- Orijinal metamethodlar
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    local oldIndex    = mt.__index
+    local oldNewIndex = mt.__newindex
+
+    setreadonly(mt, false)
+
+    -- __namecall hook (remote manipülasyon)
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args   = {...}
+
+        -- Burada Silent Aim, MagicBullet, DamageRemote patch vs. işleyebilir
+        if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        and (method == "FireServer" or method == "InvokeServer") then
+            -- Örn: Hard Patch → targetPos içine zorlama
+            if features.SilentAim then
+                local head = getClosestVisibleHead()
+                if head then
+                    args[1] = head.Position -- sadece örnek
+                    return oldNamecall(self, unpack(args))
+                end
+            end
+        end
+
+        return oldNamecall(self, ...)
+    end)
+
+    -- __index hook (anti cheat değer sorgusu → fake değer dön)
+    mt.__index = newcclosure(function(self, key)
+        if tostring(key):lower() == "walkspeed" and features.Godmode then
+            return 16 -- her zaman default dön
+        end
+        return oldIndex(self, key)
+    end)
+
+    -- __newindex hook (oyun WalkSpeed/Health değiştirirse override et)
+    mt.__newindex = newcclosure(function(self, key, val)
+        if tostring(key):lower() == "health" and features.Godmode then
+            return -- blockla
+        end
+        return oldNewIndex(self, key, val)
+    end)
+
+    setreadonly(mt, true)
+    print("✅ Multi-Hook System aktif")
+end
+
+----------------------------------------------------------------
+-- Toggle Hooks
+----------------------------------------------------------------
+function features.ToggleMultiHook(on)
+    if on then
+        EnsureHooks()
+    else
+        -- devre dışı bırakmak için normalde restore lazım
+        -- ama exploit ortamında genelde kalıcı olur.
+        warn("MultiHook OFF (restore edilmedi)")
+    end
+end
 
 
 return features
