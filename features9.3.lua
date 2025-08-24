@@ -1339,44 +1339,63 @@ end
 ----------------------------------------------------------------
 -- Invisible (Local + Remote Attempt)
 ----------------------------------------------------------------
-function features.ToggleInvisible(on)
-    local ch = Player.Character or Player.CharacterAdded:Wait()
+----------------------------------------------------------------
+-- Hard Hook Invisible (Multi-Hook)
+----------------------------------------------------------------
+features._invisHooked = false
+features.Invisible    = false
 
-    -- 🔹 Local invisible (sadece sende görünmez)
-    for _, p in ipairs(ch:GetDescendants()) do
-        if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
-            p.Transparency = on and 1 or 0
-            if on and p:FindFirstChild("face") then p.face:Destroy() end
+local invisPatterns = { "invis", "vanish", "cloak", "hide" }
+
+local function InvisMatch(name)
+    name = tostring(name):lower()
+    for _, pat in ipairs(invisPatterns) do
+        if string.find(name, pat) then
+            return true
         end
     end
-
-    -- 🔹 Server-side invisibility (oyunda varsa remote tetikle)
-    local function tryRemote(remote)
-        pcall(function()
-            if remote:IsA("RemoteEvent") then
-                remote:FireServer(on)
-            elseif remote:IsA("RemoteFunction") then
-                remote:InvokeServer(on)
-            end
-            warn("[Invisible] Remote tetiklendi:", remote:GetFullName())
-        end)
-    end
-
-    -- Remote araması
-    local patterns = { "invis", "invisible", "vanish", "cloak", "hide" }
-    for _, d in ipairs(game:GetDescendants()) do
-        if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then
-            local name = d.Name:lower()
-            for _, p in ipairs(patterns) do
-                if string.find(name, p) then
-                    tryRemote(d)
-                end
-            end
-        end
-    end
-
-    print("Invisible: " .. (on and "ON" or "OFF"))
+    return false
 end
+
+local function EnsureInvisHook()
+    if features._invisHooked then return end
+    features._invisHooked = true
+
+    local old
+    old = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args   = { ... }
+
+        if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        and (method == "FireServer" or method == "InvokeServer") then
+            if features.Invisible and InvisMatch(self.Name) then
+                -- Burada server'a her zaman invis = true gönder
+                for i,v in ipairs(args) do
+                    if typeof(v) == "boolean" then
+                        args[i] = true
+                    elseif typeof(v) == "table" then
+                        for k,val in pairs(v) do
+                            if tostring(k):lower():find("invis") then
+                                v[k] = true
+                            end
+                        end
+                    end
+                end
+                return old(self, unpack(args))
+            end
+        end
+
+        return old(self, ...)
+    end)
+end
+
+-- Toggle
+function features.ToggleHardInvisible(on)
+    features.Invisible = not not on
+    EnsureInvisHook()
+    print("Hard Invisible: " .. (on and "ON ✅" or "OFF ❌"))
+end
+
 
 ----------------------------------------------------------------
 -- AutoTeleportToEnemy (Her zaman düşmanın arkasına)
