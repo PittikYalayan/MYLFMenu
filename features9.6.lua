@@ -1709,70 +1709,62 @@ function features.ToggleAutoTeleportToEnemy(on)
 end
 
 
-----------------------------------------------------------------
--- Hitbox Shrinker (Mini & Tiny) + Hooklu
-----------------------------------------------------------------
-features._miniHB_on   = false
-features._tinyHB_on   = false
+ getnamecallmethod fallback
+getnamecallmethod = getnamecallmethod or debug.getnamecallmethod
 
--- Orijinal metamethodlar
-local mt = getrawmetatable(game)
-local oldIndex    = mt.__index
-local oldNewIndex = mt.__newindex
+-- eski metamethod
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+    local method = (getnamecallmethod and getnamecallmethod()) or "Unknown"
+    local args = {...}
 
-setreadonly(mt, false)
-
--- __index hook → Anti-cheat senin hitbox boyunu okuduğunda hep normal döndürür
-mt.__index = newcclosure(function(self, key)
-    if (key == "Size" or key == "Mass" or key == "CanCollide") 
-    and (self:IsA("BasePart") and self.Name=="HumanoidRootPart") then
-        -- Normal görünmesini sağla (default hitbox)
-        return Vector3.new(2,2,1) 
-    end
-    return oldIndex(self, key)
-end)
-
--- __newindex hook → Oyun boyutu değiştirmek istese engelle + kendi shrink uygula
-mt.__newindex = newcclosure(function(self, key, val)
-    if self:IsA("BasePart") and self.Name=="HumanoidRootPart" and key=="Size" then
-        -- Eğer özellikler açıksa kendi değerini uygula
-        if features._tinyHB_on then
-            return oldNewIndex(self, key, Vector3.new(0.01,0.01,0.01))
-        elseif features._miniHB_on then
-            return oldNewIndex(self, key, Vector3.new(1,1,1))
+    -- 🔫 Silent Aim patch
+    if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+    and (method == "FireServer" or method == "InvokeServer") then
+        if features.SilentAim then
+            local head = getClosestVisibleHead()
+            if head then
+                -- arg patch (örnek)
+                args[1] = head.Position
+                return oldNamecall(self, unpack(args))
+            end
         end
     end
-    return oldNewIndex(self, key, val)
-end)
 
-setreadonly(mt, true)
+    return oldNamecall(self, ...)
+end))
+
+print("✅ Multi-Hook (Silent Aim + TinyHitbox) aktif")
 
 ----------------------------------------------------------------
--- Toggle’lar
+-- TINY HITBOX (Hard Patch)
 ----------------------------------------------------------------
-function features.ToggleMiniHitbox(on)
-    features._miniHB_on = on
-    if on then
-        local char = Player.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.Size = Vector3.new(1,1,1) end
-        end
-    end
-    print("⚡ Mini Hitbox: ".. (on and "ON ✅" or "OFF ❌"))
-end
+features._tinyConn = nil
 
 function features.ToggleTinyHitbox(on)
-    features._tinyHB_on = on
     if on then
-        local char = Player.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.Size = Vector3.new(0.01,0.01,0.01) end
+        if features._tinyConn then features._tinyConn:Disconnect() end
+        features._tinyConn = RunService.Heartbeat:Connect(function()
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= Player and plr.Character then
+                    for _, part in ipairs(plr.Character:GetChildren()) do
+                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                            part.Size = Vector3.new(0.01,0.01,0.01)
+                            part.Transparency = 0.9
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end)
+        print("🛡️ TinyHitbox: ON")
+    else
+        if features._tinyConn then
+            features._tinyConn:Disconnect()
+            features._tinyConn = nil
         end
+        print("🛡️ TinyHitbox: OFF")
     end
-    print("🛡️ Tiny Hitbox: ".. (on and "ON ✅" or "OFF ❌"))
 end
-
 
 return features
