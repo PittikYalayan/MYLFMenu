@@ -1104,25 +1104,53 @@ end
 ----------------------------------------------------------------
 -- Rapid Fire Toggle
 ----------------------------------------------------------------
-function features.ToggleRapidFire(on)
+----------------------------------------------------------------
+-- Hard Fire Rate (Local + Remote Spam birleşik)
+----------------------------------------------------------------
+function features.ToggleFireRate(on)
     if on then
-        if features._rof then features._rof:Disconnect() end
-        features._rof = RunService.Heartbeat:Connect(function()
-            local ch = Player.Character; if not ch then return end
-            local tool = ch:FindFirstChildOfClass("Tool"); if not tool then return end
-            for _,v in ipairs(tool:GetDescendants()) do
+        -- Local cooldown bypass
+        if features._fireRateLocal then features._fireRateLocal:Disconnect() end
+        features._fireRateLocal = RunService.Heartbeat:Connect(function()
+            local ch = Player.Character
+            local tool = ch and ch:FindFirstChildOfClass("Tool")
+            if not tool then return end
+
+            for _, v in ipairs(tool:GetDescendants()) do
                 if v:IsA("NumberValue") or v:IsA("IntValue") then
-                    local n = v.Name:lower()
-                    if n:find("cooldown") or n:find("fire") or n:find("attack") or n:find("reload") or n:find("speed") then
-                        v.Value = 0.001
+                    local name = v.Name:lower()
+                    if name:find("cooldown") or name:find("fire") or name:find("rate") or name:find("reload") then
+                        v.Value = 0 -- cooldown reset
                     end
                 end
             end
         end)
+
+        -- Remote spam
+        if features._fireRateRemote then features._fireRateRemote:Disconnect() end
+        features._fireRateRemote = RunService.Heartbeat:Connect(function()
+            local ch = Player.Character
+            local tool = ch and ch:FindFirstChildOfClass("Tool")
+            if not tool then return end
+
+            for _, rem in ipairs(tool:GetDescendants()) do
+                if rem:IsA("RemoteEvent") and rem.Name:lower():find("fire") then
+                    local head = getClosestVisibleHead()
+                    if head then
+                        pcall(function()
+                            rem:FireServer(head.Position)
+                        end)
+                    end
+                end
+            end
+        end)
+
+        print("🔥 Hard FireRate: ON ✅")
     else
-        if features._rof then features._rof:Disconnect(); features._rof=nil end
+        if features._fireRateLocal then features._fireRateLocal:Disconnect(); features._fireRateLocal=nil end
+        if features._fireRateRemote then features._fireRateRemote:Disconnect(); features._fireRateRemote=nil end
+        print("🔥 Hard FireRate: OFF ❌")
     end
-    print("RapidFire: " .. (on and "ON" or "OFF"))
 end
 
 ----------------------------------------------------------------
