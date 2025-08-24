@@ -1709,62 +1709,83 @@ function features.ToggleAutoTeleportToEnemy(on)
 end
 
 
- --getnamecallmethod fallback
-getnamecallmethod = getnamecallmethod or debug.getnamecallmethod
-
--- eski metamethod
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local method = (getnamecallmethod and getnamecallmethod()) or "Unknown"
-    local args = {...}
-
-    -- 🔫 Silent Aim patch
-    if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
-    and (method == "FireServer" or method == "InvokeServer") then
-        if features.SilentAim then
-            local head = getClosestVisibleHead()
-            if head then
-                -- arg patch (örnek)
-                args[1] = head.Position
-                return oldNamecall(self, unpack(args))
-            end
-        end
-    end
-
-    return oldNamecall(self, ...)
-end))
-
-print("✅ Multi-Hook (Silent Aim + TinyHitbox) aktif")
-
 ----------------------------------------------------------------
--- TINY HITBOX (Hard Patch)
+-- Tiny Hitbox (Hard + Multi-Hook)
 ----------------------------------------------------------------
-features._tinyConn = nil
+local hitParts = {
+    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
+    "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
+}
+local tinySize = Vector3.new(0.001,0.001,0.001)
 
 function features.ToggleTinyHitbox(on)
     if on then
+        -- Namecall hook (Silent Aim + Hitbox patch)
+        if not features._tinyHooked then
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                local args   = {...}
+
+                if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+                and (method == "FireServer" or method == "InvokeServer") then
+                    if features.SilentAim then
+                        local head = getClosestVisibleHead()
+                        if head then
+                            args[1] = head.Position
+                            return oldNamecall(self, unpack(args))
+                        end
+                    end
+                end
+
+                return oldNamecall(self, ...)
+            end))
+
+            -- __index hook → anti-cheat “Size” sorarsa default ver
+            local oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+                if (tostring(key):lower() == "size") and features._tinyActive then
+                    return Vector3.new(2,2,1) -- sahte normal değer
+                end
+                return oldIndex(self, key)
+            end))
+
+            -- __newindex hook → oyun size değiştirmeye çalışırsa blockla
+            local oldNewIndex = hookmetamethod(game, "__newindex", newcclosure(function(self, key, val)
+                if (tostring(key):lower() == "size") and features._tinyActive then
+                    return -- block
+                end
+                return oldNewIndex(self, key, val)
+            end))
+
+            features._tinyHooked  = true
+            features._tinyActive  = true
+            features._tinyOldCall = oldNamecall
+            features._tinyOldIdx  = oldIndex
+            features._tinyOldNew  = oldNewIndex
+        end
+
+        -- Heartbeat → sürekli küçült
         if features._tinyConn then features._tinyConn:Disconnect() end
         features._tinyConn = RunService.Heartbeat:Connect(function()
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr ~= Player and plr.Character then
-                    for _, part in ipairs(plr.Character:GetChildren()) do
-                        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                            part.Size = Vector3.new(0.01,0.01,0.01)
-                            part.Transparency = 0.9
+                    for _, partName in ipairs(hitParts) do
+                        local part = plr.Character:FindFirstChild(partName)
+                        if part and part:IsA("BasePart") then
+                            part.Size = tinySize
+                            part.Transparency = 0.95
                             part.CanCollide = false
                         end
                     end
                 end
             end
         end)
-        print("🛡️ TinyHitbox: ON")
+
+        print("🛡️ TinyHitbox HardHook: ON")
     else
-        if features._tinyConn then
-            features._tinyConn:Disconnect()
-            features._tinyConn = nil
-        end
-        print("🛡️ TinyHitbox: OFF")
+        if features._tinyConn then features._tinyConn:Disconnect(); features._tinyConn=nil end
+        features._tinyActive = false
+        print("🛡️ TinyHitbox HardHook: OFF")
     end
 end
-
 return features
