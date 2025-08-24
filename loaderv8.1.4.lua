@@ -66,7 +66,7 @@ do
     local g = Tabs.Teleport:AddLeftGroupbox("Teleport")
     bindToggle(g, "tpkey", "Teleport (T Key)", features.ToggleTeleport)
     bindToggle(g, "autoBehind", "⚡ Always Behind Enemy", features.ToggleAutoBehind)
-    bindToggle(combatGroup, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleportToEnemy)
+    bindToggle(g, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleportToEnemy)
 g:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=1})
 g:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=1})
 g:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=1})
