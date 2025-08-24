@@ -773,48 +773,44 @@ end
 ----------------------------------------------------------------
 -- Hover Fly (stabil, VectorForce + AlignOrientation)
 ----------------------------------------------------------------
-features._flySpeed = 60
+----------------------------------------------------------------
+-- Ultra Fly (Server correction bypass + Camera yönlü)
+----------------------------------------------------------------
+features._flySpeed = 80
 
 function features.ToggleFly(on)
-    local function ensureHover()
+    local function ensureBV()
         local ch  = Player.Character
+        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+        if not (hrp and hum) then return end
 
-        -- VectorForce → hareket
-        local vf = hrp:FindFirstChild("MYLF_VF")
-        if not vf then
-            local att = Instance.new("Attachment", hrp)
-            vf = Instance.new("VectorForce")
-            vf.Name = "MYLF_VF"
-            vf.Attachment0 = att
-            vf.Force = Vector3.zero
-            vf.RelativeTo = Enum.ActuatorRelativeTo.World
-            vf.ApplyAtCenterOfMass = true
-            vf.Parent = hrp
+        -- Eski bodymoverları temizle
+        for _,v in ipairs(hrp:GetChildren()) do
+            if v:IsA("BodyMover") or v:IsA("VectorForce") or v:IsA("AlignPosition") then
+                v:Destroy()
+            end
         end
 
-        -- AlignOrientation → yön kameraya bakacak
-        local ao = hrp:FindFirstChild("MYLF_AO")
-        if not ao then
-            local att = Instance.new("Attachment", hrp)
-            ao = Instance.new("AlignOrientation")
-            ao.Name = "MYLF_AO"
-            ao.Attachment0 = att
-            ao.Responsiveness = 200
-            ao.MaxTorque = 1e5
-            ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
-            ao.Parent = hrp
+        local bv = hrp:FindFirstChild("MYLF_Fly")
+        if not bv then
+            bv = Instance.new("BodyVelocity")
+            bv.Name = "MYLF_Fly"
+            bv.MaxForce = Vector3.new(1e6,1e6,1e6)
+            bv.Velocity = Vector3.zero
+            bv.Parent = hrp
         end
 
-        return vf, ao, hrp
+        -- Server düzeltmesini azalt
+        hum.PlatformStand = true
+        return bv, hrp
     end
 
     if on then
         if features._fly then features._fly:Disconnect() end
         features._fly = RunService.RenderStepped:Connect(function()
-            local vf, ao, hrp = ensureHover()
-            if not vf then return end
+            local bv, hrp = ensureBV()
+            if not bv then return end
 
             local dir = Vector3.zero
             local cf  = workspace.CurrentCamera.CFrame
@@ -826,11 +822,8 @@ function features.ToggleFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-            dir = dir.Magnitude > 0 and dir.Unit or Vector3.zero
-            vf.Force = dir * (features._flySpeed * 60)
-
-            -- Kamera yönüne dön
-            if ao then ao.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + cf.LookVector) end
+            if dir.Magnitude > 0 then dir = dir.Unit end
+            bv.Velocity = dir * (features._flySpeed or 80)
         end)
 
         Player.CharacterAdded:Connect(function()
@@ -841,13 +834,14 @@ function features.ToggleFly(on)
         if features._fly then features._fly:Disconnect(); features._fly=nil end
         local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
-            for _,n in ipairs({"MYLF_VF","MYLF_AO"}) do
-                local obj = hrp:FindFirstChild(n)
-                if obj then obj:Destroy() end
-            end
+            local bv = hrp:FindFirstChild("MYLF_Fly")
+            if bv then bv:Destroy() end
         end
+        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = false end
     end
 end
+
 
 
 ----------------------------------------------------------------
@@ -1602,10 +1596,11 @@ end
 ----------------------------------------------------------------
 -- Auto Teleport To Enemy (Always In Front/Behind)
 ----------------------------------------------------------------
+----------------------------------------------------------------
+-- Auto Teleport To Enemy (Always In Front, NO visibility check)
+----------------------------------------------------------------
 features._tpEnemy = nil
-
--- Varsayılan offset
-features._tpOffset = Vector3.new(0, 0, 25)
+features._tpOffset = Vector3.new(0, 0, 5)
 
 -- Offset ayarlama
 function features.SetTeleportOffset(x,y,z)
@@ -1616,31 +1611,30 @@ function features.ToggleAutoTeleportToEnemy(on)
     if on then
         if features._tpEnemy then features._tpEnemy:Disconnect() end
         features._tpEnemy = RunService.RenderStepped:Connect(function()
-            local targetHead = getClosestVisibleHead()
-            local myChar = Player.Character
-            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            if not (targetHead and myHRP) then return end
+            local cam   = workspace.CurrentCamera
+            local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+            local head  = getClosestVisibleHead() -- hedef bulucu
+            if not (myHRP and head) then return end
 
-            local enemyChar = targetHead.Parent
-            local enemyHRP = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
+            local enemyChar = head.Parent
+            local enemyHRP  = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
             if not enemyHRP then return end
 
             -- Kamera yönü → hep senin baktığın yöne göre offset uygular
-            local camLook = workspace.CurrentCamera.CFrame.LookVector
-            local offset = 
-                (camLook * features._tpOffset.Z) + 
-                Vector3.new(features._tpOffset.X, features._tpOffset.Y, 0)
+            local camLook = cam.CFrame.LookVector
+            local offset  = (camLook * features._tpOffset.Z) + Vector3.new(features._tpOffset.X, features._tpOffset.Y, 0)
 
-            -- sadece local: düşmanı senin önüne taşı
+            -- ❌ Görünürlük check kaldırıldı → her zaman teleport
             enemyHRP.CFrame = CFrame.new(myHRP.Position + offset, myHRP.Position)
         end)
     else
         if features._tpEnemy then 
             features._tpEnemy:Disconnect()
-            features._tpEnemy = nil 
+            features._tpEnemy=nil 
         end
     end
 end
+
 
 
 return features
