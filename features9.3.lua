@@ -770,29 +770,51 @@ end
 ----------------------------------------------------------------
 -- Fly (WASD + Space / Ctrl)
 ----------------------------------------------------------------
+----------------------------------------------------------------
+-- Hover Fly (stabil, VectorForce + AlignOrientation)
+----------------------------------------------------------------
 features._flySpeed = 60
+
 function features.ToggleFly(on)
-    local function ensureBV()
-        local ch = Player.Character
+    local function ensureHover()
+        local ch  = Player.Character
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        local bv = hrp:FindFirstChild("MYLF_Fly") -- özel isimlendirme
-        if not bv then
-            bv = Instance.new("BodyVelocity")
-            bv.Name = "MYLF_Fly"
-            bv.MaxForce = Vector3.new(1e5,1e5,1e5) -- çok yüksek kuvvet
-            bv.Velocity = Vector3.zero
-            bv.Parent = hrp
+        -- VectorForce → hareket
+        local vf = hrp:FindFirstChild("MYLF_VF")
+        if not vf then
+            local att = Instance.new("Attachment", hrp)
+            vf = Instance.new("VectorForce")
+            vf.Name = "MYLF_VF"
+            vf.Attachment0 = att
+            vf.Force = Vector3.zero
+            vf.RelativeTo = Enum.ActuatorRelativeTo.World
+            vf.ApplyAtCenterOfMass = true
+            vf.Parent = hrp
         end
-        return bv, hrp
+
+        -- AlignOrientation → yön kameraya bakacak
+        local ao = hrp:FindFirstChild("MYLF_AO")
+        if not ao then
+            local att = Instance.new("Attachment", hrp)
+            ao = Instance.new("AlignOrientation")
+            ao.Name = "MYLF_AO"
+            ao.Attachment0 = att
+            ao.Responsiveness = 200
+            ao.MaxTorque = 1e5
+            ao.Mode = Enum.OrientationAlignmentMode.OneAttachment
+            ao.Parent = hrp
+        end
+
+        return vf, ao, hrp
     end
 
     if on then
         if features._fly then features._fly:Disconnect() end
-        features._fly = RunService.Heartbeat:Connect(function()
-            local bv, hrp = ensureBV()
-            if not bv then return end
+        features._fly = RunService.RenderStepped:Connect(function()
+            local vf, ao, hrp = ensureHover()
+            if not vf then return end
 
             local dir = Vector3.zero
             local cf  = workspace.CurrentCamera.CFrame
@@ -804,10 +826,13 @@ function features.ToggleFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-            bv.Velocity = dir * (features._flySpeed or 60)
+            dir = dir.Magnitude > 0 and dir.Unit or Vector3.zero
+            vf.Force = dir * (features._flySpeed * 1000)
+
+            -- Kamera yönüne dön
+            if ao then ao.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + cf.LookVector) end
         end)
 
-        -- respawn sonrası tekrar kur
         Player.CharacterAdded:Connect(function()
             task.wait(0.5)
             if on then features.ToggleFly(true) end
@@ -816,8 +841,10 @@ function features.ToggleFly(on)
         if features._fly then features._fly:Disconnect(); features._fly=nil end
         local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
-            local bv = hrp:FindFirstChild("MYLF_Fly")
-            if bv then bv:Destroy() end
+            for _,n in ipairs({"MYLF_VF","MYLF_AO"}) do
+                local obj = hrp:FindFirstChild(n)
+                if obj then obj:Destroy() end
+            end
         end
     end
 end
