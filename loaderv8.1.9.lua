@@ -56,7 +56,8 @@ do
     bindToggle(g, "speed",     "Speed Boost (50)", features.ToggleSpeed)
     bindToggle(g, "fly",       "Fly (LCtrl down)", features.ToggleFly)
     bindToggle(g, "infjump",   "Infinite Jump",    features.ToggleInfiniteJump)
-   bindToggle(g, "godmode", "💀 Godmode", features.ToggleGodmode)
+    bindToggle(g, "godmode", "💀 Godmode", features.ToggleGodmode)
+    bindToggle(g, "tinyHitbox", "🛡️ Tiny Hitbox (Hard)", features.ToggleTinyHitbox)
     bindToggle(g, "hardInvis", "👻 Hard Invisible", features.ToggleHardInvisible)
     bindToggle(g, "noclip", "NoClip", features.ToggleNoclip)
 end
