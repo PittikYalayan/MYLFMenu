@@ -1367,49 +1367,98 @@ function features.ToggleInvisible(on)
 end
 
 ----------------------------------------------------------------
--- AutoTeleportToEnemy (10m yanına ışınlanma, ölüm sonrası refresh)
+-- AutoTeleportToEnemy (Her zaman düşmanın arkasına)
 ----------------------------------------------------------------
-features._autoTP = nil
-function features.ToggleAutoTeleport(on)
-    local function getClosestEnemy()
-        local camPos = workspace.CurrentCamera.CFrame.Position
-        local closest, closestDist = nil, 9999
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr ~= Player and plr.Character then
-                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-                local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-                if hum and hrp and hum.Health > 0 then
-                    local dist = (hrp.Position - camPos).Magnitude
-                    if dist < closestDist then
-                        closestDist, closest = dist, plr
+features._autoBehind = false
+
+function features.ToggleAutoBehind(on)
+    if on then
+        if features._autoBehindConn then features._autoBehindConn:Disconnect() end
+
+        features._autoBehindConn = RunService.RenderStepped:Connect(function()
+            local target = getClosestVisibleHead()
+            if target and target.Parent then
+                local enemy = target.Parent
+                local enemyHRP = enemy:FindFirstChild("HumanoidRootPart")
+                local myChar  = Player.Character
+                local myHRP   = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+                if enemyHRP and myHRP then
+                    -- Düşmanın baktığı yön
+                    local lookVec = enemyHRP.CFrame.LookVector
+                    -- Arkasına pozisyon (3 stud arkası + biraz aşağı kaydırma)
+                    local behindPos = enemyHRP.Position - lookVec * 3
+
+                    -- Işınlama
+                    myHRP.CFrame = CFrame.new(behindPos, enemyHRP.Position)
+                end
+            end
+        end)
+
+        print("AutoTeleportToEnemy (Behind): ON ✅")
+    else
+        if features._autoBehindConn then
+            features._autoBehindConn:Disconnect()
+            features._autoBehindConn = nil
+        end
+        print("AutoTeleportToEnemy (Behind): OFF ❌")
+    end
+end
+
+----------------------------------------------------------------
+-- Headshot Redirect (body → head, wall ignore)
+----------------------------------------------------------------
+features._headshotRedirect = false
+
+local function PatchBulletArgs(args, headPos)
+    for i,v in ipairs(args) do
+        if typeof(v) == "Vector3" then
+            args[i] = headPos
+        elseif typeof(v) == "CFrame" then
+            args[i] = CFrame.new(v.Position, headPos)
+        elseif typeof(v) == "table" then
+            for k,val in pairs(v) do
+                local key = tostring(k):lower()
+                if key:find("pos") or key:find("hit") or key:find("cf") or key:find("aim") or key:find("target") then
+                    if typeof(val) == "Vector3" then
+                        v[k] = headPos
+                    elseif typeof(val) == "CFrame" then
+                        v[k] = CFrame.new(val.Position, headPos)
                     end
                 end
             end
         end
-        return closest
     end
+    return args
+end
 
-    if on then
-        if features._autoTP then features._autoTP:Disconnect() end
-        features._autoTP = RunService.Heartbeat:Connect(function()
-            local plr = getClosestEnemy()
-            if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local enemyHRP = plr.Character.HumanoidRootPart
-                local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-                if myHRP then
-                    -- Hedefin 10m yanına ışınla
-                    local dir = (myHRP.Position - enemyHRP.Position).Unit
-                    local offset = dir * 10
-                    myHRP.CFrame = CFrame.new(enemyHRP.Position + offset)
+local function EnsureBulletHook()
+    if features._bulletHook then return end
+    features._bulletHook = true
+
+    local old
+    old = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args   = {...}
+
+        if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction")) 
+        and (method == "FireServer" or method == "InvokeServer") then
+            if features._headshotRedirect then
+                local target = getClosestVisibleHead()
+                if target then
+                    -- 🧠 Direkt kafaya kitlen
+                    return old(self, unpack(PatchBulletArgs(args, target.Position)))
                 end
             end
-        end)
-    else
-        if features._autoTP then
-            features._autoTP:Disconnect()
-            features._autoTP=nil
         end
-    end
+        return old(self, ...)
+    end)
+end
+
+function features.ToggleHeadshotRedirect(on)
+    features._headshotRedirect = not not on
+    if on then EnsureBulletHook() end
+    print("Headshot Redirect: " .. (on and "ON" or "OFF"))
 end
 
 
