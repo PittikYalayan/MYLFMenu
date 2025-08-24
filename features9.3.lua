@@ -706,6 +706,9 @@ end
 ----------------------------------------------------------------
 -- ⚡ Full Godmode (Multi-Hook + Heal + AntiSlow + AntiRagdoll + AntiSit)
 ----------------------------------------------------------------
+----------------------------------------------------------------
+-- ⚡ Ultra Full Godmode (Hard Multi-Hook + Anti-Grab + Anti-Freeze)
+----------------------------------------------------------------
 features._godmodeEnabled = false
 features._godHooks = {}
 
@@ -730,6 +733,14 @@ function features.ToggleGodmode(on)
                     warn("[Godmode] Blocked damage remote:", self:GetFullName())
                     return nil
                 end
+                if lname:find("grab") or lname:find("carry") or lname:find("drag") then
+                    warn("[Godmode] Blocked grab remote:", self:GetFullName())
+                    return nil
+                end
+                if lname:find("freeze") then
+                    warn("[Godmode] Blocked freeze remote:", self:GetFullName())
+                    return nil
+                end
             end
 
             return oldNamecall(self, ...)
@@ -738,7 +749,7 @@ function features.ToggleGodmode(on)
 
 
         ---------------------------------------------------------
-        -- __newindex hook → Health, WalkSpeed, JumpPower, Sit koruma
+        -- __newindex hook → Health, WalkSpeed, JumpPower, Sit, Anchored
         ---------------------------------------------------------
         local oldNewIndex
         oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, val)
@@ -753,7 +764,12 @@ function features.ToggleGodmode(on)
                         return
                     end
                     if key == "Sit" and val == true then
-                        warn("[Godmode] Blocked sit/seat attempt")
+                        warn("[Godmode] Blocked seat attempt")
+                        return
+                    end
+                elseif self:IsA("BasePart") then
+                    if key == "Anchored" and val == true then
+                        warn("[Godmode] Blocked Anchored (freeze) on:", self:GetFullName())
                         return
                     end
                 end
@@ -779,28 +795,31 @@ function features.ToggleGodmode(on)
 
 
         ---------------------------------------------------------
-        -- AutoHeal + Anti-Ragdoll Loop
+        -- AutoHeal + Anti-Ragdoll + Anti-Freeze Loop
         ---------------------------------------------------------
         if features._godLoop then features._godLoop:Disconnect() end
         features._godLoop = game:GetService("RunService").Heartbeat:Connect(function()
             local char = Player.Character
             local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if hum then
                 -- Health hep max
                 if hum.MaxHealth < 9e9 then hum.MaxHealth = 9e9 end
                 if hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
                 hum.BreakJointsOnDeath = false
-
-                -- Anti-Ragdoll: StateType yasakla
-                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-                hum:ChangeState(Enum.HumanoidStateType.Freefall)
-                if hum:FindFirstChild("PlatformStand") then
-                    hum.PlatformStand = false
+                -- Anti-Ragdoll
+                hum.PlatformStand = false
+            end
+            if hrp then
+                hrp.Anchored = false -- anti-freeze
+                local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+                if bv and bv.Velocity.Magnitude < 1e-3 then
+                    bv.Velocity = Vector3.zero -- anti slow freeze
                 end
             end
         end)
 
-        print("✅ Full Gelişmiş Godmode aktif (multi-hook + heal + anti-ragdoll + anti-sit)")
+        print("✅ Ultra Full Godmode aktif (anti-dmg, anti-grab, anti-freeze, anti-ragdoll, heal)")
 
     elseif not on and features._godmodeEnabled then
         features._godmodeEnabled = false
