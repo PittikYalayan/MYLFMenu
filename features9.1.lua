@@ -767,7 +767,7 @@ end
 -- Fly / Hover Modes
 -- Mode: "BV" (BodyVelocity), "BT" (BodyThrust), "AV" (AlignVelocity)
 ----------------------------------------------------------------
-features._flyMode  = "BV"   -- default: BodyVelocity
+features._flyMode  = "AV"   -- default: BodyVelocity
 features._flySpeed = 60
 
 function features.ToggleFly(on, mode)
