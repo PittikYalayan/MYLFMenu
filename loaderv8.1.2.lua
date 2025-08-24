@@ -66,34 +66,14 @@ do
     local g = Tabs.Teleport:AddLeftGroupbox("Teleport")
     bindToggle(g, "tpkey", "Teleport (T Key)", features.ToggleTeleport)
     bindToggle(g, "autoBehind", "⚡ Always Behind Enemy", features.ToggleAutoBehind)
-    -- Toggle
-g:AddToggle("tpEnemy", {
-    Text = "⚡ Auto Farm Enemy",
-    Default = false,
-    Callback = function(on) features.ToggleAutoTeleportToEnemy(on) end
-})
+    bindToggle(combatGroup, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleportToEnemy)
+combatGroup:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=1})
+combatGroup:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=1})
+combatGroup:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=1})
 
--- Offset Sliderları
-g:AddSlider("tpX", {
-    Text = "Offset X",
-    Default = 0,
-    Min = -10, Max = 10, Rounding = 1,
-    Callback = function(val) features.SetTeleportOffset(val, Toggles.tpY.Value, Toggles.tpZ.Value) end
-})
-
-g:AddSlider("tpY", {
-    Text = "Offset Y",
-    Default = 0,
-    Min = -10, Max = 10, Rounding = 1,
-    Callback = function(val) features.SetTeleportOffset(Toggles.tpX.Value, val, Toggles.tpZ.Value) end
-})
-
-g:AddSlider("tpZ", {
-    Text = "Offset Z (Ön mesafe)",
-    Default = 25,
-    Min = 1, Max = 50, Rounding = 1,
-    Callback = function(val) features.SetTeleportOffset(Toggles.tpX.Value, Toggles.tpY.Value, val) end
-})
+Options.tpX:OnChanged(function(val) features.SetTeleportOffset(val, features._tpY, features._tpZ) end)
+Options.tpY:OnChanged(function(val) features.SetTeleportOffset(features._tpX, val, features._tpZ) end)
+Options.tpZ:OnChanged(function(val) features.SetTeleportOffset(features._tpX, features._tpY, val) end)
 
 
 
