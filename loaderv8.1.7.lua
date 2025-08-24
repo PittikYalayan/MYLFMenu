@@ -58,7 +58,7 @@ do
     bindToggle(g, "fly",       "Fly (LCtrl down)", features.ToggleFly)
     bindToggle(g, "infjump",   "Infinite Jump",    features.ToggleInfiniteJump)
     bindToggle(g, "god",       "God Mode",         features.ToggleGodmode)
-    bindToggle(miscGroup, "hardInvis", "👻 Hard Invisible", features.ToggleHardInvisible)
+    bindToggle(g, "hardInvis", "👻 Hard Invisible", features.ToggleHardInvisible)
     bindToggle(g, "noclip", "NoClip", features.ToggleNoclip)
 end
 
