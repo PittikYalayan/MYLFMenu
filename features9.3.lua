@@ -1599,48 +1599,46 @@ end
 ----------------------------------------------------------------
 -- Auto Teleport To Enemy (Always Behind / In Front)
 ----------------------------------------------------------------
+----------------------------------------------------------------
+-- Auto Teleport To Enemy (Always In Front/Behind)
+----------------------------------------------------------------
 features._tpEnemy = nil
 
 -- Varsayılan offset
-features._tpOffset = Vector3.new(0, 0, 5)
-features._tpEnemy = nil
+features._tpOffset = Vector3.new(0, 0, 25)
 
 -- Offset ayarlama
 function features.SetTeleportOffset(x,y,z)
     features._tpOffset = Vector3.new(x,y,z)
 end
 
-local function teleportEnemyBehindEnemy(enemy)
-    if not enemy or not enemy.Character then return end
-    local hrp = enemy.Character:FindFirstChild("HumanoidRootPart")
-    local myhrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp or not myhrp then return end
-
-    -- Kamera yönü → hep senin önünde olacak
-    local look = workspace.CurrentCamera.CFrame.LookVector
-    local offset = look * 25 -- 5 stud önünde (arkasında istiyorsan -look yap)
-    hrp.CFrame = CFrame.new(myhrp.Position + offset, myhrp.Position)
-end
-
 function features.ToggleAutoTeleportToEnemy(on)
     if on then
         if features._tpEnemy then features._tpEnemy:Disconnect() end
         features._tpEnemy = RunService.RenderStepped:Connect(function()
-            local cam = workspace.CurrentCamera
-            local origin = cam.CFrame.Position
-            local head = getClosestVisibleHead()
-            if head then
-                local cf = CFrame.new(origin, head.Position)
-                local targetPos =
-                    (cf.Position + cf.LookVector * features._tpOffset.Z) +
-                    Vector3.new(features._tpOffset.X, features._tpOffset.Y, 0)
+            local targetHead = getClosestVisibleHead()
+            local myChar = Player.Character
+            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if not (targetHead and myHRP) then return end
 
-                -- sadece lokal, düşmanı önüne taşı
-                head.Parent:MoveTo(targetPos)
-            end
+            local enemyChar = targetHead.Parent
+            local enemyHRP = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
+            if not enemyHRP then return end
+
+            -- Kamera yönü → hep senin baktığın yöne göre offset uygular
+            local camLook = workspace.CurrentCamera.CFrame.LookVector
+            local offset = 
+                (camLook * features._tpOffset.Z) + 
+                Vector3.new(features._tpOffset.X, features._tpOffset.Y, 0)
+
+            -- sadece local: düşmanı senin önüne taşı
+            enemyHRP.CFrame = CFrame.new(myHRP.Position + offset, myHRP.Position)
         end)
     else
-        if features._tpEnemy then features._tpEnemy:Disconnect(); features._tpEnemy=nil end
+        if features._tpEnemy then 
+            features._tpEnemy:Disconnect()
+            features._tpEnemy = nil 
+        end
     end
 end
 
