@@ -1508,6 +1508,94 @@ function features.ToggleHeadshotRedirect(on)
     if on then EnsureBulletHook() end
     print("Headshot Redirect: " .. (on and "ON" or "OFF"))
 end
+-- Flag
+features._multiHook = false
+
+-- Hooklar için eski fonksiyonlar
+local oldNamecall, oldIndex, oldNewIndex
+
+-- Argüman Patch
+local function PatchArgs(args, headPos)
+    for i,v in ipairs(args) do
+        local t = typeof(v)
+        if t == "Vector3" then
+            args[i] = headPos
+        elseif t == "CFrame" then
+            local cam = workspace.CurrentCamera
+            local fakePos = cam.CFrame.Position + cam.CFrame.LookVector * 5
+            args[i] = CFrame.new(fakePos, headPos)
+        elseif t == "table" then
+            for k,val in pairs(v) do
+                local key = tostring(k):lower()
+                if key:find("pos") or key:find("hit") or key:find("target") then
+                    if typeof(val) == "Vector3" then
+                        v[k] = headPos
+                    elseif typeof(val) == "CFrame" then
+                        local cam = workspace.CurrentCamera
+                        local fakePos = cam.CFrame.Position + cam.CFrame.LookVector * 5
+                        v[k] = CFrame.new(fakePos, headPos)
+                    end
+                end
+            end
+        end
+    end
+    return args
+end
+
+-- Toggle Fonksiyonu
+function features.ToggleMultiHook(on)
+    features._multiHook = not not on
+
+    if on then
+        -- __namecall hook
+        if not oldNamecall then
+            oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+                local method = getnamecallmethod()
+                local args = {...}
+                if features._multiHook 
+                and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+                and (method == "FireServer" or method == "InvokeServer") then
+                    local head = getClosestVisibleHead()
+                    if head then
+                        return oldNamecall(self, unpack(PatchArgs(args, head.Position)))
+                    end
+                end
+                return oldNamecall(self, ...)
+            end)
+        end
+
+        -- __index hook
+        if not oldIndex then
+            oldIndex = hookmetamethod(game, "__index", function(self, key)
+                if features._multiHook and key == "CFrame" then
+                    local head = getClosestVisibleHead()
+                    if head then
+                        return CFrame.new(workspace.CurrentCamera.CFrame.Position, head.Position)
+                    end
+                end
+                return oldIndex(self, key)
+            end)
+        end
+
+        -- __newindex hook
+        if not oldNewIndex then
+            oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, val)
+                if features._multiHook and key == "CFrame" and typeof(val) == "CFrame" then
+                    local head = getClosestVisibleHead()
+                    if head then
+                        return oldNewIndex(self, key, CFrame.new(val.Position, head.Position))
+                    end
+                end
+                return oldNewIndex(self, key, val)
+            end)
+        end
+    else
+        -- kapatınca flag false, hooklar pasifleşir
+        features._multiHook = false
+    end
+
+    print("Multi-Hook: " .. (on and "ON ✅" or "OFF ❌"))
+end
 
 
 return features
