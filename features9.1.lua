@@ -760,39 +760,36 @@ end
 ----------------------------------------------------------------
 -- HoverFly (yer efekti + havada emote desteği)
 ----------------------------------------------------------------
-features._hoverSpeed = 60
-function features.ToggleHoverFly(on)
+----------------------------------------------------------------
+-- Fly (WASD + Space / Ctrl)
+----------------------------------------------------------------
+features._flySpeed = 60
+function features.ToggleFly(on)
     local function ensureBV()
         local ch = Player.Character
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+
+        local bv = hrp:FindFirstChild("MYLF_Fly") -- özel isimlendirme
         if not bv then
             bv = Instance.new("BodyVelocity")
-            bv.MaxForce = Vector3.new(1e5,1e5,1e5)
+            bv.Name = "MYLF_Fly"
+            bv.MaxForce = Vector3.new(1e5,1e5,1e5) -- çok yüksek kuvvet
             bv.Velocity = Vector3.zero
             bv.Parent = hrp
         end
         return bv, hrp
     end
 
-    local function lockGround(hum)
-        -- Humanoid state manipülasyonu → hep “Running”/“Freefall” yerine “Seated” gibi kalır
-        hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-    end
-
     if on then
-        if features._hover then features._hover:Disconnect() end
-        features._hover = RunService.RenderStepped:Connect(function()
+        if features._fly then features._fly:Disconnect() end
+        features._fly = RunService.Heartbeat:Connect(function()
             local bv, hrp = ensureBV()
-            local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-            if not (bv and hrp and hum) then return end
+            if not bv then return end
 
-            -- hareket yönleri
             local dir = Vector3.zero
             local cf  = workspace.CurrentCamera.CFrame
+
             if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cf.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cf.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cf.RightVector end
@@ -800,31 +797,20 @@ function features.ToggleHoverFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-            bv.Velocity = dir * (features._hoverSpeed or 60)
-
-            -- Server için “hep yerdeyim” algısı
-            lockGround(hum)
+            bv.Velocity = dir * (features._flySpeed or 60)
         end)
 
-        -- Respawn sonrası tekrar uygula
-        Player.CharacterAdded:Connect(function(c)
+        -- respawn sonrası tekrar kur
+        Player.CharacterAdded:Connect(function()
             task.wait(0.5)
-            if on then
-                local hum = c:WaitForChild("Humanoid",5)
-                if hum then lockGround(hum) end
-                features.ToggleHoverFly(true)
-            end
+            if on then features.ToggleFly(true) end
         end)
     else
-        if features._hover then features._hover:Disconnect(); features._hover=nil end
-        local ch = Player.Character
-        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-        if hrp then local bv = hrp:FindFirstChildOfClass("BodyVelocity"); if bv then bv:Destroy() end end
-        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-        if hum then
-            -- eski state restore
-            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        if features._fly then features._fly:Disconnect(); features._fly=nil end
+        local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local bv = hrp:FindFirstChild("MYLF_Fly")
+            if bv then bv:Destroy() end
         end
     end
 end
