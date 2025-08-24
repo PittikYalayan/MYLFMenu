@@ -827,7 +827,7 @@ function features.ToggleFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
             dir = dir.Magnitude > 0 and dir.Unit or Vector3.zero
-            vf.Force = dir * (features._flySpeed * 1000)
+            vf.Force = dir * (features._flySpeed * 60)
 
             -- Kamera yönüne dön
             if ao then ao.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + cf.LookVector) end
