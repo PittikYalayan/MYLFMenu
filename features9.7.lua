@@ -1709,7 +1709,7 @@ function features.ToggleAutoTeleportToEnemy(on)
 end
 
 
- getnamecallmethod fallback
+ --getnamecallmethod fallback
 getnamecallmethod = getnamecallmethod or debug.getnamecallmethod
 
 -- eski metamethod
