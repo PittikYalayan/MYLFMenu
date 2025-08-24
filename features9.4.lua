@@ -1793,68 +1793,6 @@ function features.ToggleMultiHook(on)
     end
 end
 
-----------------------------------------------------------------
--- Tiny Hitbox (Hard Hook - Neredeyse Yok)
-----------------------------------------------------------------
-features._tinyHitbox = false
-features._tinyConn   = nil
-
--- Hedef parçalar
-local hitParts = {"Head","UpperTorso","LowerTorso","HumanoidRootPart","LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"}
-
--- Çok küçük boyut (neredeyse yok)
-local tinySize   = Vector3.new(0.01,0.01,0.01)
-
--- Normal boyutları cache
-local normalSize = {}
-
--- Shrink fonksiyonu
-local function shrink(char)
-    for _,name in ipairs(hitParts) do
-        local p = char:FindFirstChild(name)
-        if p and p:IsA("BasePart") then
-            if not normalSize[name] then
-                normalSize[name] = p.Size -- ilk gördüğümüz boyutu kaydet
-            end
-            p.Size = tinySize
-            p.Massless = true
-            p.CanCollide = false
-        end
-    end
-end
-
--- Metatable hook (anti-cheat’e fake göstermek için)
--- Orijinal metamethodlar
-
--- Toggle
-function features.ToggleTinyHitbox(on)
-    features._tinyHitbox = on
-    local char = Player.Character
-    if not char then return end
-
-    if on then
-        shrink(char)
-        if features._tinyConn then features._tinyConn:Disconnect() end
-        features._tinyConn = RunService.Heartbeat:Connect(function()
-            local c = Player.Character
-            if c then shrink(c) end
-        end)
-        print("Tiny Hitbox: ON ✅ (neredeyse yok)")
-    else
-        if features._tinyConn then features._tinyConn:Disconnect(); features._tinyConn=nil end
-        -- Reset → eski boyutları geri yükle
-        local c = Player.Character
-        if c then
-            for _,name in ipairs(hitParts) do
-                local p = c:FindFirstChild(name)
-                if p and normalSize[name] then
-                    p.Size = normalSize[name]
-                end
-            end
-        end
-        print("Tiny Hitbox: OFF ❌")
-    end
-end
 
 
 return features
