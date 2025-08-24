@@ -635,7 +635,7 @@ function features.RefreshESP()
   if features._espEnabled then initialScan() end
 end
 ----------------------------------------------------------------
--- Hedef seçimi (mesafe önemsiz, açıya göre en iyi düşman)
+-- Hedef seçimi (kafaya kilit, gövde içinden geçerek de algılar)
 ----------------------------------------------------------------
 local function getClosestVisibleHead()
     local cam    = workspace.CurrentCamera
@@ -643,10 +643,6 @@ local function getClosestVisibleHead()
     local look   = cam.CFrame.LookVector
 
     local bestHead, bestScore = nil, math.huge
-
-    local rcParams = RaycastParams.new()
-    rcParams.FilterType = Enum.RaycastFilterType.Blacklist
-    rcParams.FilterDescendantsInstances = { Player.Character }
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= Player and plr.Character then
@@ -662,12 +658,14 @@ local function getClosestVisibleHead()
                         local angle = math.deg(math.acos(dot)) -- 0° en iyi
 
                         if (not features.AimUseFOV) or (angle <= (features.AimMaxAngleDeg or 360)) then
-                            -- 🔒 Duvar arkası engelleme (zorunlu LOS)
-                            local rayLen = math.min(dist, features.AimMaxDistance or 1e6)
-                            local hit = workspace:Raycast(origin, dirUnit * rayLen, rcParams)
-
-                            if hit and hit.Instance and hit.Instance:IsDescendantOf(plr.Character) then
-                                -- ✅ sadece gerçekten görünüyorsa kitlenecek
+                            -- 🔒 Duvar arkası kontrol: ama düşmanın kendi gövdesini whitelist yap
+                            local rcParams = RaycastParams.new()
+                            rcParams.FilterType = Enum.RaycastFilterType.Blacklist
+                            rcParams.FilterDescendantsInstances = { Player.Character } -- kendi karakterimizi hariç tut
+                            
+                            -- 🔑 gövdeyi engel sayma → düşman karakterini whitelist yap
+                            local hit = workspace:Raycast(origin, dirUnit * dist, rcParams)
+                            if not hit or (hit.Instance and hit.Instance:IsDescendantOf(plr.Character)) then
                                 if angle < bestScore then
                                     bestScore, bestHead = angle, head
                                 end
