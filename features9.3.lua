@@ -1810,32 +1810,67 @@ local function shrink(char)
 end
 
 -- Metatable hook (anti-cheat’e fake göstermek için)
-local ram = getrawmetatable(game)
-setreadonly(ram, false)
-setreadonly(ram,false)
-local oldNew, oldIndex = ram.__newindex, ram.__index
+-- Orijinal metamethodlar
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+local oldIndex    = mt.__index
+local oldNewIndex = mt.__newindex
 
-ram.__newindex = newcclosure(function(self, key, val)
-    if features._tinyHitbox 
-       and self:IsA("BasePart") 
-       and table.find(hitParts, self.Name) 
-       and key=="Size" then
-        -- AC küçültmemizi resetleyemesin
-        return
+setreadonly(mt, false)
+
+----------------------------------------------------------------
+-- MiniHitbox Toggle
+----------------------------------------------------------------
+features._miniHitbox = false
+
+function features.ToggleMiniHitbox(on)
+    features._miniHitbox = on
+    print("⚡ MiniHitbox:", on and "ON ✅" or "OFF ❌")
+end
+
+----------------------------------------------------------------
+-- __index hook (değer okuma → fake dön)
+----------------------------------------------------------------
+mt.__index = newcclosure(function(self, key)
+    if features._miniHitbox and tostring(key):lower() == "size" then
+        return Vector3.new(0.01,0.01,0.01) -- hep minik göster
     end
-    return oldNew(self,key,val)
+    return oldIndex(self, key)
 end)
 
-ram.__index = newcclosure(function(self,key)
-    if features._tinyHitbox 
-       and self:IsA("BasePart") 
-       and table.find(hitParts, self.Name) 
-       and key=="Size" then
-        -- AC sorarsa → normal boyutu döndür
-        return normalSize[self.Name] or Vector3.new(2,2,1)
+----------------------------------------------------------------
+-- __newindex hook (değer setleme → zorla mini yap)
+----------------------------------------------------------------
+mt.__newindex = newcclosure(function(self, key, val)
+    if features._miniHitbox and tostring(key):lower() == "size" then
+        return oldNewIndex(self, key, Vector3.new(0.01,0.01,0.01))
     end
-    return oldIndex(self,key)
+    return oldNewIndex(self, key, val)
 end)
+
+----------------------------------------------------------------
+-- __namecall hook (örnek: SilentAim / MB entegre)
+----------------------------------------------------------------
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args   = {...}
+
+    if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+    and (method == "FireServer" or method == "InvokeServer") then
+        if features.SilentAim then
+            local head = getClosestVisibleHead()
+            if head then
+                args[1] = head.Position
+                return oldNamecall(self, unpack(args))
+            end
+        end
+    end
+
+    return oldNamecall(self, ...)
+end)
+
+setreadonly(mt, true)
+print("✅ Multi-Hook + MiniHitbox aktif")
 
 -- Toggle
 function features.ToggleTinyHitbox(on)
