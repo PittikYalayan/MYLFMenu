@@ -39,10 +39,9 @@ do
     bindToggle(g, "aimbot",   "Enable Aimbot",          features.ToggleAimbot)
     bindToggle(g, "headshotRedirect", "Force Headshot", features.ToggleHeadshotRedirect)
     bindToggle(g, "fireRate", "Hard Fire Rate", features.ToggleFireRate)
-    bindToggle(g, "multiHook", "⚡ Multi-Hook Silent Aim", features.ToggleMultiHook)
     bindToggle(g, "silent",   "Silent Aim",             features.ToggleSilentAim)
     bindToggle(g, "magic",    "Magic Bullet (Fallback)",features.ToggleMagicBullet) -- ✅ eklendi
-    bindToggle(g, "killaura", "Kill Aura",              features.ToggleKillAura)
+    bindToggle(g, "killAura", "☠️ Kill Aura", features.ToggleKillAura)
 end
 
 -- Visuals
@@ -82,7 +81,10 @@ end
 
 -- World
 do
-    local g = Tabs.World:AddLeftGroupbox("World")
+    local g = Tabs.World:AddLeftGroupbox("MultiHook")
+    bindToggle(g, "multiHook", "🔒 AntiCheat Multi-Hook", features.ToggleMultiHook)
+    bindToggle(g, "multiHook", "⚡ Multi-Hook Silent Aim", features.ToggleMultiHook)
+
     
 end
 
