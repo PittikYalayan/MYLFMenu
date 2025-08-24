@@ -1609,7 +1609,7 @@ local function teleportEnemyBehindEnemy(enemy)
 
     -- Kamera yönü → hep senin önünde olacak
     local look = workspace.CurrentCamera.CFrame.LookVector
-    local offset = look * 5 -- 5 stud önünde (arkasında istiyorsan -look yap)
+    local offset = look * 15 -- 5 stud önünde (arkasında istiyorsan -look yap)
     hrp.CFrame = CFrame.new(myhrp.Position + offset, myhrp.Position)
 end
 
