@@ -703,6 +703,9 @@ end
 ----------------------------------------------------------------
 -- ⚡ Gelişmiş Godmode (Multi-Hook + AutoHeal + AntiSlow)
 ----------------------------------------------------------------
+----------------------------------------------------------------
+-- ⚡ Full Godmode (Multi-Hook + Heal + AntiSlow + AntiRagdoll + AntiSit)
+----------------------------------------------------------------
 features._godmodeEnabled = false
 features._godHooks = {}
 
@@ -735,7 +738,7 @@ function features.ToggleGodmode(on)
 
 
         ---------------------------------------------------------
-        -- __newindex hook → Health, WalkSpeed, JumpPower koruma
+        -- __newindex hook → Health, WalkSpeed, JumpPower, Sit koruma
         ---------------------------------------------------------
         local oldNewIndex
         oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, val)
@@ -747,6 +750,10 @@ function features.ToggleGodmode(on)
                     end
                     if (key == "WalkSpeed" and val < 16) or (key == "JumpPower" and val < 50) then
                         warn("[Godmode] Blocked slow/stun:", key, "=", val)
+                        return
+                    end
+                    if key == "Sit" and val == true then
+                        warn("[Godmode] Blocked sit/seat attempt")
                         return
                     end
                 end
@@ -772,20 +779,28 @@ function features.ToggleGodmode(on)
 
 
         ---------------------------------------------------------
-        -- AutoHeal Loop → frame başı Health / MaxHealth full
+        -- AutoHeal + Anti-Ragdoll Loop
         ---------------------------------------------------------
         if features._godLoop then features._godLoop:Disconnect() end
         features._godLoop = game:GetService("RunService").Heartbeat:Connect(function()
             local char = Player.Character
             local hum = char and char:FindFirstChildOfClass("Humanoid")
             if hum then
+                -- Health hep max
                 if hum.MaxHealth < 9e9 then hum.MaxHealth = 9e9 end
                 if hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
                 hum.BreakJointsOnDeath = false
+
+                -- Anti-Ragdoll: StateType yasakla
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                hum:ChangeState(Enum.HumanoidStateType.Freefall)
+                if hum:FindFirstChild("PlatformStand") then
+                    hum.PlatformStand = false
+                end
             end
         end)
 
-        print("✅ Gelişmiş Godmode aktif (multi-hook + heal + anti-slow)")
+        print("✅ Full Gelişmiş Godmode aktif (multi-hook + heal + anti-ragdoll + anti-sit)")
 
     elseif not on and features._godmodeEnabled then
         features._godmodeEnabled = false
