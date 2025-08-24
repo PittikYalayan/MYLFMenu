@@ -27,46 +27,6 @@ local function isEnemy(plr)
     end
     return true
 end
-----------------------------------------------------------------
--- Hedef seçimi (mesafe önemsiz, açıya göre en iyi düşman)
-----------------------------------------------------------------
-local function getClosestVisibleHead()
-    local origin = Camera.CFrame.Position
-    local look   = Camera.CFrame.LookVector
-    local bestHead, bestScore = nil, math.huge
-
-    local rcParams = RaycastParams.new()
-    rcParams.FilterType = Enum.RaycastFilterType.Blacklist
-    rcParams.FilterDescendantsInstances = { Player.Character }
-
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Player and plr.Character and isEnemy(plr) then
-            local hum  = plr.Character:FindFirstChildOfClass("Humanoid")
-            local head = plr.Character:FindFirstChild("Head")
-            if hum and head and hum.Health > 0 then
-                local toHead = head.Position - origin
-                local dist   = toHead.Magnitude
-                if dist <= (Options.aimMaxDistance.Value or 1800) then
-                    local dot   = math.clamp(look:Dot(toHead.Unit), -1, 1)
-                    local angle = math.deg(math.acos(dot))
-
-                    if (not Toggles.aimUseFOV.Value) or (angle <= (Options.aimMaxAngle.Value or 360)) then
-                        if Toggles.aimRequireLOS.Value then
-                            local hit = workspace:Raycast(origin, toHead, rcParams)
-                            if not (hit and hit.Instance and hit.Instance:IsDescendantOf(plr.Character)) then
-                                continue
-                            end
-                        end
-                        if angle < bestScore then
-                            bestScore, bestHead = angle, head
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return bestHead
-end
 
 ----------------------------------------------------------------
 -- Aimbot Toggle
