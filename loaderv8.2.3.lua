@@ -57,7 +57,6 @@ do
     bindToggle(g, "fly",       "Fly (LCtrl down)", features.ToggleFly)
     bindToggle(g, "infjump",   "Infinite Jump",    features.ToggleInfiniteJump)
     bindToggle(g, "godmode", "💀 Godmode", features.ToggleGodmode)
-    bindToggle(g, "tinyHitbox", "🛡️ Tiny Hitbox (Hard)", features.ToggleTinyHitbox)
     bindToggle(g, "hardInvis", "👻 Hard Invisible", features.ToggleHardInvisible)
     bindToggle(g, "noclip", "NoClip", features.ToggleNoclip)
 end
@@ -85,6 +84,8 @@ do
     local g = Tabs.World:AddLeftGroupbox("MultiHook")
     bindToggle(g, "multiHook", "🔒 AntiCheat Multi-Hook", features.ToggleMultiHook)
     bindToggle(g, "multiHook", "⚡ Multi-Hook Silent Aim", features.ToggleMultiHook)
+    bindToggle(visualsGroup, "miniHB", "⚡ Mini Hitbox", features.ToggleMiniHitbox)
+    bindToggle(g, "tinyHitbox", "🛡️ Tiny Hitbox (Hard)", features.ToggleTinyHitbox)
 
     
 end
