@@ -66,7 +66,7 @@ do
     local g = Tabs.Teleport:AddLeftGroupbox("Teleport")
     bindToggle(g, "tpkey", "Teleport (T Key)", features.ToggleTeleport)
     bindToggle(g, "autoBehind", "⚡ Always Behind Enemy", features.ToggleAutoBehind)
-    bindToggle(combatGroup, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleport)
+    bindToggle(g, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleport)
 
 
 
