@@ -700,62 +700,99 @@ end
 ----------------------------------------------------------------
 -- Godmode
 ----------------------------------------------------------------
+----------------------------------------------------------------
+-- ⚡ Gelişmiş Godmode (Multi-Hook + AutoHeal + AntiSlow)
+----------------------------------------------------------------
+features._godmodeEnabled = false
+features._godHooks = {}
+
 function features.ToggleGodmode(on)
-    -- NOT: Player, RunService ve features zaten globalde var kabul ediliyor.
-    local BIG = 1e9  -- math.huge bazı oyunlarda NaN/inf tetikleyebiliyor
+    if on and not features._godmodeEnabled then
+        features._godmodeEnabled = true
 
-    local function applyFor(char)
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            -- MaxHealth'i yukarı sabitle, Health'i doldur, ölümde eklemleri kırma
-            if hum.MaxHealth < BIG then hum.MaxHealth = BIG end
-            if hum.Health   < BIG then hum.Health   = BIG end
-            pcall(function() hum.BreakJointsOnDeath = false end)
-        end
-    end
+        ---------------------------------------------------------
+        -- __namecall hook → Damage/Hit Remote’ları blokla
+        ---------------------------------------------------------
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            local args = {...}
 
-    local function start()
-        -- Eski bağlantıları temizle (çift bağlanma/kaçak önler)
-        if features._god then features._god:Disconnect() features._god = nil end
-        if features._god_char then features._god_char:Disconnect() features._god_char = nil end
-        if features._god_health then features._god_health:Disconnect() features._god_health = nil end
+            if features._godmodeEnabled
+               and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+               and (method == "FireServer" or method == "InvokeServer") then
 
-        -- Mevcut karaktere uygula
-        local char = Player.Character or Player.CharacterAdded:Wait()
-        applyFor(char)
+                local lname = self.Name:lower()
+                if lname:find("damage") or lname:find("hit") or lname:find("hurt") then
+                    warn("[Godmode] Blocked damage remote:", self:GetFullName())
+                    return nil
+                end
+            end
 
-        -- Her frame’de zorla (server damage resetliyorsa geri doldurur)
-        features._god = RunService.Heartbeat:Connect(function()
-            local c = Player.Character
-            if c then applyFor(c) end
+            return oldNamecall(self, ...)
         end)
+        features._godHooks["namecall"] = oldNamecall
 
-        -- Respawn olduğunda yeniden kur
-        features._god_char = Player.CharacterAdded:Connect(function(newChar)
-            -- Humanoid gelene kadar bekle (time-out ile)
-            local hum = newChar:WaitForChild("Humanoid", 5)
+
+        ---------------------------------------------------------
+        -- __newindex hook → Health, WalkSpeed, JumpPower koruma
+        ---------------------------------------------------------
+        local oldNewIndex
+        oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, val)
+            if features._godmodeEnabled then
+                if self:IsA("Humanoid") then
+                    if key == "Health" and val < self.Health then
+                        warn("[Godmode] Blocked health drop:", val)
+                        return
+                    end
+                    if (key == "WalkSpeed" and val < 16) or (key == "JumpPower" and val < 50) then
+                        warn("[Godmode] Blocked slow/stun:", key, "=", val)
+                        return
+                    end
+                end
+            end
+            return oldNewIndex(self, key, val)
+        end)
+        features._godHooks["newindex"] = oldNewIndex
+
+
+        ---------------------------------------------------------
+        -- __index hook → Anti-cheat fake Health
+        ---------------------------------------------------------
+        local oldIndex
+        oldIndex = hookmetamethod(game, "__index", function(self, key)
+            if features._godmodeEnabled and self:IsA("Humanoid") then
+                if key == "Health" then
+                    return self.MaxHealth -- hep full döndür
+                end
+            end
+            return oldIndex(self, key)
+        end)
+        features._godHooks["index"] = oldIndex
+
+
+        ---------------------------------------------------------
+        -- AutoHeal Loop → frame başı Health / MaxHealth full
+        ---------------------------------------------------------
+        if features._godLoop then features._godLoop:Disconnect() end
+        features._godLoop = game:GetService("RunService").Heartbeat:Connect(function()
+            local char = Player.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
             if hum then
-                task.defer(applyFor, newChar)
-
-                -- Sağlık değişirse anında geri it
-                if features._god_health then features._god_health:Disconnect() features._god_health = nil end
-                features._god_health = hum.HealthChanged:Connect(function()
-                    applyFor(newChar)
-                end)
+                if hum.MaxHealth < 9e9 then hum.MaxHealth = 9e9 end
+                if hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
+                hum.BreakJointsOnDeath = false
             end
         end)
-    end
 
-    if on then
-        start()
-    else
-        -- Tümüyle kapat
-        if features._god then features._god:Disconnect() features._god = nil end
-        if features._god_char then features._god_char:Disconnect() features._god_char = nil end
-        if features._god_health then features._god_health:Disconnect() features._god_health = nil end
+        print("✅ Gelişmiş Godmode aktif (multi-hook + heal + anti-slow)")
+
+    elseif not on and features._godmodeEnabled then
+        features._godmodeEnabled = false
+        if features._godLoop then features._godLoop:Disconnect(); features._godLoop=nil end
+        print("❌ Godmode kapalı")
     end
 end
-
 
 ----------------------------------------------------------------
 -- HoverFly (yer efekti + havada emote desteği)
