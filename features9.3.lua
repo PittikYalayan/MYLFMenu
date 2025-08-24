@@ -1220,7 +1220,7 @@ features.DamageAmount = 150  -- sabit hasar (serverine göre değiştir)
 -- ⚠️ Burayı kendi serverine göre ayarla:
 -- örnek kullanım:
 -- DamageRemote:FireServer(enemy, features.DamageAmount)
- DamageRemote:FireServer({Target=enemy, Damage=features.DamageAmount})
+ 
 local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
 
 function features.ToggleKillAura(on)
@@ -1249,7 +1249,7 @@ function features.ToggleKillAura(on)
                             -- 2) DamageRemote varsa hasar gönder
                             if DamageRemote then
                                 pcall(function()
-                                    DamageRemote:FireServer(plr, features.DamageAmount)
+                                    DamageRemote:FireServer({Target=enemy, Damage=features.DamageAmount})
                                 end)
                             end
                         end
