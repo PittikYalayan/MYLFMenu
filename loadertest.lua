@@ -38,136 +38,24 @@ local function bindToggle(group, flag, text, fn)
         :OnChanged(function(v) if type(fn)=="function" then pcall(fn, v) end end)
 end
 
-----------------------------------------------------------------
--- COMBAT
-----------------------------------------------------------------
-local cb = Tabs.Combat:AddLeftGroupbox("Combat")
+-- Combat sekmesi (örnek butonlar)
+local CombatGroup = Tabs.Combat:AddLeftGroupbox("Aimbot")
+CombatGroup:AddToggle("aimbot", { Text = "Enable Aimbot", Default = false })
+CombatGroup:AddToggle("silentaim", { Text = "Silent Aim", Default = false })
+CombatGroup:AddToggle("magicbullet", { Text = "Magic Bullet", Default = false })
 
-cb:AddToggle("aimbot", { Text = "🎯 Aimbot", Default = false }):OnChanged(function(val)
-    features.ToggleAimbot(val)
-end)
+-- Visuals sekmesi (örnek)
+local VisualGroup = Tabs.Visuals:AddLeftGroupbox("ESP")
+VisualGroup:AddToggle("espMaster", { Text = "Enable ESP", Default = false })
+VisualGroup:AddToggle("espRainbow", { Text = "🌈 Rainbow Name", Default = false })
+VisualGroup:AddToggle("espGlow", { Text = "✨ Glow", Default = false })
+VisualGroup:AddToggle("espBox", { Text = "▣ 3D Box", Default = false })
 
-cb:AddToggle("silent", { Text = "🔇 Silent Aim", Default = false }):OnChanged(function(val)
-    features.ToggleSilentAim(val)
-end)
-
-cb:AddToggle("mb", { Text = "💥 Magic Bullet", Default = false }):OnChanged(function(val)
-    features.ToggleMagicBullet(val)
-end)
-
-cb:AddToggle("kaura", { Text = "☠ Kill Aura", Default = false }):OnChanged(function(val)
-    features.ToggleKillAura(val)
-end)
-
-cb:AddToggle("rapid", { Text = "⚡ Rapid Fire", Default = false }):OnChanged(function(val)
-    features.ToggleRapidFire(val)
-end)
-
-do
-----------------------------------------------------------------
--- MOVEMENT
-----------------------------------------------------------------
-local mv = Tabs.Movement:AddLeftGroupbox("Movement")
-
-mv:AddToggle("fly", { Text = "🕊 Fly", Default = false }):OnChanged(function(val)
-    features.ToggleFly(val)
-end)
-
-mv:AddToggle("infjump", { Text = "⛅ Infinite Jump", Default = false }):OnChanged(function(val)
-    features.ToggleInfiniteJump(val)
-end)
-
-mv:AddToggle("noclip", { Text = "🚪 Noclip", Default = false }):OnChanged(function(val)
-    features.ToggleNoclip(val)
-end)
-
-mv:AddToggle("speed", { Text = "🏃 Speed", Default = false }):OnChanged(function(val)
-    features.ToggleSpeed(val)
-end)
-
-mv:AddToggle("tp", { Text = "📍 Teleport (T)", Default = false }):OnChanged(function(val)
-    features.ToggleTeleport(val)
-end)
-
-do
-----------------------------------------------------------------
--- VISUALS (ESP)
-----------------------------------------------------------------
-local visTab = Tabs.Visuals:AddLeftGroupbox("Player ESP")
-
-visTab:AddToggle("espMaster", { Text = "Enable ESP", Default = false }):OnChanged(function(val)
-    features.ToggleESP(val)
-end)
-
-visTab:AddToggle("espRainbow", { Text = "🌈 Rainbow Name", Default = false }):OnChanged(function(val)
-    features.ToggleESPRainbow(val)
-end)
-
-visTab:AddToggle("espSkeleton", { Text = "🦴 Skeleton", Default = false }):OnChanged(function(val)
-    features.ToggleESPSkeleton(val)
-end)
-
-visTab:AddToggle("espGlow", { Text = "✨ Glow", Default = false }):OnChanged(function(val)
-    features.ToggleESPGlow(val)
-end)
-
-visTab:AddToggle("espBox", { Text = "▣ 3D Box", Default = false }):OnChanged(function(val)
-    features.ToggleESPBox(val)
-end)
-
-visTab:AddToggle("espStripes", { Text = "≡ Box Stripes", Default = false }):OnChanged(function(val)
-    features.ToggleESPStripes(val)
-end)
-
-visTab:AddToggle("espDist", { Text = "📏 Distance", Default = false }):OnChanged(function(val)
-    features.ToggleESPDistance(val)
-end)
-
-visTab:AddToggle("espHP", { Text = "❤️ Health Bar", Default = false }):OnChanged(function(val)
-    features.ToggleESPHealth(val)
-end)
-
-visTab:AddToggle("espTracers", { Text = "〽 Tracers", Default = false }):OnChanged(function(val)
-    features.ToggleESPTracers(val)
-end)
-
-visTab:AddToggle("espArrows", { Text = "⬅ Offscreen Arrows", Default = false }):OnChanged(function(val)
-    features.ToggleESPArrows(val)
-end)
-
-visTab:AddToggle("espCorner", { Text = "⌞⌝ Corner Box 2D", Default = false }):OnChanged(function(val)
-    features.ToggleESPCorner(val)
-end)
-
-visTab:AddToggle("espTeam", { Text = "👥 Team Check", Default = false }):OnChanged(function(val)
-    features.ToggleESPTeam(val)
-end)
-
-visTab:AddToggle("espLOS", { Text = "🔭 LOS Only", Default = false }):OnChanged(function(val)
-    features.ToggleESPLos(val)
-end)
-
-visTab:AddToggle("espRange", { Text = "📡 Range 300", Default = false }):OnChanged(function(val)
-    features.ToggleESPRange(val)
-end)
-
-visTab:AddToggle("espFriend", { Text = "⭐ Friend Ignore", Default = false }):OnChanged(function(val)
-    features.ToggleESPFriends(val)
-end)
-
-----------------------------------------------------------------
--- MISC
-do ----------------------------------------------------------------
-local ms = Tabs.Misc:AddLeftGroupbox("Misc")
-
-ms:AddToggle("god", { Text = "🛡 Godmode", Default = false }):OnChanged(function(val)
-    features.ToggleGodmode(val)
-end)
-
-ms:AddToggle("inv", { Text = "👻 Invisible", Default = false }):OnChanged(function(val)
-    features.ToggleInvisible(val)
-end)
-
+-- Misc sekmesi
+local MiscGroup = Tabs.Misc:AddLeftGroupbox("Movement")
+MiscGroup:AddToggle("fly", { Text = "Fly", Default = false })
+MiscGroup:AddToggle("noclip", { Text = "Noclip", Default = false })
+MiscGroup:AddToggle("infjump", { Text = "Infinite Jump", Default = false })
 
 -- Settings / Tema
 ThemeManager:SetLibrary(Library)
