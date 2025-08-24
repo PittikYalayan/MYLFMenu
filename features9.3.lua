@@ -1599,39 +1599,41 @@ end
 ----------------------------------------------------------------
 -- Auto Teleport To Enemy (Always In Front, NO visibility check)
 ----------------------------------------------------------------
-features._tpEnemy = nil
-features._tpOffset = Vector3.new(0, 0, 5)
+----------------------------------------------------------------
+-- Auto Teleport To Enemy (Always In Front, NO visibility check)
+----------------------------------------------------------------
+features._tpEnemy  = nil
+features._tpOffset = Vector3.new(0, 0, 25) -- başlangıç
 
--- Offset ayarlama
-function features.SetTeleportOffset(x,y,z)
-    features._tpOffset = Vector3.new(x,y,z)
+-- Slider bağlantıları (menu.lua'dan çağırılacak)
+features._tpX = 0
+features._tpY = 0
+features._tpZ = 25
+
+-- Offset ayarlama (slider’lar buna bağlanır)
+function features.SetTeleportOffset(x, y, z)
+    features._tpX = x
+    features._tpY = y
+    features._tpZ = z
 end
 
 function features.ToggleAutoTeleportToEnemy(on)
     if on then
         if features._tpEnemy then features._tpEnemy:Disconnect() end
         features._tpEnemy = RunService.RenderStepped:Connect(function()
-            local cam   = workspace.CurrentCamera
-            local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-            local head  = getClosestVisibleHead() -- hedef bulucu
-            if not (myHRP and head) then return end
-
-            local enemyChar = head.Parent
-            local enemyHRP  = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
-            if not enemyHRP then return end
-
-            -- Kamera yönü → hep senin baktığın yöne göre offset uygular
-            local camLook = cam.CFrame.LookVector
-            local offset  = (camLook * features._tpOffset.Z) + Vector3.new(features._tpOffset.X, features._tpOffset.Y, 0)
-
-            -- ❌ Görünürlük check kaldırıldı → her zaman teleport
-            enemyHRP.CFrame = CFrame.new(myHRP.Position + offset, myHRP.Position)
+            local head = getClosestVisibleHead() -- görünürlük kontrolünü kaldırmak istersen direkt target seç
+            if head and head.Parent then
+                local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+                if myHRP then
+                    -- her frame güncel offset
+                    local look = workspace.CurrentCamera.CFrame.LookVector
+                    local offset = look * features._tpZ + Vector3.new(features._tpX, features._tpY, 0)
+                    head.Parent:MoveTo(myHRP.Position + offset)
+                end
+            end
         end)
     else
-        if features._tpEnemy then 
-            features._tpEnemy:Disconnect()
-            features._tpEnemy=nil 
-        end
+        if features._tpEnemy then features._tpEnemy:Disconnect(); features._tpEnemy=nil end
     end
 end
 
