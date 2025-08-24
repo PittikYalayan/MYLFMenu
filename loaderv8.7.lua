@@ -68,7 +68,7 @@ do
     bindToggle(g, "autoBehind", "⚡ Always Behind Enemy", features.ToggleAutoBehind)
     bindToggle(g, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleport)
     -- Toggle
-t:AddToggle("tpEnemy", {
+g:AddToggle("tpEnemy", {
     Text = "⚡ Auto Teleport Enemy",
     Default = false,
     Callback = function(on) features.ToggleAutoTeleportToEnemy(on) end
