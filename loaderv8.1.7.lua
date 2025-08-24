@@ -58,7 +58,8 @@ do
     bindToggle(g, "fly",       "Fly (LCtrl down)", features.ToggleFly)
     bindToggle(g, "infjump",   "Infinite Jump",    features.ToggleInfiniteJump)
     bindToggle(g, "god",       "God Mode",         features.ToggleGodmode)
-    bindToggle(g, "invisible", "Invisible",        features.ToggleInvisible)
+    bindToggle(miscGroup, "hardInvis", "👻 Hard Invisible", features.ToggleHardInvisible)
+    bindToggle(g, "noclip", "NoClip", features.ToggleNoclip)
 end
 
 -- Teleport
@@ -82,7 +83,7 @@ end
 -- World
 do
     local g = Tabs.World:AddLeftGroupbox("World")
-    bindToggle(g, "noclip", "NoClip", features.ToggleNoclip)
+    
 end
 
 -- Settings / Tema
