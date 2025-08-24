@@ -776,72 +776,42 @@ end
 ----------------------------------------------------------------
 -- Ultra Fly (Server correction bypass + Camera yönlü)
 ----------------------------------------------------------------
-features._flySpeed = 80
-
+features._flySpeed = 60
 function features.ToggleFly(on)
     local function ensureBV()
-        local ch  = Player.Character
-        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+        local ch = Player.Character
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-        if not (hrp and hum) then return end
-
-        -- Eski bodymoverları temizle
-        for _,v in ipairs(hrp:GetChildren()) do
-            if v:IsA("BodyMover") or v:IsA("VectorForce") or v:IsA("AlignPosition") then
-                v:Destroy()
-            end
-        end
-
-        local bv = hrp:FindFirstChild("MYLF_Fly")
+        if not hrp then return end
+        local bv = hrp:FindFirstChildOfClass("BodyVelocity")
         if not bv then
-            bv = Instance.new("BodyVelocity")
-            bv.Name = "MYLF_Fly"
-            bv.MaxForce = Vector3.new(1e6,1e6,1e6)
+            bv = Instance.new("BodyVelocity", hrp)
+            bv.MaxForce = Vector3.new(4000,4000,4000)
             bv.Velocity = Vector3.zero
-            bv.Parent = hrp
         end
-
-        -- Server düzeltmesini azalt
-        hum.PlatformStand = true
         return bv, hrp
     end
-
     if on then
         if features._fly then features._fly:Disconnect() end
         features._fly = RunService.RenderStepped:Connect(function()
-            local bv, hrp = ensureBV()
+            local bv = ensureBV()
             if not bv then return end
-
             local dir = Vector3.zero
             local cf  = workspace.CurrentCamera.CFrame
-
             if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cf.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cf.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cf.RightVector end
             if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cf.RightVector end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
-
-            if dir.Magnitude > 0 then dir = dir.Unit end
-            bv.Velocity = dir * (features._flySpeed or 80)
+            bv.Velocity = dir * (features._flySpeed or 60)
         end)
-
-        Player.CharacterAdded:Connect(function()
-            task.wait(0.5)
-            if on then features.ToggleFly(true) end
-        end)
+        Player.CharacterAdded:Connect(function() task.wait(0.5); if on then features.ToggleFly(true) end end)
     else
-        if features._fly then features._fly:Disconnect(); features._fly=nil end
         local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local bv = hrp:FindFirstChild("MYLF_Fly")
-            if bv then bv:Destroy() end
-        end
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.PlatformStand = false end
+        if hrp then local bv = hrp:FindFirstChildOfClass("BodyVelocity"); if bv then bv:Destroy() end end
+        if features._fly then features._fly:Disconnect() end
     end
 end
-
 
 
 ----------------------------------------------------------------
