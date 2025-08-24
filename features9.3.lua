@@ -1718,99 +1718,7 @@ local function EnsureHooks()
     features._hooked = true
 
     -- Orijinal metamethodlar
-    local mt = getrawmetatable(game)
-    local oldNamecall = mt.__namecall
-    local oldIndex    = mt.__index
-    local oldNewIndex = mt.__newindex
-
-    setreadonly(mt, false)
-
-    -- __namecall hook (remote manipülasyon)
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        local args   = {...}
-
-        -- Burada Silent Aim, MagicBullet, DamageRemote patch vs. işleyebilir
-        if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
-        and (method == "FireServer" or method == "InvokeServer") then
-            -- Örn: Hard Patch → targetPos içine zorlama
-            if features.SilentAim then
-                local head = getClosestVisibleHead()
-                if head then
-                    args[1] = head.Position -- sadece örnek
-                    return oldNamecall(self, unpack(args))
-                end
-            end
-        end
-
-        return oldNamecall(self, ...)
-    end)
-
-    -- __index hook (anti cheat değer sorgusu → fake değer dön)
-    mt.__index = newcclosure(function(self, key)
-        if tostring(key):lower() == "walkspeed" and features.Godmode then
-            return 16 -- her zaman default dön
-        end
-        return oldIndex(self, key)
-    end)
-
-    -- __newindex hook (oyun WalkSpeed/Health değiştirirse override et)
-    mt.__newindex = newcclosure(function(self, key, val)
-        if tostring(key):lower() == "health" and features.Godmode then
-            return -- blockla
-        end
-        return oldNewIndex(self, key, val)
-    end)
-
-    setreadonly(mt, true)
-    print("✅ Multi-Hook System aktif")
-end
-
-----------------------------------------------------------------
--- Toggle Hooks
-----------------------------------------------------------------
-function features.ToggleMultiHook(on)
-    if on then
-        EnsureHooks()
-    else
-        -- devre dışı bırakmak için normalde restore lazım
-        -- ama exploit ortamında genelde kalıcı olur.
-        warn("MultiHook OFF (restore edilmedi)")
-    end
-end
-
-----------------------------------------------------------------
--- Tiny Hitbox (Hard Hook - Neredeyse Yok)
-----------------------------------------------------------------
-features._tinyHitbox = false
-features._tinyConn   = nil
-
--- Hedef parçalar
-local hitParts = {"Head","UpperTorso","LowerTorso","HumanoidRootPart","LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"}
-
--- Çok küçük boyut (neredeyse yok)
-local tinySize   = Vector3.new(0.01,0.01,0.01)
-
--- Normal boyutları cache
-local normalSize = {}
-
--- Shrink fonksiyonu
-local function shrink(char)
-    for _,name in ipairs(hitParts) do
-        local p = char:FindFirstChild(name)
-        if p and p:IsA("BasePart") then
-            if not normalSize[name] then
-                normalSize[name] = p.Size -- ilk gördüğümüz boyutu kaydet
-            end
-            p.Size = tinySize
-            p.Massless = true
-            p.CanCollide = false
-        end
-    end
-end
-
--- Metatable hook (anti-cheat’e fake göstermek için)
--- Orijinal metamethodlar
+   -- Orijinal metamethodlar
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 local oldIndex    = mt.__index
@@ -1871,6 +1779,52 @@ end)
 
 setreadonly(mt, true)
 print("✅ Multi-Hook + MiniHitbox aktif")
+
+----------------------------------------------------------------
+-- Toggle Hooks
+----------------------------------------------------------------
+function features.ToggleMultiHook(on)
+    if on then
+        EnsureHooks()
+    else
+        -- devre dışı bırakmak için normalde restore lazım
+        -- ama exploit ortamında genelde kalıcı olur.
+        warn("MultiHook OFF (restore edilmedi)")
+    end
+end
+
+----------------------------------------------------------------
+-- Tiny Hitbox (Hard Hook - Neredeyse Yok)
+----------------------------------------------------------------
+features._tinyHitbox = false
+features._tinyConn   = nil
+
+-- Hedef parçalar
+local hitParts = {"Head","UpperTorso","LowerTorso","HumanoidRootPart","LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"}
+
+-- Çok küçük boyut (neredeyse yok)
+local tinySize   = Vector3.new(0.01,0.01,0.01)
+
+-- Normal boyutları cache
+local normalSize = {}
+
+-- Shrink fonksiyonu
+local function shrink(char)
+    for _,name in ipairs(hitParts) do
+        local p = char:FindFirstChild(name)
+        if p and p:IsA("BasePart") then
+            if not normalSize[name] then
+                normalSize[name] = p.Size -- ilk gördüğümüz boyutu kaydet
+            end
+            p.Size = tinySize
+            p.Massless = true
+            p.CanCollide = false
+        end
+    end
+end
+
+-- Metatable hook (anti-cheat’e fake göstermek için)
+-- Orijinal metamethodlar
 
 -- Toggle
 function features.ToggleTinyHitbox(on)
