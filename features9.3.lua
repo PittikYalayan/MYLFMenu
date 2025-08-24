@@ -1601,6 +1601,15 @@ end
 ----------------------------------------------------------------
 features._tpEnemy = nil
 
+-- Varsayılan offset
+features._tpOffset = Vector3.new(0, 0, 5)
+features._tpEnemy = nil
+
+-- Offset ayarlama
+function features.SetTeleportOffset(x,y,z)
+    features._tpOffset = Vector3.new(x,y,z)
+end
+
 local function teleportEnemyBehindEnemy(enemy)
     if not enemy or not enemy.Character then return end
     local hrp = enemy.Character:FindFirstChild("HumanoidRootPart")
@@ -1613,25 +1622,25 @@ local function teleportEnemyBehindEnemy(enemy)
     hrp.CFrame = CFrame.new(myhrp.Position + offset, myhrp.Position)
 end
 
-function features.ToggleAutoTeleport(on)
+function features.ToggleAutoTeleportToEnemy(on)
     if on then
         if features._tpEnemy then features._tpEnemy:Disconnect() end
-        features._tpEnemy = RunService.Heartbeat:Connect(function()
+        features._tpEnemy = RunService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            local origin = cam.CFrame.Position
             local head = getClosestVisibleHead()
-            if head and head.Parent then
-                local plr = Players:GetPlayerFromCharacter(head.Parent)
-                if plr and plr ~= Player then
-                    teleportEnemyBehindEnemy(plr)
-                end
+            if head then
+                local cf = CFrame.new(origin, head.Position)
+                local targetPos =
+                    (cf.Position + cf.LookVector * features._tpOffset.Z) +
+                    Vector3.new(features._tpOffset.X, features._tpOffset.Y, 0)
+
+                -- sadece lokal, düşmanı önüne taşı
+                head.Parent:MoveTo(targetPos)
             end
         end)
-        print("⚡ AutoTeleportToEnemy: ON")
     else
-        if features._tpEnemy then 
-            features._tpEnemy:Disconnect() 
-            features._tpEnemy=nil 
-        end
-        print("⚡ AutoTeleportToEnemy: OFF")
+        if features._tpEnemy then features._tpEnemy:Disconnect(); features._tpEnemy=nil end
     end
 end
 
