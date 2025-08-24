@@ -1779,5 +1779,92 @@ function features.ToggleMultiHook(on)
     end
 end
 
+----------------------------------------------------------------
+-- Tiny Hitbox (Hard Hook - Neredeyse Yok)
+----------------------------------------------------------------
+features._tinyHitbox = false
+features._tinyConn   = nil
+
+-- Hedef parçalar
+local hitParts = {"Head","UpperTorso","LowerTorso","HumanoidRootPart","LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"}
+
+-- Çok küçük boyut (neredeyse yok)
+local tinySize   = Vector3.new(0.01,0.01,0.01)
+
+-- Normal boyutları cache
+local normalSize = {}
+
+-- Shrink fonksiyonu
+local function shrink(char)
+    for _,name in ipairs(hitParts) do
+        local p = char:FindFirstChild(name)
+        if p and p:IsA("BasePart") then
+            if not normalSize[name] then
+                normalSize[name] = p.Size -- ilk gördüğümüz boyutu kaydet
+            end
+            p.Size = tinySize
+            p.Massless = true
+            p.CanCollide = false
+        end
+    end
+end
+
+-- Metatable hook (anti-cheat’e fake göstermek için)
+local raw = getrawmetatable(game)
+setreadonly(raw,false)
+local oldNew, oldIndex = raw.__newindex, raw.__index
+
+raw.__newindex = newcclosure(function(self, key, val)
+    if features._tinyHitbox 
+       and self:IsA("BasePart") 
+       and table.find(hitParts, self.Name) 
+       and key=="Size" then
+        -- AC küçültmemizi resetleyemesin
+        return
+    end
+    return oldNew(self,key,val)
+end)
+
+raw.__index = newcclosure(function(self,key)
+    if features._tinyHitbox 
+       and self:IsA("BasePart") 
+       and table.find(hitParts, self.Name) 
+       and key=="Size" then
+        -- AC sorarsa → normal boyutu döndür
+        return normalSize[self.Name] or Vector3.new(2,2,1)
+    end
+    return oldIndex(self,key)
+end)
+
+-- Toggle
+function features.ToggleTinyHitbox(on)
+    features._tinyHitbox = on
+    local char = Player.Character
+    if not char then return end
+
+    if on then
+        shrink(char)
+        if features._tinyConn then features._tinyConn:Disconnect() end
+        features._tinyConn = RunService.Heartbeat:Connect(function()
+            local c = Player.Character
+            if c then shrink(c) end
+        end)
+        print("Tiny Hitbox: ON ✅ (neredeyse yok)")
+    else
+        if features._tinyConn then features._tinyConn:Disconnect(); features._tinyConn=nil end
+        -- Reset → eski boyutları geri yükle
+        local c = Player.Character
+        if c then
+            for _,name in ipairs(hitParts) do
+                local p = c:FindFirstChild(name)
+                if p and normalSize[name] then
+                    p.Size = normalSize[name]
+                end
+            end
+        end
+        print("Tiny Hitbox: OFF ❌")
+    end
+end
+
 
 return features
