@@ -67,6 +67,34 @@ do
     bindToggle(g, "tpkey", "Teleport (T Key)", features.ToggleTeleport)
     bindToggle(g, "autoBehind", "⚡ Always Behind Enemy", features.ToggleAutoBehind)
     bindToggle(g, "autoTP", "⚡ Auto Farm Enemy", features.ToggleAutoTeleport)
+    -- Toggle
+t:AddToggle("tpEnemy", {
+    Text = "⚡ Auto Teleport Enemy",
+    Default = false,
+    Callback = function(on) features.ToggleAutoTeleportToEnemy(on) end
+})
+
+-- Offset Sliderları
+g:AddSlider("tpX", {
+    Text = "Offset X",
+    Default = 0,
+    Min = -10, Max = 10, Rounding = 1,
+    Callback = function(val) features.SetTeleportOffset(val, Toggles.tpY.Value, Toggles.tpZ.Value) end
+})
+
+g:AddSlider("tpY", {
+    Text = "Offset Y",
+    Default = 0,
+    Min = -10, Max = 10, Rounding = 1,
+    Callback = function(val) features.SetTeleportOffset(Toggles.tpX.Value, val, Toggles.tpZ.Value) end
+})
+
+g:AddSlider("tpZ", {
+    Text = "Offset Z (Ön mesafe)",
+    Default = 5,
+    Min = 1, Max = 50, Rounding = 1,
+    Callback = function(val) features.SetTeleportOffset(Toggles.tpX.Value, Toggles.tpY.Value, val) end
+})
 
 
 
