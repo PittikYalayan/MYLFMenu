@@ -1,20 +1,58 @@
 --[[ 
-    ⚡ MYLF Linoria+ (Legit UI) — Toggle Köprü + Crown FPS Panel + 60FPS UI Scheduler
-    - Hile/remote/hook YOK. Yalnızca UI köprüleri (features.* varsa çağrılır).
+    ⚡ MYLF Linoria+ (Legit UI FX Edition)
+    - UI Köprü: features.* fonksiyonları varsa güvenli çağırır (ALLOW whitelist)
+    - Hile/remote/hook yok; sadece UI.
     - Aç/Kapa: LeftShift
 ]]
-local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))() --normali features2
+
+--// Features Köprüsü (tek tanım)
+local features = {}
+do
+    local ok, mod = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
+    end)
+    features = ok and mod or {}
+end
+
+-- İzinli köprü metodları (UI güvenliği)
+local ALLOW = {
+    SetTeleportOffset              = true,
+    ToggleHUDPanel                 = true,
+    ToggleCrosshair                = true,
+    ToggleAimbot                   = true,
+    ToggleHeadshotRedirect         = true,
+    ToggleKillAura                 = true,
+    ToggleFireRate                 = true,
+    ToggleESP                      = true,
+    ToggleEnemyBigHitbox           = true,
+    ToggleSpeed                    = true,
+    ToggleFly                      = true,
+    ToggleInfiniteJump             = true,
+    ToggleNoclip                   = true,
+    ToggleGodmode                  = true,
+    ToggleHardInvisible            = true,
+    ToggleTeleport                 = true,
+    ToggleAutoBehind               = true,
+    ToggleAutoTeleportToEnemy      = true,
+}
+
+local function safeCall(fname, ...)
+    local fn = features and features[fname]
+    if ALLOW[fname] and type(fn) == "function" then
+        local ok, err = pcall(fn, ...)
+        if not ok then warn("[features."..fname.."] "..tostring(err)) end
+    end
+end
+
 --// Services
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService     = game:GetService("TweenService")
-local HttpService      = game:GetService("HttpService")
 local Stats            = game:GetService("Stats")
 
 local LP        = Players.LocalPlayer
 local PlayerGui = LP:WaitForChild("PlayerGui")
-local Camera    = workspace.CurrentCamera
 
 --// Utils
 local function tween(o, ti, props, es, ed)
@@ -26,11 +64,46 @@ local function makeCorner(o, r) local c=Instance.new("UICorner"); c.CornerRadius
 local function makeStroke(o, th, tr) local s=Instance.new("UIStroke"); s.Thickness=th or 1; s.Transparency=tr or 0; s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; s.Parent=o; return s end
 local function pad(o, px) local p=Instance.new("UIPadding"); p.PaddingTop=UDim.new(0,px); p.PaddingBottom=UDim.new(0,px); p.PaddingLeft=UDim.new(0,px); p.PaddingRight=UDim.new(0,px); p.Parent=o; return p end
 
+-- Küçük yıldırım (spark) üretici (GUI)
+local function spawnSpark(parent, sz, life)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.fromOffset(sz.X, sz.Y)
+    f.BackgroundColor3 = Color3.fromHSV((os.clock()%1), 1, 1)
+    f.BorderSizePixel = 0
+    f.AnchorPoint = Vector2.new(0.5,0.5)
+    f.Position = UDim2.fromScale(0.5 + (math.random()-0.5)*0.6, 0.5 + (math.random()-0.5)*0.6)
+    f.Rotation = math.random(-50,50)
+    f.BackgroundTransparency = 0.1
+    f.Parent = parent
+    task.spawn(function()
+        tween(f, life or .18, {BackgroundTransparency = 1, Size = UDim2.fromOffset(0,0)}):Play()
+        task.wait(life or .18)
+        if f then f:Destroy() end
+    end)
+end
+
+-- Debounce helper
+local function debounced(wait, fn)
+    local token = 0
+    return function(...)
+        token += 1
+        local my = token
+        local args = {...}
+        task.delay(wait, function()
+            if my == token then fn(table.unpack(args)) end
+        end)
+    end
+end
+
 --// Theme
 local Themes = {
-  Dark = { Bg=Color3.fromRGB(20,20,26), Panel=Color3.fromRGB(28,28,36), Accent=Color3.fromRGB(120,115,245), AccentSoft=Color3.fromRGB(95,90,210),
-           Text=Color3.fromRGB(238,238,245), SubText=Color3.fromRGB(170,170,178), Stroke=Color3.fromRGB(60,60,72), Hover=Color3.fromRGB(40,40,52),
-           Green=Color3.fromRGB(110,210,130), Red=Color3.fromRGB(230,90,96) },
+  Dark = {
+    Bg=Color3.fromRGB(20,20,26), Panel=Color3.fromRGB(28,28,36),
+    Accent=Color3.fromRGB(120,115,245), AccentSoft=Color3.fromRGB(95,90,210),
+    Text=Color3.fromRGB(238,238,245), SubText=Color3.fromRGB(170,170,178),
+    Stroke=Color3.fromRGB(60,60,72), Hover=Color3.fromRGB(40,40,52),
+    Green=Color3.fromRGB(110,210,130), Red=Color3.fromRGB(230,90,96)
+  },
 }
 local CurrentTheme = Themes.Dark
 
@@ -39,7 +112,7 @@ local State = { Visible = true, Dragging = false, GlobalToggleKey = Enum.KeyCode
 
 --// Root GUIs
 local Gui = Instance.new("ScreenGui")
-Gui.Name="MYLF_LinoriaPlus"; Gui.IgnoreGuiInset=true; Gui.ResetOnSpawn=false; Gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; Gui.Parent=PlayerGui
+Gui.Name="MYLF_LinoriaPlusFX"; Gui.IgnoreGuiInset=true; Gui.ResetOnSpawn=false; Gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; Gui.Parent=PlayerGui
 
 local Overlay = Instance.new("ScreenGui")
 Overlay.Name="MYLF_HUD"; Overlay.IgnoreGuiInset=true; Overlay.ResetOnSpawn=false; Overlay.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; Overlay.Parent=PlayerGui
@@ -61,7 +134,7 @@ Window.Size=UDim2.new(0, 820, 0, 500); Window.Position=UDim2.new(0.5,-410,0.5,-2
 Window.BackgroundColor3=CurrentTheme.Bg; Window.Active=true; Window.Parent=Gui
 makeCorner(Window,10); makeStroke(Window,1,.2)
 
--- Dragging (pürüzsüz)
+-- Dragging
 do
   local dragStart, startPos
   Window.InputBegan:Connect(function(input)
@@ -81,7 +154,7 @@ end
 -- TitleBar
 local TitleBar=Instance.new("Frame"); TitleBar.Size=UDim2.new(1,0,0,44); TitleBar.BackgroundColor3=CurrentTheme.Panel; TitleBar.Parent=Window
 makeCorner(TitleBar,10); makeStroke(TitleBar,1,.1)
-local Title=Instance.new("TextLabel"); Title.BackgroundTransparency=1; Title.Text="⚡ MYLF | Linoria+ (UI Bridge)"; Title.Font=Enum.Font.GothamBold; Title.TextSize=16
+local Title=Instance.new("TextLabel"); Title.BackgroundTransparency=1; Title.Text="⚡ MYLF | Linoria+ FX (UI Bridge)"; Title.Font=Enum.Font.GothamBold; Title.TextSize=16
 Title.TextColor3=CurrentTheme.Text; Title.TextXAlignment=Enum.TextXAlignment.Left; Title.Position=UDim2.new(0,14,0,0); Title.Size=UDim2.new(1,-160,1,0); Title.Parent=TitleBar
 
 -- Sidebar
@@ -114,6 +187,8 @@ local function newSection(parent, title)
   local list=Instance.new("UIListLayout", s); list.Padding=UDim.new(0,8)
   return s
 end
+
+-- Controls
 local Controls={}
 local function makeRow(parent,label)
   local f=Instance.new("Frame"); f.BackgroundTransparency=1; f.Size=UDim2.new(1,0,0,28); f.Parent=parent
@@ -121,38 +196,139 @@ local function makeRow(parent,label)
   l.TextColor3=CurrentTheme.SubText; l.Size=UDim2.new(0.5,0,1,0); l.Parent=f
   return f,l
 end
+
+-- Toggle (Rainbow yıldırım efektli)
 function Controls.Toggle(parent,label,default,callback)
   local row,lab=makeRow(parent,label)
   local btn=Instance.new("TextButton"); btn.AutoButtonColor=false; btn.Text=default and "ON" or "OFF"
   btn.Font=Enum.Font.GothamBold; btn.TextSize=12; btn.TextColor3= default and CurrentTheme.Green or CurrentTheme.Red
   btn.BackgroundColor3=CurrentTheme.Hover; btn.Size=UDim2.new(0,78,0,24); btn.Position=UDim2.new(1,-88,0.5,-12); btn.Parent=row
   makeCorner(btn,6); makeStroke(btn,1,.2)
+
+  local halo = Instance.new("UIStroke", btn)
+  halo.Thickness=2; halo.Transparency=0.15; halo.Color=Color3.fromRGB(255,255,0); halo.Enabled=false
+
   local on=default or false
+  local fxToken = 0
+
+  local function startFx()
+      fxToken += 1
+      local my = fxToken
+      halo.Enabled = true
+      task.spawn(function()
+          while on and btn.Parent and fxToken == my do
+              halo.Color = Color3.fromHSV((os.clock()*0.5)%1,1,1)
+              -- ufak yıldırım parçaları
+              spawnSpark(btn, Vector2.new(2 + math.random(0,2), 8 + math.random(0,6)), .16 + math.random()*0.06)
+              task.wait(0.08)
+          end
+      end)
+  end
+  local function stopFx()
+      fxToken += 1
+      halo.Enabled = false
+  end
+
+  local function applyVisual()
+      btn.Text=on and "ON" or "OFF"
+      btn.TextColor3= on and CurrentTheme.Green or CurrentTheme.Red
+      tween(btn,.08,{BackgroundColor3= on and CurrentTheme.AccentSoft or CurrentTheme.Hover}):Play()
+      if on then startFx() else stopFx() end
+  end
+  applyVisual()
+
   btn.MouseButton1Click:Connect(function()
-    on=not on; btn.Text=on and "ON" or "OFF"; btn.TextColor3= on and CurrentTheme.Green or CurrentTheme.Red
-    tween(btn,.08,{BackgroundColor3= on and CurrentTheme.AccentSoft or CurrentTheme.Hover}):Play()
+    on = not on
+    applyVisual()
     if callback then task.spawn(callback,on) end
   end)
-  return { Set=function(v) on=v; btn.Text=v and "ON" or "OFF"; btn.TextColor3=v and CurrentTheme.Green or CurrentTheme.Red; if callback then callback(v) end end,
-           Get=function() return on end }
+
+  return {
+    Get=function() return on end,
+    Set=function(v) on = not not v; applyVisual(); if callback then callback(on) end end
+  }
 end
+
+-- Slider (Alev/Yıldırım animasyonlu dolgu)
 function Controls.Slider(parent,label,min,max,default,fmt,callback)
   local row,lab=makeRow(parent,label)
   local frame=Instance.new("Frame"); frame.Size=UDim2.new(0.48,0,0,24); frame.Position=UDim2.new(0.52,0,0.5,-12); frame.BackgroundColor3=CurrentTheme.Hover; frame.Parent=row
   makeCorner(frame,6); makeStroke(frame,1,.15)
+
   local fill=Instance.new("Frame"); fill.BackgroundColor3=CurrentTheme.Accent; fill.Size=UDim2.new((default-min)/(max-min),0,1,0); fill.Parent=frame; makeCorner(fill,6)
-  local val=default or min; local valText=Instance.new("TextLabel"); valText.BackgroundTransparency=1; valText.TextColor3=CurrentTheme.Text; valText.Font=Enum.Font.GothamSemibold; valText.TextSize=12
+
+  local grad=Instance.new("UIGradient", fill)
+  grad.Color=ColorSequence.new{
+      ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255,80,0)),   -- turuncu
+      ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255,220,0)),  -- sarı (alev)
+      ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255,0,0))     -- kırmızı
+  }
+  grad.Rotation=0
+
+  -- üstüne ince "enerji çizgisi"
+  local sparkLine = Instance.new("Frame", fill)
+  sparkLine.BorderSizePixel = 0
+  sparkLine.AnchorPoint = Vector2.new(0.5,0)
+  sparkLine.Position = UDim2.new(0.5,0,0,0)
+  sparkLine.Size = UDim2.new(1,0,0,2)
+  sparkLine.BackgroundColor3 = Color3.fromRGB(255,255,255)
+  sparkLine.BackgroundTransparency = 0.35
+  local sparkGrad = Instance.new("UIGradient", sparkLine)
+  sparkGrad.Color = ColorSequence.new{
+      ColorSequenceKeypoint.new(0, Color3.fromRGB(255,255,255)),
+      ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,255,255)),
+      ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255))
+  }
+  sparkGrad.Transparency = NumberSequence.new{
+      NumberSequenceKeypoint.new(0, .7),
+      NumberSequenceKeypoint.new(0.5, 0),
+      NumberSequenceKeypoint.new(1, .7)
+  }
+
+  -- animasyon döngüsü
+  task.spawn(function()
+      while fill.Parent do
+          grad.Offset = Vector2.new((os.clock()*0.4)%1, 0)
+          sparkGrad.Offset = Vector2.new((os.clock()*1.2)%1, 0)
+          grad.Rotation = (os.clock()*60)%360
+          task.wait(0.05)
+      end
+  end)
+
+  local val=default or min
+  local valText=Instance.new("TextLabel"); valText.BackgroundTransparency=1; valText.TextColor3=CurrentTheme.Text; valText.Font=Enum.Font.GothamSemibold; valText.TextSize=12
   valText.Size=UDim2.new(0,60,1,0); valText.AnchorPoint=Vector2.new(1,0); valText.Position=UDim2.new(1,-6,0,0); valText.Parent=frame; valText.Text=(fmt or "%d"):format(val)
+
   local dragging=false
   local function setFromX(x)
     local rel=clamp((x-frame.AbsolutePosition.X)/frame.AbsoluteSize.X,0,1)
-    val = round(min + (max-min)*rel, 2); fill.Size=UDim2.new((val-min)/(max-min),0,1,0); valText.Text=(fmt or "%d"):format(val)
+    val = round(min + (max-min)*rel, 2)
+    fill.Size=UDim2.new((val-min)/(max-min),0,1,0)
+    valText.Text=(fmt or "%d"):format(val)
     if callback then callback(val) end
   end
   frame.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true; setFromX(input.Position.X) end end)
   frame.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end end)
   UserInputService.InputChanged:Connect(function(input) if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then setFromX(input.Position.X) end end)
-  return { Get=function() return val end, Set=function(v) val=clamp(v,min,max); fill.Size=UDim2.new((val-min)/(max-min),0,1,0); valText.Text=(fmt or "%d"):format(val); if callback then callback(val) end end }
+
+  return { Get=function() return val end, Set=function(v) v=clamp(v,min,max); val=v; fill.Size=UDim2.new((val-min)/(max-min),0,1,0); valText.Text=(fmt or "%d"):format(val); if callback then callback(val) end end }
+end
+
+-- Keybind
+function Controls.Keybind(parent,label,defaultKeyCode,onChanged)
+  local row,lab=makeRow(parent,label)
+  local btn=Instance.new("TextButton"); btn.Size=UDim2.new(0,120,0,24); btn.BackgroundColor3=CurrentTheme.Hover; btn.Font=Enum.Font.GothamBold; btn.TextSize=12
+  btn.TextColor3=CurrentTheme.Text; btn.Text=defaultKeyCode and defaultKeyCode.Name or "LeftShift"; btn.Parent=row; makeCorner(btn,6); makeStroke(btn,1,.2)
+
+  local listening=false; local current=defaultKeyCode or Enum.KeyCode.LeftShift
+  btn.MouseButton1Click:Connect(function() listening=true; btn.Text="Press..." end)
+  UserInputService.InputBegan:Connect(function(input,gp)
+    if not listening or gp then return end
+    if input.KeyCode~=Enum.KeyCode.Unknown then
+      listening=false; current=input.KeyCode; btn.Text=current.Name; if onChanged then onChanged(current) end
+    end
+  end)
+  return {Get=function() return current end, Set=function(kc) current=kc or current; btn.Text=current.Name; if onChanged then onChanged(current) end end }
 end
 
 -- Pages
@@ -179,13 +355,13 @@ tUtility.MouseButton1Click:Connect(function() showPage("Utility / TP") end)
 tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
 tSettings.MouseButton1Click:Connect(function() showPage("Settings") end)
 
--- Sections (yerleşim: isteklerine göre)
+-- Sections
 local sCombatL  = newSection(pCombat,   "Aimbot / Weapon")
 local sCombatR  = newSection(pCombat,   "Aura / FireRate")
 local sVisualsL = newSection(pVisuals,  "ESP / Hitbox")
 local sVisualsR = newSection(pVisuals,  "Colors / Misc")
 local sMoveL    = newSection(pMovement, "Speed / Fly")
-local sMoveR    = newSection(pMovement, "Jump / Noclip")
+local sMoveR    = newSection(pMovement, "Jump / Noclip / Protection")
 local sUtilL    = newSection(pUtility,  "Teleport Controls")
 local sUtilR    = newSection(pUtility,  "Auto TP (Offsets)")
 local sHUDL     = newSection(pHUD,      "Crown FPS Panel")
@@ -193,64 +369,76 @@ local sHUDR     = newSection(pHUD,      "Crosshair / Perf")
 local sSetL     = newSection(pSettings, "Global")
 local sSetR     = newSection(pSettings, "About")
 
---========================================================
--- FeatureBridge: UI → features.* (varsa çağır; yoksa no-op)
---========================================================
-local features = nil
-local ok, mod = pcall(function()
-return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
-end)
-features = ok and mod or {}
-
-
-local ALLOW = {
-SetTeleportOffset = true,
-ToggleHUDPanel = true,
-ToggleCrosshair = true,
-}
-
-
-local function safeCall(fname, ...)
-local fn = features and features[fname]
-if ALLOW[fname] and type(fn) == "function" then
-local ok2, err = pcall(fn, ...)
-if not ok2 then warn("[features."..fname.."] "..tostring(err)) end
-end
+-- Toggle helper (köprü)
+local function addToggle(section, label, featureFnName)
+    return Controls.Toggle(section, label, false, function(on)
+        safeCall(featureFnName, on)
+    end)
 end
 
-
-local function bindToggle(section, title, featureFnName)
-return Controls.Toggle(section, title, false, function(on)
-safeCall(featureFnName, on)
-end)
-end
-
-
+-- Sliders event bus
 local Options, _listeners = {}, {}
 local function addSlider(section, key, cfg)
-local fmt = (cfg.Rounding and cfg.Rounding > 0) and ("%."..tostring(cfg.Rounding).."f") or "%d"
-local sl = Controls.Slider(section, cfg.Text or key, cfg.Min or 0, cfg.Max or 100, cfg.Default or 0, fmt, function(v)
-local ls = _listeners[key]
-if ls then for _,fn in ipairs(ls) do pcall(fn, v) end end
-end)
-Options[key] = {
-Get = function() return sl.Get() end,
-Set = function(v) sl.Set(v) end,
-OnChanged = function(fn)
-local t = _listeners[key]
-if not t then t = {}; _listeners[key] = t end
-table.insert(t, fn)
-end
-}
-return Options[key]
+    local fmt = (cfg.Rounding and cfg.Rounding > 0) and ("%."..tostring(cfg.Rounding).."f") or "%d"
+    local sl = Controls.Slider(section, cfg.Text or key, cfg.Min or 0, cfg.Max or 100, cfg.Default or 0, fmt, function(v)
+        local ls = _listeners[key]
+        if ls then for _,fn in ipairs(ls) do pcall(fn, v) end end
+    end)
+    Options[key] = {
+        Get = function() return sl.Get() end,
+        Set = function(v) sl.Set(v) end,
+        OnChanged = function(fn)
+            local t = _listeners[key]
+            if not t then t = {}; _listeners[key] = t end
+            table.insert(t, fn)
+        end
+    }
+    return Options[key]
 end
 
+-- === Combat
+addToggle(sCombatL, "🎯 Enable Aimbot",          "ToggleAimbot")
+addToggle(sCombatL, "Force Headshot",            "ToggleHeadshotRedirect")
+addToggle(sCombatR, "☠️ Kill Aura",              "ToggleKillAura")
+addToggle(sCombatR, "Hard Fire Rate",            "ToggleFireRate")
+
+-- === Visuals
+addToggle(sVisualsL, "Enable ESP",               "ToggleESP")
+addToggle(sVisualsL, "🎯 Enemy Big Hitbox",      "ToggleEnemyBigHitbox")
+
+-- === Movement
+addToggle(sMoveL, "Speed Boost (50)",            "ToggleSpeed")
+addToggle(sMoveL, "Fly (LCtrl down)",            "ToggleFly")
+addToggle(sMoveR, "Infinite Jump",               "ToggleInfiniteJump")
+addToggle(sMoveR, "NoClip",                      "ToggleNoclip")
+addToggle(sMoveR, "💀 Godmode",                  "ToggleGodmode")
+addToggle(sMoveR, "👻 Hard Invisible",           "ToggleHardInvisible")
+
+-- === Utility / TP
+addToggle(sUtilL, "Teleport (T Key)",            "ToggleTeleport")
+addToggle(sUtilL, "⚡ Always Behind Enemy",      "ToggleAutoBehind")
+addToggle(sUtilL, "⚡ Auto Farm Enemy",          "ToggleAutoTeleportToEnemy")
+
+-- === TP Offsets
+addSlider(sUtilR, "tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=0})
+addSlider(sUtilR, "tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=0})
+addSlider(sUtilR, "tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=0})
+
+local _tpX, _tpY, _tpZ = 0, 0, 25
+local applyTP = debounced(0.08, function()
+    safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ)
+    if features then features._tpX = _tpX; features._tpY = _tpY; features._tpZ = _tpZ end
+end)
+Options.tpX:OnChanged(function(v) _tpX = v; applyTP() end)
+Options.tpY:OnChanged(function(v) _tpY = v; applyTP() end)
+Options.tpZ:OnChanged(function(v) _tpZ = v; applyTP() end)
+
 --========================================================
--- Crown FPS Panel (draggable) + CPU/GPU frame-time + rainbow underline
+-- Crown FPS Panel (draggable) + CPU/GPU approx + rainbow underline
 --========================================================
 local CrownPanel = Instance.new("Frame")
 CrownPanel.Name="CrownFPS"; CrownPanel.AnchorPoint=Vector2.new(0.5,0); CrownPanel.Position=UDim2.new(0.5,0,0,8)
-CrownPanel.Size=UDim2.fromOffset(260, 34); CrownPanel.BackgroundColor3=Color3.fromRGB(234,198,76) -- crown gold
+CrownPanel.Size=UDim2.fromOffset(260, 34); CrownPanel.BackgroundColor3=Color3.fromRGB(234,198,76)
 CrownPanel.Parent=Overlay; makeCorner(CrownPanel,8); makeStroke(CrownPanel,1,.15); pad(CrownPanel,6)
 
 local CrownText = Instance.new("TextLabel")
@@ -258,7 +446,7 @@ CrownText.BackgroundTransparency=1; CrownText.Font=Enum.Font.GothamBold; CrownTe
 CrownText.TextXAlignment=Enum.TextXAlignment.Center; CrownText.Size=UDim2.new(1,-12,1,-12); CrownText.Position=UDim2.fromOffset(6,0); CrownText.Parent=CrownPanel
 CrownText.Text = "FPS: --  |  CPU: -- ms  |  GPU: -- ms  |  Ping: --"
 
--- Rainbow bar (alt)
+-- Rainbow bar
 local RainbowBar = Instance.new("Frame"); RainbowBar.BorderSizePixel=0; RainbowBar.AnchorPoint=Vector2.new(0.5,1)
 RainbowBar.Position=UDim2.new(0.5,0,1,0); RainbowBar.Size=UDim2.new(1,-8,0,3); RainbowBar.Parent=CrownPanel; makeCorner(RainbowBar,2)
 local grad = Instance.new("UIGradient"); grad.Rotation=0
@@ -288,27 +476,16 @@ do
   end)
 end
 
--- 60 FPS UI Scheduler + CPU/GPU approx
-local acc = 0; local hbDtAvg=0; local rsDtAvg=0; local hbA=0; local rsA=0
-RunService.Heartbeat:Connect(function(dt) hbA += 1; hbDtAvg = hbDtAvg + (dt - hbDtAvg)/hbA end) -- CPU-ish (simulation/physics)
-RunService.RenderStepped:Connect(function(dt)
-  rsA += 1; rsDtAvg = rsDtAvg + (dt - rsDtAvg)/rsA          -- GPU-ish (render)
-  acc += dt
-  while acc >= (1/60) do                                      -- 60 FPS limit (UI updates)
-    acc -= (1/60)
-    -- Update text her ~0.5s
-  end
-end)
-
--- Text/ping 0.5s’de bir; panel genişliği auto-fit
+-- CPU/GPU approx + update
+local hbDtAvg, rsDtAvg, hbA, rsA = 0,0,0,0
+RunService.Heartbeat:Connect(function(dt) hbA += 1; hbDtAvg = hbDtAvg + (dt - hbDtAvg)/hbA end)
 local halfA, frameCount = 0, 0
 RunService.RenderStepped:Connect(function(dt)
-  frameCount += 1; halfA += dt
-  -- rainbow akışı da 60fps ile akar
+  rsA += 1; rsDtAvg = rsDtAvg + (dt - rsDtAvg)/rsA
   grad.Offset = Vector2.new(math.sin(os.clock()*0.8)*0.25, 0)
+  halfA += dt; frameCount += 1
   if halfA >= 0.5 then
-    halfA = 0
-    local fps = round(frameCount/0.5,0); frameCount=0
+    local fps = round(frameCount/0.5,0); frameCount=0; halfA=0
     local ping="?"
     pcall(function()
       local item = Stats.Network.ServerStatsItem["Data Ping"]; if item then ping = tostring(item:GetValueString()):gsub(" RTT","") end
@@ -318,17 +495,23 @@ RunService.RenderStepped:Connect(function(dt)
     CrownText.Text = ("FPS: %s  |  CPU: %s ms  |  GPU: %s ms  |  Ping: %s"):format(fps, cpuMs, gpuMs, ping)
     local need = CrownText.TextBounds.X + 40
     CrownPanel.Size = UDim2.fromOffset(math.clamp(need, 240, 560), 34)
-    RainbowBar.Size = UDim2.new(1,-8,0,3)
   end
 end)
 
---========================
--- Crosshair (HUD kozmetik)
---========================
+-- HUD toggles (UI tarafı + köprü)
+Controls.Toggle(sHUDL, "Show Crown Panel", false, function(on)
+    CrownPanel.Visible = on
+    safeCall("ToggleHUDPanel", on)
+end)
+Controls.Toggle(sHUDR, "Crosshair ON/OFF", false, function(on)
+    safeCall("ToggleCrosshair", on)
+end)
+
+-- Basit crosshair (UI kozmetik; default kapalı, köprü üstünden açılabilir)
 local Crosshair = Instance.new("Frame")
 Crosshair.Name="Crosshair"; Crosshair.AnchorPoint=Vector2.new(0.5,0.5); Crosshair.Position=UDim2.fromScale(0.5,0.5)
 Crosshair.Size=UDim2.fromOffset(2,2); Crosshair.BackgroundTransparency=1; Crosshair.Parent=Overlay
-local CrosshairCfg = { Enabled=true, Gap=6, Length=8, Thickness=2, Opacity=1, Color=CurrentTheme.Accent }
+local CrosshairCfg = { Enabled=false, Gap=6, Length=8, Thickness=2, Opacity=1, Color=CurrentTheme.Accent }
 local arms={} for i=1,4 do local a=Instance.new("Frame"); a.BorderSizePixel=0; a.Parent=Crosshair; arms[i]=a end
 local function layoutCrosshair()
   for _,a in ipairs(arms) do a.BackgroundTransparency=1-CrosshairCfg.Opacity; a.BackgroundColor3=CrosshairCfg.Color end
@@ -340,161 +523,27 @@ local function layoutCrosshair()
 end
 layoutCrosshair()
 
-local function keycodeName(kc)
-btn.Position = UDim2.new(1,-130,0.5,-12)
-btn.Parent = row
-makeCorner(btn,6); makeStroke(btn,1,.2)
-
-
-local listening = false
-local current = defaultKeyCode or Enum.KeyCode.LeftShift
-
-
-btn.MouseButton1Click:Connect(function()
-listening = true
-btn.Text = "Press..."
-end)
-
-
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
-if not listening or gp then return end
-if input.KeyCode ~= Enum.KeyCode.Unknown then
-listening = false
-current = input.KeyCode
-btn.Text = keycodeName(current)
-if onChanged then onChanged(current) end
-end
-end)
-
-
-return {
-Get = function() return current end,
-Set = function(kc) current = kc or current; btn.Text = keycodeName(current); if onChanged then onChanged(current) end end
-}
-end
-
-
-local function debounced(wait, fn)
-local token = 0
-return function(...)
-token = token + 1
-local my = token
-local args = {...}
-task.delay(wait, function()
-if my == token then fn(table.unpack(args)) end
-end)
-end
-end
-
--- === Combat
-addToggle(sCombatL, "aimbot",           "🎯 Aimbot",           "ToggleAimbot")
-addToggle(sCombatL, "headshotRedirect", "Force Headshot",          "ToggleHeadshotRedirect")
-addToggle(sCombatR, "killAura",         "☠️ Kill Aura",            "ToggleKillAura")
-addToggle(sCombatR, "fireRate",         "Hard Fire Rate",          "ToggleFireRate")
-
--- === Visuals
-addToggle(sVisualsL, "esp",        "Enable ESP",            "ToggleESP")
-addToggle(sVisualsL, "enemyBigHB", "🎯 Enemy Big Hitbox",   "ToggleEnemyBigHitbox")
-
--- === Movement
-addToggle(sMoveL, "speed",   "Speed Boost (50)", "ToggleSpeed")
-addToggle(sMoveL, "fly",     "Fly (LCtrl down)", "ToggleFly")
-addToggle(sMoveR, "infjump", "Infinite Jump",    "ToggleInfiniteJump")
-addToggle(sMoveR, "noclip",  "NoClip",           "ToggleNoclip")
-
--- === Protection / Player
-addToggle(sMoveR, "godmode",   "💀 Godmode",      "ToggleGodmode")
-addToggle(sMoveR, "hardInvis", "👻 Hard Invisible","ToggleHardInvisible")
-
--- === Utility / TP
-addToggle(sUtilL, "tpkey",      "Teleport (T Key)",        "ToggleTeleport")
-addToggle(sUtilL, "autoBehind", "⚡ Always Behind Enemy",   "ToggleAutoBehind")
-addToggle(sUtilL, "autoTP",     "⚡ Auto Farm Enemy",       "ToggleAutoTeleportToEnemy")
-
--- Slider’lar: s_tp* istedigin gibi autoTP’nin SAĞINDA (aynı sayfada, alt blokta)
-addSlider(sUtilR, "tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=0})
-addSlider(sUtilR, "tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=0})
-addSlider(sUtilR, "tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=0})
-
--- features.SetTeleportOffset ile eşitle (Options.tpX/…:OnChanged)
-local toggleDefs = {
-{sCombatL, "Enable Aimbot", "ToggleAimbot"},
-{sCombatL, "Force Headshot", "ToggleHeadshotRedirect"},
-{sCombatR, "☠️ Kill Aura", "ToggleKillAura"},
-{sCombatR, "Hard Fire Rate", "ToggleFireRate"},
-{sVisualsL, "Enable ESP", "ToggleESP"},
-{sVisualsL, "🎯 Enemy Big Hitbox", "ToggleEnemyBigHitbox"},
-{sMoveL, "Speed Boost (50)", "ToggleSpeed"},
-{sMoveL, "Fly (LCtrl down)", "ToggleFly"},
-{sMoveR, "Infinite Jump", "ToggleInfiniteJump"},
-{sMoveR, "NoClip", "ToggleNoclip"},
-{sMoveR, "💀 Godmode", "ToggleGodmode"},
-{sMoveR, "👻 Hard Invisible", "ToggleHardInvisible"},
-{sUtilL, "Teleport (T Key)", "ToggleTeleport"},
-{sUtilL, "⚡ Always Behind Enemy", "ToggleAutoBehind"},
-{sUtilL, "⚡ Auto Farm Enemy", "ToggleAutoTeleportToEnemy"},
-{sHUDL, "Show Crown Panel", "ToggleHUDPanel"},
-{sHUDR, "Crosshair ON/OFF", "ToggleCrosshair"},
-}
-
--- === HUD toggles (örnek)
-for _, d in ipairs(toggleDefs) do
-bindToggle(d[1], d[2], d[3])
-end
-
-
-addSlider(sUtilR, "tpX", {Text = "X Offset", Min = -50, Max = 50, Default = 0, Rounding = 0})
-addSlider(sUtilR, "tpY", {Text = "Y Offset", Min = -50, Max = 50, Default = 0, Rounding = 0})
-addSlider(sUtilR, "tpZ", {Text = "Z Offset", Min = 1, Max = 100, Default = 25, Rounding = 0})
-
-
-local _tpX, _tpY, _tpZ = 0, 0, 25
-local applyTP = debounced(0.08, function()
-safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ)
-if features then features._tpX = _tpX; features._tpY = _tpY; features._tpZ = _tpZ end
-end)
-
-
-Options.tpX:OnChanged(function(v) _tpX = v; applyTP() end)
-Options.tpY:OnChanged(function(v) _tpY = v; applyTP() end)
-Options.tpZ:OnChanged(function(v) _tpZ = v; applyTP() end)
-
-
+-- Settings: Menu keybind + info
 local defaultKey = (State and State.GlobalToggleKey) or Enum.KeyCode.LeftShift
 Controls.Keybind(sSetL, "Menu Toggle Key", defaultKey, function(kc)
-if State then State.GlobalToggleKey = kc end
+    if State then State.GlobalToggleKey = kc end
+    notify("Menu toggle key → "..kc.Name)
 end)
-
-
--- Settings: Keybind for global menu toggle
-local currentKey = Enum.KeyCode.LeftShift
-Controls.Toggle(sSetL, "Change Menu Keybind", false, function()
-notify("Press a key to set as new menu toggle")
-local conn
-conn = UserInputService.InputBegan:Connect(function(input, gp)
-if not gp then
-currentKey = input.KeyCode
-notify("Menu toggle key set to: "..tostring(currentKey))
-conn:Disconnect()
-end
-end)
-end)
-
-
-
--- Settings
 local info=Instance.new("TextLabel"); info.BackgroundTransparency=1; info.Font=Enum.Font.Gotham; info.TextSize=12; info.TextColor3=CurrentTheme.SubText
-info.Text="60 FPS"; info.Size=UDim2.new(1,0,0,16); info.Parent=sSetL
+info.Text="UI update cadence ~60 FPS | FX aktif"; info.Size=UDim2.new(1,0,0,16); info.Parent=sSetL
 
--- Global key
+-- Global key toggle
 UserInputService.InputBegan:Connect(function(input, gp)
-if gp then return end
-if input.KeyCode == currentKey then
-if Window then
-Window.Visible = not Window.Visible
-notify(Window.Visible and "Menü gösterildi." or "Menü gizlendi.")
-end
-end
+    if gp then return end
+    if input.KeyCode == State.GlobalToggleKey then
+        Window.Visible = not Window.Visible
+        notify(Window.Visible and "Menü gösterildi." or "Menü gizlendi.")
+    end
 end)
 
-notify("MYLF Hub Premium Menu", 3.0)
+-- Sidebar tab bind (en sonda kalsın)
+local function bindTab(button, name) button.MouseButton1Click:Connect(function() showPage(name) end) end
+bindTab(tCombat,"Combat"); bindTab(tVisuals,"Visuals"); bindTab(tMovement,"Movement")
+bindTab(tUtility,"Utility / TP"); bindTab(tHUD,"HUD"); bindTab(tSettings,"Settings")
+
+notify("MYLF Hub Premium Menu (FX)", 3.0)
