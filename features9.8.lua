@@ -23,7 +23,7 @@ features.AimUseFOV       = false    -- true: FOV (açı) sınırı uygular
 features.AimMaxAngleDeg  = 360      -- AimUseFOV=true iken
 features.AimMaxDistance  = 1800     -- ~500 metre (1 stud ≈ 0.28 m → 500m ≈ 1800 stud)
 
-features.TriggerOnAim    = true     -- hedefteyken otomatik ateş
+features.TriggerOnAim    = false     -- hedefteyken otomatik ateş
 features.TriggerRate     = 0.12     -- tetikler arası min süre
 features._lastTrigger    = 0
 
@@ -1652,7 +1652,7 @@ local hitParts = {
     "Head","UpperTorso","LowerTorso","HumanoidRootPart",
     "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
 }
-local bigSize = Vector3.new(50,50,50) -- devasa hitbox
+local bigSize = Vector3.new(15,15,15) -- devasa hitbox
 features._bigHBConn = nil
 
 function features.ToggleEnemyBigHitbox(on)
@@ -1667,7 +1667,7 @@ function features.ToggleEnemyBigHitbox(on)
                         if part and part:IsA("BasePart") then
                             part.Size = bigSize
                             part.CanCollide = false
-                            part.Transparency = 0
+                            part.Transparency = 100
                         end
                     end
                 end
@@ -1700,6 +1700,61 @@ function features.ToggleEnemyBigHitbox(on)
         print("🎯 Enemy Big Hitbox: OFF ❌")
     end
 end
+
+local hitParts = {
+    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
+    "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
+}
+local tinySize = Vector3.new(0.001,0.001,0.001) -- neredeyse görünmez hitbox
+features._myTinyHBConn = nil
+
+function features.Togglemyhitbox(on)
+    if on then
+        if features._myTinyHBConn then features._myTinyHBConn:Disconnect() end
+        features._myTinyHBConn = RunService.Heartbeat:Connect(function()
+            local char = Player.Character
+            if char then
+                for _, partName in ipairs(hitParts) do
+                    local part = char:FindFirstChild(partName)
+                    if part and part:IsA("BasePart") then
+                        part.Size = tinySize
+                        part.CanCollide = false
+                        part.Massless = true
+                        part.Transparency = part.Transparency -- görünmez yapmaz, sadece hitbox küçültür
+                    end
+                end
+            end
+        end)
+
+        -- Hook → anti-cheat tekrar eski boyut yaparsa engelle
+        if not features._myHBHooked then
+            local mt = getrawmetatable(game)
+            local oldNewIndex = mt.__newindex
+            setreadonly(mt, false)
+            mt.__newindex = newcclosure(function(self, key, val)
+                if tostring(key):lower() == "size" and self:IsA("BasePart") then
+                    local char = self.Parent
+                    if char and char == Player.Character then
+                        -- ❌ benim hitbox’ımı büyütmeye çalışma → block
+                        return
+                    end
+                end
+                return oldNewIndex(self, key, val)
+            end)
+            setreadonly(mt, true)
+            features._myHBHooked = true
+        end
+
+        print("⚡ My Tiny Hitbox: ON ✅")
+    else
+        if features._myTinyHBConn then 
+            features._myTinyHBConn:Disconnect()
+            features._myTinyHBConn=nil 
+        end
+        print("⚡ My Tiny Hitbox: OFF ❌")
+    end
+end
+
 
 
 return features
