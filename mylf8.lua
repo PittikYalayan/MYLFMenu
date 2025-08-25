@@ -21,7 +21,7 @@ local ALLOW = {
     ToggleCrosshair   = true,
 
     ToggleAimbot             = true,
-    ToggleHeadshotRedirect   = true,
+    ToggleSilentAim          = true,
     ToggleKillAura           = true,
     ToggleFireRate           = true,
     ToggleESP                = true,
@@ -310,26 +310,26 @@ end
 
 -- === Combat
 addToggle(sCombatL, "Enable Aimbot",         "ToggleAimbot")
-addToggle(sCombatL, "Force Headshot",        "ToggleHeadshotRedirect")
-addToggle(sCombatR, "☠️ Kill Aura",          "ToggleKillAura")
+addToggle(sCombatL, "Silent Aim",        "ToggleSilentAim")
+addToggle(sCombatR, "Kill Aura",          "ToggleKillAura")
 addToggle(sCombatR, "Hard Fire Rate",        "ToggleFireRate")
 
 -- === Visuals
 addToggle(sVisualsL, "Enable ESP",           "ToggleESP")
-addToggle(sVisualsL, "🎯 Enemy Big Hitbox",  "ToggleEnemyBigHitbox")
+addToggle(sVisualsL, "Enemy Big Hitbox",  "ToggleEnemyBigHitbox")
 
 -- === Movement
 addToggle(sMoveL, "Speed Boost (50)",        "ToggleSpeed")
-addToggle(sMoveL, "Fly (LCtrl down)",        "ToggleFly")
+addToggle(sMoveL, "Fly",        "ToggleFly")
 addToggle(sMoveR, "Infinite Jump",           "ToggleInfiniteJump")
 addToggle(sMoveR, "NoClip",                  "ToggleNoclip")
-addToggle(sMoveR, "💀 Godmode",              "ToggleGodmode")
-addToggle(sMoveR, "👻 Hard Invisible",       "ToggleHardInvisible")
+addToggle(sMoveR, "Godmode",              "ToggleGodmode")
+addToggle(sMoveR, "Hard Invisible",       "ToggleHardInvisible")
 
 -- === Utility / TP
 addToggle(sUtilL, "Teleport (T Key)",        "ToggleTeleport")
-addToggle(sUtilL, "⚡ Always Behind Enemy",  "ToggleAutoBehind")
-addToggle(sUtilL, "⚡ Auto Farm Enemy",      "ToggleAutoTeleportToEnemy")
+addToggle(sUtilL, "Always Behind Enemy",  "ToggleAutoBehind")
+addToggle(sUtilL, "Auto Farm Enemy",      "ToggleAutoTeleportToEnemy")
 
 -- === TP Offsets
 addSlider(sUtilR, "tpX", {Text="X Offset", Min=-50, Max=50, Default=0,  Rounding=0})
