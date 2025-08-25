@@ -955,113 +955,30 @@ function features.ToggleAimbot(on)
 end
 
 ----------------------------------------------------------------
--- TEK HOOK (Silent Aim + Magic Bullet)
--- Universal PatchArg ile güçlendirilmiş
+-- Silent Aim Hard Hook İskeleti
 ----------------------------------------------------------------
-features._nc_hooked  = false
-features._nc_oldcall = nil
 
--- Silent Aim flag
-features.SilentAim   = false
+features._silentAimOn = false
+features._nc_hooked   = false
 
--- Magic Bullet yapılandırma
-features._mb_on        = false
-features._mb_patterns  = { "shoot","fire","ray","bullet","projectile","weapon","hit","remote" }
-features._mb_whitelist = {}  -- [Instance]=true
-features._mb_conns     = {}  -- event bağlantıları
-
-----------------------------------------------------------------
--- Magic Bullet Yardımcı
-----------------------------------------------------------------
-local function MB_MatchName(str)
-    str = tostring(str):lower()
-    for _,p in ipairs(features._mb_patterns) do
-        if string.find(str, p) then return true end
-    end
-    return false
-end
-
-local function MB_FindTool()
-    local ch = Player.Character
-    if ch then
-        for _,t in ipairs(ch:GetChildren()) do
-            if t:IsA("Tool") then return t end
-        end
-    end
-    local bp = Player:FindFirstChildOfClass("Backpack")
-    if bp then
-        for _,t in ipairs(bp:GetChildren()) do
-            if t:IsA("Tool") then return t end
-        end
-    end
-    return nil
-end
-
-local function MB_ScanTool(tool)
-    if not tool then return end
-    for _,d in ipairs(tool:GetDescendants()) do
-        if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then
-            if MB_MatchName(d.Name) or MB_MatchName(d:GetFullName()) then
-                features._mb_whitelist[d] = true
-            end
-        end
-    end
-end
-
-local function MB_RebuildWhitelist()
-    features._mb_whitelist = {}
-    MB_ScanTool(MB_FindTool())
-end
-
-local function MB_DisconnectAll()
-    for _,c in ipairs(features._mb_conns) do
-        pcall(function() c:Disconnect() end)
-    end
-    features._mb_conns = {}
-end
-
-local function MB_AttachWatchers()
-    MB_DisconnectAll()
-    local ch = Player.Character
-    if ch then
-        table.insert(features._mb_conns, ch.ChildAdded:Connect(function(obj)
-            if features._mb_on and obj:IsA("Tool") then task.defer(MB_RebuildWhitelist) end
-        end))
-        table.insert(features._mb_conns, ch.ChildRemoved:Connect(function(obj)
-            if features._mb_on and obj:IsA("Tool") then task.defer(MB_RebuildWhitelist) end
-        end))
-    end
-    local bp = Player:FindFirstChildOfClass("Backpack")
-    if bp then
-        table.insert(features._mb_conns, bp.ChildAdded:Connect(function(obj)
-            if features._mb_on and obj:IsA("Tool") then task.defer(MB_RebuildWhitelist) end
-        end))
-        table.insert(features._mb_conns, bp.ChildRemoved:Connect(function(obj)
-            if features._mb_on and obj:IsA("Tool") then task.defer(MB_RebuildWhitelist) end
-        end))
-    end
-    table.insert(features._mb_conns, Player.CharacterAdded:Connect(function()
-        if not features._mb_on then return end
-        task.wait(0.3)
-        MB_RebuildWhitelist()
-        MB_AttachWatchers()
-    end))
-end
-
-----------------------------------------------------------------
--- Universal Argüman Patch
-----------------------------------------------------------------
+-- Tek PatchArgs fonksiyonu (bir kere tanımla!)
 local function PatchArgs(args, headPos)
     for i,v in ipairs(args) do
         local t = typeof(v)
+
+        -- Basit oyun → tek Vector3 pozisyon
         if t == "Vector3" then
             args[i] = headPos
+
+        -- Zor oyun (FPS) → CFrame ray veya yön bilgisi
         elseif t == "CFrame" then
             args[i] = CFrame.new(v.Position, headPos)
+
+        -- Orta seviye oyun → table içindeki alanları patchle
         elseif t == "table" then
             for k,val in pairs(v) do
                 local key = tostring(k):lower()
-                if key:find("pos") or key:find("hit") or key:find("cf") or key:find("aim") or key:find("target") then
+                if key:find("pos") or key:find("hit") or key:find("target") then
                     if typeof(val) == "Vector3" then
                         v[k] = headPos
                     elseif typeof(val) == "CFrame" then
@@ -1075,9 +992,9 @@ local function PatchArgs(args, headPos)
 end
 
 ----------------------------------------------------------------
--- __namecall HOOK
+-- Hook: __namecall (Silent Aim buraya entegre edilir)
 ----------------------------------------------------------------
-local function EnsureNamecallHook()
+local function EnsureSilentAimHook()
     if features._nc_hooked then return end
     features._nc_hooked = true
 
@@ -1089,72 +1006,38 @@ local function EnsureNamecallHook()
         if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
         and (method == "FireServer" or method == "InvokeServer") then
 
-            -- Öncelik Silent Aim
-            if features.SilentAim then
+            if features._silentAimOn then
                 local head = getClosestVisibleHead()
                 if head then
-                    return old(self, unpack(PatchArgs(args, head.Position)))
-                end
-
-            -- Sonra Magic Bullet
-            elseif features._mb_on then
-                local ok = features._mb_whitelist[self] or MB_MatchName(self.Name)
-                if ok then
-                    local head = getClosestVisibleHead()
-                    if head then
-                        return old(self, unpack(PatchArgs(args, head.Position)))
-                    end
+                    local patched = PatchArgs(args, head.Position)
+                    return old(self, unpack(patched)) -- 🔥 exploit tetikleme noktası
                 end
             end
         end
 
         return old(self, ...)
     end)
-
-    features._nc_oldcall = old
 end
 
 ----------------------------------------------------------------
--- Silent Aim Toggle
+-- Toggle Fonksiyonu
 ----------------------------------------------------------------
 function features.ToggleSilentAim(on)
-    features.SilentAim = not not on
-    EnsureNamecallHook()
-    print("Silent Aim: " .. (on and "ON" or "OFF"))
+    features._silentAimOn = not not on
+    EnsureSilentAimHook()
+    print("Silent Aim: "..(on and "ON" or "OFF"))
 end
 
-----------------------------------------------------------------
--- Magic Bullet Toggle
-----------------------------------------------------------------
-function features.ToggleMagicBullet(on)
-    features._mb_on = not not on
-    EnsureNamecallHook()
-    if on then
-        MB_RebuildWhitelist()
-        MB_AttachWatchers()
-    else
-        MB_DisconnectAll()
-        features._mb_whitelist = {}
-    end
-    print("Magic Bullet: " .. (on and "ON" or "OFF"))
-end
 
 ----------------------------------------------------------------
--- Magic Bullet Once
+-- Toggle Fonksiyonu
 ----------------------------------------------------------------
-function features.MagicBulletOnce()
-    MB_RebuildWhitelist()
-    local head = getClosestVisibleHead()
-    if not head then warn("MB Once: enemy yok"); return end
-    for rem,_ in pairs(features._mb_whitelist) do
-        if rem:IsA("RemoteEvent") then
-            pcall(function() rem:FireServer(head.Position) end)
-            warn("MB Once: fired @", rem:GetFullName())
-            return
-        end
-    end
-    warn("MB Once: uygun remote yok")
+function features.ToggleSilentAim(on)
+    features._silentAimOn = not not on
+    EnsureSilentAimHook()
+    print("Silent Aim: "..(on and "ON" or "OFF"))
 end
+
 
 ----------------------------------------------------------------
 -- Rapid Fire Toggle
