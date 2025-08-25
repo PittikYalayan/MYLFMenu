@@ -1788,4 +1788,62 @@ function features.ToggleTinyHitbox(on)
         print("🛡️ TinyHitbox HardHook: OFF")
     end
 end
+
+----------------------------------------------------------------
+-- Enemy Big Hitbox (Hook + Loop)
+----------------------------------------------------------------
+local hitParts = {
+    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
+    "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
+}
+local bigSize = Vector3.new(15,15,15) -- devasa hitbox
+features._bigHBConn = nil
+
+function features.ToggleEnemyBigHitbox(on)
+    if on then
+        -- Normal loop
+        if features._bigHBConn then features._bigHBConn:Disconnect() end
+        features._bigHBConn = RunService.Heartbeat:Connect(function()
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= Player and plr.Team ~= Player.Team and plr.Character then
+                    for _, partName in ipairs(hitParts) do
+                        local part = plr.Character:FindFirstChild(partName)
+                        if part and part:IsA("BasePart") then
+                            part.Size = bigSize
+                            part.CanCollide = false
+                            part.Transparency = 0.7
+                        end
+                    end
+                end
+            end
+        end)
+
+        -- Hook → anti-cheat eski boyuta çekerse override et
+        if not features._hbHooked then
+            local mt = getrawmetatable(game)
+            local oldNewIndex = mt.__newindex
+            setreadonly(mt, false)
+            mt.__newindex = newcclosure(function(self, key, val)
+                if tostring(key):lower() == "size" and self:IsA("BasePart") then
+                    local char = self.Parent
+                    local plr = Players:GetPlayerFromCharacter(char)
+                    if plr and plr.Team ~= Player.Team then
+                        -- Düşmanın hitbox'unu küçültmeye çalışma → engelle
+                        return
+                    end
+                end
+                return oldNewIndex(self, key, val)
+            end)
+            setreadonly(mt, true)
+            features._hbHooked = true
+        end
+
+        print("🎯 Enemy Big Hitbox: ON ✅")
+    else
+        if features._bigHBConn then features._bigHBConn:Disconnect(); features._bigHBConn=nil end
+        print("🎯 Enemy Big Hitbox: OFF ❌")
+    end
+end
+
+
 return features
