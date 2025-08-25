@@ -84,7 +84,6 @@ do
     local g = Tabs.World:AddLeftGroupbox("MultiHook")
     bindToggle(g, "multiHook", "🔒 AntiCheat Multi-Hook", features.ToggleMultiHook)
     bindToggle(g, "multiHook", "⚡ Multi-Hook Silent Aim", features.ToggleMultiHook)
-    bindToggle(visualsGroup, "miniHB", "⚡ Mini Hitbox", features.ToggleMiniHitbox)
     bindToggle(g, "tinyHitbox", "🛡️ Tiny Hitbox (Hard)", features.ToggleTinyHitbox)
 
     
