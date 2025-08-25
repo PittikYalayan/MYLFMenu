@@ -198,7 +198,11 @@ local sSetR     = newSection(pSettings, "About")
 --========================================================
 local FeatureBridge = {}
 function FeatureBridge.Invoke(name, ...)
-  local ok, ftab = pcall(function() return getgenv and getgenv().features or _G.features or rawget(_G,"features") end)
+  local features = nil
+do
+    local ok, mod = pcall(function() return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()end)
+    features = ok and mod or {}
+end
   local feat = ok and ftab or nil
   local fn = feat and feat[name]
   if type(fn)=="function" then
@@ -305,23 +309,25 @@ local function layoutCrosshair()
 end
 layoutCrosshair()
 
---========================
--- Toggle/Slider API bağlama (tam senin istediğin isimlerle)
---========================
-local Options, _listeners = {}, {}
-local function addSlider(where, key, cfg, onChanged)
-  local fmt=(cfg.Rounding and cfg.Rounding>0) and ("%."..tostring(cfg.Rounding).."f") or "%d"
-  local sl=Controls.Slider(where, cfg.Text or key, cfg.Min or 0, cfg.Max or 100, cfg.Default or 0, fmt, function(v)
-    if onChanged then onChanged(v) end
-    local L=_listeners[key]; if L then for _,fn in ipairs(L) do pcall(fn,v) end end
-  end)
-  Options[key]={Get=function() return sl.Get() end, Set=function(v) sl.Set(v) end,
-    OnChanged=function(fn) _listeners[key]=_listeners[key] or {}; table.insert(_listeners[key], fn) end}
+-- === Toggle helper (çağrı ŞEKLİ birebir korunuyor) ===
+local function bindToggle(section, key, title, featureFnName)
+    Controls.Toggle(section, title, false, function(on)
+        safeCall(featureFnName, on)   -- biçim: features.FeatureFn(on) — ama sadece izinliler koşar
+    end)
 end
-local function addToggle(where, key, title, featureFnName)
-  Controls.Toggle(where, title, false, function(on)
-    FeatureBridge.Invoke(featureFnName, on)  -- UI → features.<featureFnName>(on)
-  end)
+-- === Slider helper (tpX/Y/Z) ===
+local Options, _listeners = {}, {}
+local function addSlider(section, key, cfg)
+    local fmt = (cfg.Rounding and cfg.Rounding>0) and ("%."..tostring(cfg.Rounding).."f") or "%d"
+    local sl = Controls.Slider(section, cfg.Text or key, cfg.Min or 0, cfg.Max or 100, cfg.Default or 0, fmt, function(v)
+        if _listeners[key] then for _,fn in ipairs(_listeners[key]) do pcall(fn, v) end end
+    end)
+    Options[key] = {
+        Get=function() return sl.Get() end,
+        Set=function(v) sl.Set(v) end,
+        OnChanged=function(fn) _listeners[key] = _listeners[key] or {}; table.insert(_listeners[key], fn) end
+    }
+    return Options[key]
 end
 
 -- === Combat
@@ -350,37 +356,67 @@ addToggle(sUtilL, "autoBehind", "⚡ Always Behind Enemy",   "ToggleAutoBehind")
 addToggle(sUtilL, "autoTP",     "⚡ Auto Farm Enemy",       "ToggleAutoTeleportToEnemy")
 
 -- Slider’lar: s_tp* istedigin gibi autoTP’nin SAĞINDA (aynı sayfada, alt blokta)
-addSlider(sUtilR, "tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=0},   nil)
-addSlider(sUtilR, "tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=0},   nil)
-addSlider(sUtilR, "tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=0},   nil)
+addSlider(sUtilR, "tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=0})
+addSlider(sUtilR, "tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=0})
+addSlider(sUtilR, "tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=0})
 
 -- features.SetTeleportOffset ile eşitle (Options.tpX/…:OnChanged)
-Options.tpX:OnChanged(function(val)
-  local x=val; local y=(getgenv().features and getgenv().features._tpY) or 0
-  local z=(getgenv().features and getgenv().features._tpZ) or 25
-  -- kullanıcıdaki features’a offset’i ilet
-  if getgenv().features then getgenv().features._tpX=x end
-  FeatureBridge.Invoke("SetTeleportOffset", x, y, z)
-end)
-Options.tpY:OnChanged(function(val)
-  local x=(getgenv().features and getgenv().features._tpX) or 0
-  local y=val
-  local z=(getgenv().features and getgenv().features._tpZ) or 25
-  if getgenv().features then getgenv().features._tpY=y end
-  FeatureBridge.Invoke("SetTeleportOffset", x, y, z)
-end)
-Options.tpZ:OnChanged(function(val)
-  local x=(getgenv().features and getgenv().features._tpX) or 0
-  local y=(getgenv().features and getgenv().features._tpY) or 0
-  local z=val
-  if getgenv().features then getgenv().features._tpZ=z end
-  FeatureBridge.Invoke("SetTeleportOffset", x, y, z)
-end)
+
 
 -- === HUD toggles (örnek)
+local _tpX, _tpY, _tpZ = 0, 0, 25
+Options.tpX:OnChanged(function(v) _tpX=v; safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ); if features then features._tpX=_tpX end end)
+Options.tpY:OnChanged(function(v) _tpY=v; safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ); if features then features._tpY=_tpY end end)
+Options.tpZ:OnChanged(function(v) _tpZ=v; safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ); if features then features._tpZ=_tpZ end end)
+
 Controls.Toggle(sHUDL, "Show Crown Panel", true, function(on) CrownPanel.Visible=on end)
 Controls.Toggle(sHUDR, "Crosshair ON/OFF", true, function(on) CrosshairCfg.Enabled=on; layoutCrosshair() end)
 Controls.Slider(sHUDR, "Crosshair Opacity", 0,1, CrosshairCfg.Opacity, "%.2f", function(v) CrosshairCfg.Opacity=v; layoutCrosshair() end)
+Controls.Toggle(sCombatL, "🎯 Aimbot", false, function(on)
+    if features.ToggleAimbot then features.ToggleAimbot(on) end
+end)
+Controls.Toggle(sCombatL, "Force Headshot", false, function(on)
+    if features.ToggleHeadshotRedirect then features.ToggleHeadshotRedirect(on) end
+        end)
+Controls.Toggle(sCombatL, "☠️ Kill Aura", false, function(on)
+    if features.ToggleAimbot then features.ToggleKillAura(on) end
+end)
+Controls.Toggle(sCombatL, "Hard Fire Rate", false, function(on)
+    if features.ToggleAimbot then features.ToggleFireRate(on) end
+end)
+Controls.Toggle(sCombatL, "Enable ESP", false, function(on)
+    if features.ToggleAimbot then features.ToggleESP(on) end
+end)
+Controls.Toggle(sCombatL, "🎯 Enemy Big Hitbox", false, function(on)
+    if features.ToggleAimbot then features.ToggleEnemyBigHitbox(on) end
+end)
+Controls.Toggle(sCombatL, "Speed Boost (50)", false, function(on)
+    if features.ToggleAimbot then features.ToggleSpeed(on) end
+end)
+Controls.Toggle(sCombatL, "Fly (LCtrl down)", false, function(on)
+    if features.ToggleAimbot then features.ToggleFly(on) end
+end)
+Controls.Toggle(sCombatL, "Infinite Jump", false, function(on)
+    if features.ToggleAimbot then features.ToggleInfiniteJump(on) end
+end)
+Controls.Toggle(sCombatL, "NoClip", false, function(on)
+    if features.ToggleAimbot then features.ToggleNoclip(on) end
+end)
+Controls.Toggle(sCombatL, "💀 Godmode", false, function(on)
+    if features.ToggleAimbot then features.ToggleGodmode(on) end
+end)
+Controls.Toggle(sCombatL, "👻 Hard Invisible", false, function(on)
+    if features.ToggleAimbot then features.ToggleHardInvisible(on) end
+end)
+Controls.Toggle(sCombatL, "Teleport (T Key)", false, function(on)
+    if features.ToggleAimbot then features.ToggleTeleport(on) end
+end)
+Controls.Toggle(sCombatL, "⚡ Always Behind Enemy", false, function(on)
+    if features.ToggleAimbot then features.ToggleAutoBehind(on) end
+end)
+Controls.Toggle(sCombatL, "⚡ Auto Farm Enemy", false, function(on)
+    if features.ToggleAimbot then features.ToggleAutoTeleportToEnemy(on) end
+end)
 
 -- Settings
 local info=Instance.new("TextLabel"); info.BackgroundTransparency=1; info.Font=Enum.Font.Gotham; info.TextSize=12; info.TextColor3=CurrentTheme.SubText
