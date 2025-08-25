@@ -3,7 +3,7 @@
     - Hile/remote/hook YOK. Yalnızca UI köprüleri (features.* varsa çağrılır).
     - Aç/Kapa: LeftShift
 ]]
-
+local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))() --normali features2
 --// Services
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
