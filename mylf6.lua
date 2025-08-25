@@ -138,7 +138,7 @@ end
 -- TitleBar
 local TitleBar=Instance.new("Frame"); TitleBar.Size=UDim2.new(1,0,0,44); TitleBar.BackgroundColor3=CurrentTheme.Panel; TitleBar.Parent=Window
 makeCorner(TitleBar,10); makeStroke(TitleBar,1,.1)
-local Title=Instance.new("TextLabel"); Title.BackgroundTransparency=1; Title.Text="⚡ MYLF | Linoria+ (UI — Clean)"; Title.Font=Enum.Font.GothamBold; Title.TextSize=16
+local Title=Instance.new("TextLabel"); Title.BackgroundTransparency=1; Title.Text="⚡ MYLF | Hub Premium"; Title.Font=Enum.Font.GothamBold; Title.TextSize=16
 Title.TextColor3=CurrentTheme.Text; Title.TextXAlignment=Enum.TextXAlignment.Left; Title.Position=UDim2.new(0,14,0,0); Title.Size=UDim2.new(1,-160,1,0); Title.Parent=TitleBar
 
 -- Sidebar
@@ -470,4 +470,4 @@ local function bindTab(button, name) button.MouseButton1Click:Connect(function()
 bindTab(tCombat,"Combat"); bindTab(tVisuals,"Visuals"); bindTab(tMovement,"Movement")
 bindTab(tUtility,"Utility / TP"); bindTab(tHUD,"HUD"); bindTab(tSettings,"Settings")
 
-notify("MYLF Hub Premium Menu (Clean)", 3.0)
+notify("MYLF Hub Premium Menu", 3.0)
