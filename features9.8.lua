@@ -1701,49 +1701,59 @@ function features.ToggleEnemyBigHitbox(on)
     end
 end
 
-local hitParts = {
-    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
-    "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
-}
-local tinySize = Vector3.new(0.001,0.001,0.001) -- neredeyse görünmez hitbox
-features._myTinyHBConn = nil
+----------------------------------------------------------------
+-- My Tiny Hitbox (Only LocalPlayer)
+----------------------------------------------------------------
+features._myTinyHB_on = false
 
-function features.Togglemyhitbox(on)
-    if on then
-        if features._myTinyHBConn then features._myTinyHBConn:Disconnect() end
-        features._myTinyHBConn = RunService.Heartbeat:Connect(function()
-            local char = Player.Character
-            if char then
-                for _, partName in ipairs(hitParts) do
-                    local part = char:FindFirstChild(partName)
-                    if part and part:IsA("BasePart") then
-                        part.Size = tinySize
-                        part.CanCollide = false
-                        part.Massless = true
-                        part.Transparency = part.Transparency -- görünmez yapmaz, sadece hitbox küçültür
-                    end
-                end
+function features.ToggleMyTinyHitbox(on)
+    features._myTinyHB_on = on
+
+    local char = Player.Character
+    if char and on then
+        for _, partName in ipairs({
+            "Head","UpperTorso","LowerTorso","HumanoidRootPart",
+            "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
+        }) do
+            local part = char:FindFirstChild(partName)
+            if part and part:IsA("BasePart") then
+                part.Size = Vector3.new(0.001,0.001,0.001) -- neredeyse yok
+                part.CanCollide = false
+                part.Massless = true
+                part.Transparency = part.Transparency -- görünürlük korunur
             end
-        end)
-
-        -- Hook → anti-cheat tekrar eski boyut yaparsa engelle
-        if not features._myHBHooked then
-            local mt = getrawmetatable(game)
-            local oldNewIndex = mt.__newindex
-            setreadonly(mt, false)
-            mt.__newindex = newcclosure(function(self, key, val)
-                if tostring(key):lower() == "size" and self:IsA("BasePart") then
-                    local char = self.Parent
-                    if char and char == Player.Character then
-                        -- ❌ benim hitbox’ımı büyütmeye çalışma → block
-                        return
-                    end
-                end
-                return oldNewIndex(self, key, val)
-            end)
-            setreadonly(mt, true)
-            features._myHBHooked = true
         end
+        print("⚡ My Tiny Hitbox: Aktif (sadece senin karakterin)")
+    elseif char and not on then
+        -- resetleme (istenirse eski boyutlar restore edilir)
+        print("⚡ My Tiny Hitbox: Pasif")
+    end
+end
+
+----------------------------------------------------------------
+-- Hook: Anti-Cheat Hitbox Restore Patch (Sadece LocalPlayer)
+----------------------------------------------------------------
+if not features._myHBHooked then
+    local mt = getrawmetatable(game)
+    local oldNewIndex = mt.__newindex
+    setreadonly(mt,false)
+
+    mt.__newindex = newcclosure(function(self, key, val)
+        if features._myTinyHB_on and tostring(key):lower()=="size" and self:IsA("BasePart") then
+            local char = self.Parent
+            local plr  = Players:GetPlayerFromCharacter(char)
+            if plr and plr == Player then
+                -- Anti-cheat benim hitbox’u büyütmeye çalışırsa blockla
+                return
+            end
+        end
+        return oldNewIndex(self,key,val)
+    end)
+
+    setreadonly(mt,true)
+    features._myHBHooked = true
+end
+
 
         print("⚡ My Tiny Hitbox: ON ✅")
     else
