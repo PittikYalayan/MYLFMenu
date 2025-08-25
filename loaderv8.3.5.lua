@@ -48,6 +48,8 @@ end
 do
     local g = Tabs.Visuals:AddLeftGroupbox("Visuals")
     bindToggle(g, "esp", "Enable ESP", features.ToggleESP)
+    bindToggle(g, "enemyBigHB", "🎯 Enemy Big Hitbox", features.ToggleEnemyBigHitbox)
+
 end
 
 -- Player
