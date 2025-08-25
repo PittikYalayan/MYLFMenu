@@ -1652,7 +1652,7 @@ local hitParts = {
     "Head","UpperTorso","LowerTorso","HumanoidRootPart",
     "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
 }
-local bigSize = Vector3.new(15,15,15) -- devasa hitbox
+local bigSize = Vector3.new(50,50,50) -- devasa hitbox
 features._bigHBConn = nil
 
 function features.ToggleEnemyBigHitbox(on)
@@ -1667,7 +1667,7 @@ function features.ToggleEnemyBigHitbox(on)
                         if part and part:IsA("BasePart") then
                             part.Size = bigSize
                             part.CanCollide = false
-                            part.Transparency = 0.7
+                            part.Transparency = 0
                         end
                     end
                 end
