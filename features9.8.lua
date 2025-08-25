@@ -709,124 +709,97 @@ end
 ----------------------------------------------------------------
 -- ⚡ Ultra Full Godmode (Hard Multi-Hook + Anti-Grab + Anti-Freeze)
 ----------------------------------------------------------------
-features._godmodeEnabled = false
-features._godHooks = {}
-
-function features.ToggleGodmode(on)
-    if on and not features._godmodeEnabled then
-        features._godmodeEnabled = true
-
-        ---------------------------------------------------------
-        -- __namecall hook → Damage/Hit Remote’ları blokla
-        ---------------------------------------------------------
-        local oldNamecall
-        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-            local method = getnamecallmethod()
-            local args = {...}
-
-            if features._godmodeEnabled
-               and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
-               and (method == "FireServer" or method == "InvokeServer") then
-
-                local lname = self.Name:lower()
-                if lname:find("damage") or lname:find("hit") or lname:find("hurt") then
-                    warn("[Godmode] Blocked damage remote:", self:GetFullName())
-                    return nil
-                end
-                if lname:find("grab") or lname:find("carry") or lname:find("drag") then
-                    warn("[Godmode] Blocked grab remote:", self:GetFullName())
-                    return nil
-                end
-                if lname:find("freeze") then
-                    warn("[Godmode] Blocked freeze remote:", self:GetFullName())
-                    return nil
-                end
-            end
-
-            return oldNamecall(self, ...)
-        end)
-        features._godHooks["namecall"] = oldNamecall
-
-
-        ---------------------------------------------------------
-        -- __newindex hook → Health, WalkSpeed, JumpPower, Sit, Anchored
-        ---------------------------------------------------------
-        local oldNewIndex
-        oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, val)
-            if features._godmodeEnabled then
-                if self:IsA("Humanoid") then
-                    if key == "Health" and val < self.Health then
-                        warn("[Godmode] Blocked health drop:", val)
-                        return
-                    end
-                    if (key == "WalkSpeed" and val < 16) or (key == "JumpPower" and val < 50) then
-                        warn("[Godmode] Blocked slow/stun:", key, "=", val)
-                        return
-                    end
-                    if key == "Sit" and val == true then
-                        warn("[Godmode] Blocked seat attempt")
-                        return
-                    end
-                elseif self:IsA("BasePart") then
-                    if key == "Anchored" and val == true then
-                        warn("[Godmode] Blocked Anchored (freeze) on:", self:GetFullName())
-                        return
+features._miniHB_on   = false
+features._multiHooked = false
+local function PatchArgs(args, tinyPos)
+    for i,v in ipairs(args) do
+        local t = typeof(v)
+        if t == "Vector3" then
+            args[i] = tinyPos
+        elseif t == "CFrame" then
+            args[i] = CFrame.new(v.Position, tinyPos)
+        elseif t == "table" then
+            for k,val in pairs(v) do
+                local key = tostring(k):lower()
+                if key:find("pos") or key:find("hit") or key:find("target") then
+                    if typeof(val) == "Vector3" then
+                        v[k] = tinyPos
+                    elseif typeof(val) == "CFrame" then
+                        v[k] = CFrame.new(val.Position, tinyPos)
                     end
                 end
             end
-            return oldNewIndex(self, key, val)
-        end)
-        features._godHooks["newindex"] = oldNewIndex
+        end
+    end
+    return args
+end
+local function EnsureMultiHook()
+    if features._multiHooked then return end
+    features._multiHooked = true
 
+    -- __namecall hook
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args   = {...}
 
-        ---------------------------------------------------------
-        -- __index hook → Anti-cheat fake Health
-        ---------------------------------------------------------
-        local oldIndex
-        oldIndex = hookmetamethod(game, "__index", function(self, key)
-            if features._godmodeEnabled and self:IsA("Humanoid") then
-                if key == "Health" then
-                    return self.MaxHealth -- hep full döndür
-                end
-            end
-            return oldIndex(self, key)
-        end)
-        features._godHooks["index"] = oldIndex
-
-
-        ---------------------------------------------------------
-        -- AutoHeal + Anti-Ragdoll + Anti-Freeze Loop
-        ---------------------------------------------------------
-        if features._godLoop then features._godLoop:Disconnect() end
-        features._godLoop = game:GetService("RunService").Heartbeat:Connect(function()
+        if features._miniHB_on
+        and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        and (method == "FireServer" or method == "InvokeServer") then
             local char = Player.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hum then
-                -- Health hep max
-                if hum.MaxHealth < 9e9 then hum.MaxHealth = 9e9 end
-                if hum.Health < hum.MaxHealth then hum.Health = hum.MaxHealth end
-                hum.BreakJointsOnDeath = false
-                -- Anti-Ragdoll
-                hum.PlatformStand = false
-            end
             if hrp then
-                hrp.Anchored = false -- anti-freeze
-                local bv = hrp:FindFirstChildOfClass("BodyVelocity")
-                if bv and bv.Velocity.Magnitude < 1e-3 then
-                    bv.Velocity = Vector3.zero -- anti slow freeze
-                end
+                local tinyPos = hrp.Position + Vector3.new(0,0.1,0)
+                args = PatchArgs(args, tinyPos)
+                return oldNamecall(self, unpack(args))
             end
-        end)
+        end
 
-        print("✅ Ultra Full Godmode aktif (anti-dmg, anti-grab, anti-freeze, anti-ragdoll, heal)")
+        return oldNamecall(self, ...)
+    end)
 
-    elseif not on and features._godmodeEnabled then
-        features._godmodeEnabled = false
-        if features._godLoop then features._godLoop:Disconnect(); features._godLoop=nil end
-        print("❌ Godmode kapalı")
+    -- __newindex hook (set block)
+    local oldNewIndex
+    oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, val)
+        if features._miniHB_on then
+            if self:IsA("BasePart") and key == "Size" and val.X > 2 then
+                warn("[MiniHitbox] Server büyütmeye çalıştı:", self:GetFullName())
+                return
+            end
+        end
+        return oldNewIndex(self, key, val)
+    end)
+
+    -- __index hook (fake value)
+    local oldIndex
+    oldIndex = hookmetamethod(game, "__index", function(self, key)
+        if features._miniHB_on then
+            if self:IsA("BasePart") and key == "Size" then
+                return Vector3.new(2,2,1) -- normalmiş gibi döndür
+            end
+        end
+        return oldIndex(self, key)
+    end)
+end
+function features.ToggleGodmode(on)
+    features._miniHB_on = on
+    EnsureMultiHook()
+
+    -- Client tarafı küçültme
+    local char = Player.Character
+    if char and on then
+        for _,partName in ipairs({"Head","UpperTorso","LowerTorso","HumanoidRootPart"}) do
+            local part = char:FindFirstChild(partName)
+            if part and part:IsA("BasePart") then
+                part.Size = Vector3.new(0.001,0.001,0.001)
+                part.CanCollide = false
+            end
+        end
+    elseif char and not on then
+        -- burada istersen resetle
     end
 end
+
 
 ----------------------------------------------------------------
 -- HoverFly (yer efekti + havada emote desteği)
