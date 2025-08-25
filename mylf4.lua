@@ -196,22 +196,53 @@ local sSetR     = newSection(pSettings, "About")
 --========================================================
 -- FeatureBridge: UI → features.* (varsa çağır; yoksa no-op)
 --========================================================
-local FeatureBridge = {}
-function FeatureBridge.Invoke(name, ...)
-  local features = nil
-do
-    local ok, mod = pcall(function() return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()end)
-    features = ok and mod or {}
+local features = nil
+local ok, mod = pcall(function()
+return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
+end)
+features = ok and mod or {}
+
+
+local ALLOW = {
+SetTeleportOffset = true,
+ToggleHUDPanel = true,
+ToggleCrosshair = true,
+}
+
+
+local function safeCall(fname, ...)
+local fn = features and features[fname]
+if ALLOW[fname] and type(fn) == "function" then
+local ok2, err = pcall(fn, ...)
+if not ok2 then warn("[features."..fname.."] "..tostring(err)) end
 end
-  local feat = ok and ftab or nil
-  local fn = feat and feat[name]
-  if type(fn)=="function" then
-    local ok2, err = pcall(fn, ...)
-    if not ok2 then warn("features."..name.." error: "..tostring(err)) end
-  else
-    -- bağlanmamışsa sessiz geç: sadece UI
-    -- warn('features.'..name..' bulunamadı (UI-only).')
-  end
+end
+
+
+local function bindToggle(section, title, featureFnName)
+return Controls.Toggle(section, title, false, function(on)
+safeCall(featureFnName, on)
+end)
+end
+
+
+local Options, _listeners = {}, {}
+local function addSlider(section, key, cfg)
+local fmt = (cfg.Rounding and cfg.Rounding > 0) and ("%."..tostring(cfg.Rounding).."f") or "%d"
+local sl = Controls.Slider(section, cfg.Text or key, cfg.Min or 0, cfg.Max or 100, cfg.Default or 0, fmt, function(v)
+local ls = _listeners[key]
+if ls then for _,fn in ipairs(ls) do pcall(fn, v) end end
+end)
+Options[key] = {
+Get = function() return sl.Get() end,
+Set = function(v) sl.Set(v) end,
+OnChanged = function(fn)
+local t = _listeners[key]
+if not t then t = {}; _listeners[key] = t end
+table.insert(t, fn)
+end
+}
+return Options[key]
 end
 
 --========================================================
@@ -309,25 +340,50 @@ local function layoutCrosshair()
 end
 layoutCrosshair()
 
--- === Toggle helper (çağrı ŞEKLİ birebir korunuyor) ===
-local function bindToggle(section, key, title, featureFnName)
-    Controls.Toggle(section, title, false, function(on)
-        safeCall(featureFnName, on)   -- biçim: features.FeatureFn(on) — ama sadece izinliler koşar
-    end)
+local function keycodeName(kc)
+btn.Position = UDim2.new(1,-130,0.5,-12)
+btn.Parent = row
+makeCorner(btn,6); makeStroke(btn,1,.2)
+
+
+local listening = false
+local current = defaultKeyCode or Enum.KeyCode.LeftShift
+
+
+btn.MouseButton1Click:Connect(function()
+listening = true
+btn.Text = "Press..."
+end)
+
+
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+if not listening or gp then return end
+if input.KeyCode ~= Enum.KeyCode.Unknown then
+listening = false
+current = input.KeyCode
+btn.Text = keycodeName(current)
+if onChanged then onChanged(current) end
 end
--- === Slider helper (tpX/Y/Z) ===
-local Options, _listeners = {}, {}
-local function addSlider(section, key, cfg)
-    local fmt = (cfg.Rounding and cfg.Rounding>0) and ("%."..tostring(cfg.Rounding).."f") or "%d"
-    local sl = Controls.Slider(section, cfg.Text or key, cfg.Min or 0, cfg.Max or 100, cfg.Default or 0, fmt, function(v)
-        if _listeners[key] then for _,fn in ipairs(_listeners[key]) do pcall(fn, v) end end
-    end)
-    Options[key] = {
-        Get=function() return sl.Get() end,
-        Set=function(v) sl.Set(v) end,
-        OnChanged=function(fn) _listeners[key] = _listeners[key] or {}; table.insert(_listeners[key], fn) end
-    }
-    return Options[key]
+end)
+
+
+return {
+Get = function() return current end,
+Set = function(kc) current = kc or current; btn.Text = keycodeName(current); if onChanged then onChanged(current) end end
+}
+end
+
+
+local function debounced(wait, fn)
+local token = 0
+return function(...)
+token = token + 1
+local my = token
+local args = {...}
+task.delay(wait, function()
+if my == token then fn(table.unpack(args)) end
+end)
+end
 end
 
 -- === Combat
@@ -361,62 +417,70 @@ addSlider(sUtilR, "tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=
 addSlider(sUtilR, "tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=0})
 
 -- features.SetTeleportOffset ile eşitle (Options.tpX/…:OnChanged)
-
+local toggleDefs = {
+{sCombatL, "Enable Aimbot", "ToggleAimbot"},
+{sCombatL, "Force Headshot", "ToggleHeadshotRedirect"},
+{sCombatR, "☠️ Kill Aura", "ToggleKillAura"},
+{sCombatR, "Hard Fire Rate", "ToggleFireRate"},
+{sVisualsL, "Enable ESP", "ToggleESP"},
+{sVisualsL, "🎯 Enemy Big Hitbox", "ToggleEnemyBigHitbox"},
+{sMoveL, "Speed Boost (50)", "ToggleSpeed"},
+{sMoveL, "Fly (LCtrl down)", "ToggleFly"},
+{sMoveR, "Infinite Jump", "ToggleInfiniteJump"},
+{sMoveR, "NoClip", "ToggleNoclip"},
+{sMoveR, "💀 Godmode", "ToggleGodmode"},
+{sMoveR, "👻 Hard Invisible", "ToggleHardInvisible"},
+{sUtilL, "Teleport (T Key)", "ToggleTeleport"},
+{sUtilL, "⚡ Always Behind Enemy", "ToggleAutoBehind"},
+{sUtilL, "⚡ Auto Farm Enemy", "ToggleAutoTeleportToEnemy"},
+{sHUDL, "Show Crown Panel", "ToggleHUDPanel"},
+{sHUDR, "Crosshair ON/OFF", "ToggleCrosshair"},
+}
 
 -- === HUD toggles (örnek)
-local _tpX, _tpY, _tpZ = 0, 0, 25
-Options.tpX:OnChanged(function(v) _tpX=v; safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ); if features then features._tpX=_tpX end end)
-Options.tpY:OnChanged(function(v) _tpY=v; safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ); if features then features._tpY=_tpY end end)
-Options.tpZ:OnChanged(function(v) _tpZ=v; safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ); if features then features._tpZ=_tpZ end end)
+for _, d in ipairs(toggleDefs) do
+bindToggle(d[1], d[2], d[3])
+end
 
-Controls.Toggle(sHUDL, "Show Crown Panel", true, function(on) CrownPanel.Visible=on end)
-Controls.Toggle(sHUDR, "Crosshair ON/OFF", true, function(on) CrosshairCfg.Enabled=on; layoutCrosshair() end)
-Controls.Slider(sHUDR, "Crosshair Opacity", 0,1, CrosshairCfg.Opacity, "%.2f", function(v) CrosshairCfg.Opacity=v; layoutCrosshair() end)
-Controls.Toggle(sCombatL, "🎯 Aimbot", false, function(on)
-    if features.ToggleAimbot then features.ToggleAimbot(on) end
+
+addSlider(sUtilR, "tpX", {Text = "X Offset", Min = -50, Max = 50, Default = 0, Rounding = 0})
+addSlider(sUtilR, "tpY", {Text = "Y Offset", Min = -50, Max = 50, Default = 0, Rounding = 0})
+addSlider(sUtilR, "tpZ", {Text = "Z Offset", Min = 1, Max = 100, Default = 25, Rounding = 0})
+
+
+local _tpX, _tpY, _tpZ = 0, 0, 25
+local applyTP = debounced(0.08, function()
+safeCall("SetTeleportOffset", _tpX, _tpY, _tpZ)
+if features then features._tpX = _tpX; features._tpY = _tpY; features._tpZ = _tpZ end
 end)
-Controls.Toggle(sCombatL, "Force Headshot", false, function(on)
-    if features.ToggleHeadshotRedirect then features.ToggleHeadshotRedirect(on) end
-        end)
-Controls.Toggle(sCombatL, "☠️ Kill Aura", false, function(on)
-    if features.ToggleAimbot then features.ToggleKillAura(on) end
+
+
+Options.tpX:OnChanged(function(v) _tpX = v; applyTP() end)
+Options.tpY:OnChanged(function(v) _tpY = v; applyTP() end)
+Options.tpZ:OnChanged(function(v) _tpZ = v; applyTP() end)
+
+
+local defaultKey = (State and State.GlobalToggleKey) or Enum.KeyCode.LeftShift
+Controls.Keybind(sSetL, "Menu Toggle Key", defaultKey, function(kc)
+if State then State.GlobalToggleKey = kc end
 end)
-Controls.Toggle(sCombatL, "Hard Fire Rate", false, function(on)
-    if features.ToggleAimbot then features.ToggleFireRate(on) end
+
+
+-- Settings: Keybind for global menu toggle
+local currentKey = Enum.KeyCode.LeftShift
+Controls.Toggle(sSetL, "Change Menu Keybind", false, function()
+notify("Press a key to set as new menu toggle")
+local conn
+conn = UserInputService.InputBegan:Connect(function(input, gp)
+if not gp then
+currentKey = input.KeyCode
+notify("Menu toggle key set to: "..tostring(currentKey))
+conn:Disconnect()
+end
 end)
-Controls.Toggle(sCombatL, "Enable ESP", false, function(on)
-    if features.ToggleAimbot then features.ToggleESP(on) end
 end)
-Controls.Toggle(sCombatL, "🎯 Enemy Big Hitbox", false, function(on)
-    if features.ToggleAimbot then features.ToggleEnemyBigHitbox(on) end
-end)
-Controls.Toggle(sCombatL, "Speed Boost (50)", false, function(on)
-    if features.ToggleAimbot then features.ToggleSpeed(on) end
-end)
-Controls.Toggle(sCombatL, "Fly (LCtrl down)", false, function(on)
-    if features.ToggleAimbot then features.ToggleFly(on) end
-end)
-Controls.Toggle(sCombatL, "Infinite Jump", false, function(on)
-    if features.ToggleAimbot then features.ToggleInfiniteJump(on) end
-end)
-Controls.Toggle(sCombatL, "NoClip", false, function(on)
-    if features.ToggleAimbot then features.ToggleNoclip(on) end
-end)
-Controls.Toggle(sCombatL, "💀 Godmode", false, function(on)
-    if features.ToggleAimbot then features.ToggleGodmode(on) end
-end)
-Controls.Toggle(sCombatL, "👻 Hard Invisible", false, function(on)
-    if features.ToggleAimbot then features.ToggleHardInvisible(on) end
-end)
-Controls.Toggle(sCombatL, "Teleport (T Key)", false, function(on)
-    if features.ToggleAimbot then features.ToggleTeleport(on) end
-end)
-Controls.Toggle(sCombatL, "⚡ Always Behind Enemy", false, function(on)
-    if features.ToggleAimbot then features.ToggleAutoBehind(on) end
-end)
-Controls.Toggle(sCombatL, "⚡ Auto Farm Enemy", false, function(on)
-    if features.ToggleAimbot then features.ToggleAutoTeleportToEnemy(on) end
-end)
+
+
 
 -- Settings
 local info=Instance.new("TextLabel"); info.BackgroundTransparency=1; info.Font=Enum.Font.Gotham; info.TextSize=12; info.TextColor3=CurrentTheme.SubText
@@ -424,11 +488,13 @@ info.Text="60 FPS"; info.Size=UDim2.new(1,0,0,16); info.Parent=sSetL
 
 -- Global key
 UserInputService.InputBegan:Connect(function(input, gp)
-  if gp then return end
-  if input.KeyCode == State.GlobalToggleKey then
-    State.Visible = not State.Visible; Window.Visible=State.Visible
-    notify(State.Visible and "Menü gösterildi." or "Menü gizlendi.")
-  end
+if gp then return end
+if input.KeyCode == currentKey then
+if Window then
+Window.Visible = not Window.Visible
+notify(Window.Visible and "Menü gösterildi." or "Menü gizlendi.")
+end
+end
 end)
 
 notify("MYLF Hub Premium Menu", 3.0)
