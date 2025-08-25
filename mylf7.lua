@@ -35,6 +35,7 @@ local ALLOW = {
     ToggleTeleport           = true,
     ToggleAutoBehind         = true,
     ToggleAutoTeleportToEnemy= true,
+    Togglemyhitbox           = true,  
 }
 
 local function safeCall(fname, ...)
@@ -317,6 +318,7 @@ addToggle(sCombatR, "Hard Fire Rate",        "ToggleFireRate")
 -- === Visuals
 addToggle(sVisualsL, "Enable ESP",           "ToggleESP")
 addToggle(sVisualsL, "Enemy Big Hitbox",  "ToggleEnemyBigHitbox")
+addToggle(sVisualsL, "My Hitbox",         "Togglemyhitbox")
 
 -- === Movement
 addToggle(sMoveL, "Speed Boost (50)",        "ToggleSpeed")
