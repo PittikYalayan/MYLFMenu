@@ -260,6 +260,7 @@ local tUtility  = makeTabButton("Utility / TP","")
 local tHUD      = makeTabButton("HUD","")
 local tSettings = makeTabButton("Settings","⚙️")
 local tScanner = makeTabButton("Scanner", "🔍")
+bindTab(tScanner, "Scanner")
 
 local function showPage(name) for k,f in pairs(Pages) do f.Visible=(k==name) end end
 showPage("Combat")
@@ -283,6 +284,7 @@ local sHUDL     = newSection(pHUD,      "Crown FPS Panel")
 local sHUDR     = newSection(pHUD,      "Crosshair / Perf")
 local sSetL     = newSection(pSettings, "Global")
 local sSetR     = newSection(pSettings, "About")
+local sScan = newSection(pScanner, "Object Scanner")
 
 --========================================================
 -- FeatureBridge: UI → features.* (varsa çağır; yoksa no-op)
@@ -337,7 +339,7 @@ addToggle(sUtilL, "Always Behind Enemy",  "ToggleAutoBehind")
 addToggle(sUtilL, "Auto Farm Enemy",      "ToggleAutoTeleportToEnemy")
 
 
-bindTab(tScanner, "Scanner")
+
 
 -- === TP Offsets
 addSlider(sUtilR, "tpX", {Text="X Offset", Min=-50, Max=50, Default=0,  Rounding=0})
@@ -428,14 +430,7 @@ Controls.Toggle(sHUDR, "Crosshair ON/OFF", false, function(on)
     safeCall("ToggleCrosshair", on)
 end)
 Controls.Button(sScan, "Game Objects", "Scan Game", function()
-    local dump = {}
-    for _, root in ipairs({workspace, game.ReplicatedStorage, game.StarterGui, game.Players}) do
-        table.insert(dump, "== " .. root.Name .. " ==")
-        local list = scanFolder(root, "  ")
-        for _, line in ipairs(list) do
-            table.insert(dump, line)
-        end
-    end
+    
 
     print("===== GAME DUMP START =====")
     for _, line in ipairs(dump) do
@@ -496,20 +491,43 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-local sScan = newSection(pScanner, "Object Scanner")
-
-local function scanFolder(folder, indent, result)
+-- Scanner Function
+local function scanFolder(folder, indent, parentFrame)
     indent = indent or ""
-    result = result or {}
     for _, obj in ipairs(folder:GetChildren()) do
-        table.insert(result, indent .. obj.ClassName .. " : " .. obj.Name)
+        local line = Instance.new("TextLabel")
+        line.BackgroundTransparency = 1
+        line.Size = UDim2.new(1,0,0,20)
+        line.Font = Enum.Font.Code
+        line.TextSize = 13
+        line.TextXAlignment = Enum.TextXAlignment.Left
+        line.TextColor3 = CurrentTheme.Text
+        line.Text = indent .. obj.ClassName .. " : " .. obj.Name
+        line.Parent = parentFrame
+
         if #obj:GetChildren() > 0 then
-            scanFolder(obj, indent .. "   ", result)
+            scanFolder(obj, indent.."   ", parentFrame)
         end
     end
-    return result
 end
+or _,v in ipairs(listBox:GetChildren()) do
+        if v:IsA("TextLabel") then v:Destroy() end
+    end
 
+    for _, root in ipairs({workspace, game.ReplicatedStorage, game.StarterGui, game.Players}) do
+        local header = Instance.new("TextLabel")
+        header.BackgroundTransparency = 1
+        header.Size = UDim2.new(1,0,0,22)
+        header.Font = Enum.Font.GothamBold
+        header.TextSize = 14
+        header.TextXAlignment = Enum.TextXAlignment.Left
+        header.TextColor3 = CurrentTheme.Accent
+        header.Text = "== "..root.Name.." =="
+        header.Parent = listBox
+
+        scanFolder(root, "  ", listBox)
+    end
+end)
 
 
 -- Tab bind (yapıyı koruyorum)
