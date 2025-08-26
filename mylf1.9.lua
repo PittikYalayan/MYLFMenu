@@ -347,7 +347,11 @@ RunService.RenderStepped:Connect(function(dt)
     }
     if halfA >= 0.5 then
         local fps=round(frameCount/halfA,0); frameCount=0; halfA=0
-        local ping="?"; pcall(function() local it=Stats.Network.ServerStatsItem["Data Ping"]; if it then ping=tostring(it:GetValueString()):gsub(" RTT","") end end)
+        local ping = "?"
+        pcall(function()
+            local it = Stats.Network.ServerStatsItem["Data Ping"]
+            if it then ping = tostring(it:GetValueString()):gsub(" RTT","") end
+        end)
         CrownText.Text=("FPS: %s | Ping: %s | CPU: %s ms | GPU: %s ms"):format(fps, ping, round(hbAvg*1000,1), round(rsAvg*1000,1))
         local need=CrownText.TextBounds.X + 40; CrownPanel.Size=UDim2.fromOffset(math.clamp(need, 260, 680), 26)
     end
@@ -385,8 +389,13 @@ do
     Controls.Toggle(left, "Crown FPS Panel", true, function(on) CrownPanel.Visible = on end)
     Controls.Toggle(left, "Crosshair", true, function(on) Crosshair.Visible = on end)
     Controls.Button(right, "Notify Snapshot", function()
-        local okPing="?" pcall(function() local it=Stats.Network.ServerStatsItem["Data Ping"]; if it then okPing=tostring(it:GetValueString()):gsub(" RTT","") end end)
+        local okPing = "?"
+        pcall(function()
+            local it = Stats.Network.ServerStatsItem["Data Ping"]
+            if it then okPing = tostring(it:GetValueString()):gsub(" RTT","") end
+        end)
         notify(("Ping %s | FOV %d"):format(okPing, round(Camera.FieldOfView,0)), 2.0)
+    end)
     
     -- === Examples bound to external features (auto-safe) ===
     Controls.Toggle(left,  "Enable Aimbot",           false, function(on) try(features and features.ToggleAimbot, on) end)
@@ -561,7 +570,11 @@ do
     CrownPanel.Visible = true
 
     Controls.Button(left, "Notify Perf Snapshot", function()
-        local okPing="?" pcall(function() local it=Stats.Network.ServerStatsItem["Data Ping"]; if it then okPing=tostring(it:GetValueString()):gsub(" RTT","") end end)
+        local okPing = "?"
+        pcall(function()
+            local it = Stats.Network.ServerStatsItem["Data Ping"]
+            if it then okPing = tostring(it:GetValueString()):gsub(" RTT","") end
+        end)
         notify(("FPS? | Ping %s | FOV %d"):format(okPing, round(Camera.FieldOfView,0)), 2.2)
     end)
 end
