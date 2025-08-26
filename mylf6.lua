@@ -250,6 +250,8 @@ local pMovement = newPage("Movement")
 local pUtility  = newPage("Utility / TP")
 local pHUD      = newPage("HUD")
 local pSettings = newPage("Settings")
+local pScanner = newPage("Scanner")
+
 
 local tCombat   = makeTabButton("Combat","")
 local tVisuals  = makeTabButton("Visuals","")
@@ -257,6 +259,7 @@ local tMovement = makeTabButton("Movement","")
 local tUtility  = makeTabButton("Utility / TP","")
 local tHUD      = makeTabButton("HUD","")
 local tSettings = makeTabButton("Settings","⚙️")
+local tScanner = makeTabButton("Scanner", "🔍")
 
 local function showPage(name) for k,f in pairs(Pages) do f.Visible=(k==name) end end
 showPage("Combat")
@@ -332,6 +335,9 @@ addToggle(sMoveR, "Hard Invisible",       "ToggleHardInvisible")
 addToggle(sUtilL, "Teleport (T Key)",        "ToggleTeleport")
 addToggle(sUtilL, "Always Behind Enemy",  "ToggleAutoBehind")
 addToggle(sUtilL, "Auto Farm Enemy",      "ToggleAutoTeleportToEnemy")
+
+
+bindTab(tScanner, "Scanner")
 
 -- === TP Offsets
 addSlider(sUtilR, "tpX", {Text="X Offset", Min=-50, Max=50, Default=0,  Rounding=0})
@@ -421,6 +427,29 @@ end)
 Controls.Toggle(sHUDR, "Crosshair ON/OFF", false, function(on)
     safeCall("ToggleCrosshair", on)
 end)
+Controls.Button(sScan, "Game Objects", "Scan Game", function()
+    local dump = {}
+    for _, root in ipairs({workspace, game.ReplicatedStorage, game.StarterGui, game.Players}) do
+        table.insert(dump, "== " .. root.Name .. " ==")
+        local list = scanFolder(root, "  ")
+        for _, line in ipairs(list) do
+            table.insert(dump, line)
+        end
+    end
+
+    print("===== GAME DUMP START =====")
+    for _, line in ipairs(dump) do
+        print(line)
+    end
+    print("===== GAME DUMP END =====")
+
+    for i = 1, math.min(10, #dump) do
+        notify(dump[i])
+    end
+
+    -- Eğer executor'da writefile fonksiyonu varsa, bunu aktif et:
+     writefile("GameDump.txt", table.concat(dump, "\n"))
+end)
 
 -- Basit crosshair (kozmetik; yapı korunuyor)
 local Crosshair = Instance.new("Frame")
@@ -466,6 +495,22 @@ UserInputService.InputBegan:Connect(function(input, gp)
         notify(Window.Visible and "Menü gösterildi." or "Menü gizlendi.")
     end
 end)
+
+local sScan = newSection(pScanner, "Object Scanner")
+
+local function scanFolder(folder, indent, result)
+    indent = indent or ""
+    result = result or {}
+    for _, obj in ipairs(folder:GetChildren()) do
+        table.insert(result, indent .. obj.ClassName .. " : " .. obj.Name)
+        if #obj:GetChildren() > 0 then
+            scanFolder(obj, indent .. "   ", result)
+        end
+    end
+    return result
+end
+
+
 
 -- Tab bind (yapıyı koruyorum)
 local function bindTab(button, name) button.MouseButton1Click:Connect(function() showPage(name) end) end
