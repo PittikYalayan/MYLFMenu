@@ -1,11 +1,11 @@
 --[[ 
-    ⚡ MYLF | Linoria+ (Legit Dev UI) — mylf.txt
-    - Menü yapısı: Features, Player, Visuals, HUD, Scanner, Settings  (mylf1.txt tab isimleri baz alındı)
-    - Crown FPS Panel: FPS | Ping | CPU | GPU  + alt tarafta rainbow çizgi, tema Accent rengine bağlı stroke
-    - Scanner: Solda kategori, ortada listbox, sağda detay paneli. Refresh + Search var. (client-safe)
-    - Global Aç/Kapa: LeftShift
-
-    Not: Bu dosya client-safe kozmetik/HUD ve inceleme amaçlıdır. Herhangi bir exploit/hook/remote patch içermez.
+    ⚡ MYLF | Linoria+ — mylf.txt (rev2)
+    - Menü yapısı (mylf1.txt baz): Features / Player / Visuals / HUD / Scanner / Settings
+    - Crown FPS Panel: FPS | Ping | CPU | GPU  + tema-accent stroke + rainbow alt çizgi
+    - Scanner: Kategori + Search + Type Filter + Auto Refresh + Highlight + Focus Camera + Copy Path + Sound Play/Stop
+    - Keybind: Menü gizleme tuşu Settings ve TitleBar'da bağlanabilir
+    - Global Aç/Kapa: varsayılan LeftShift (değiştirilebilir)
+    - Client-safe (UI/HUD/Scanner); exploit/hook içermez
 ]]
 
 --// Services
@@ -15,6 +15,8 @@ local UserInputService   = game:GetService("UserInputService")
 local TweenService       = game:GetService("TweenService")
 local HttpService        = game:GetService("HttpService")
 local ReplicatedStorage  = game:GetService("ReplicatedStorage")
+local SoundService       = game:GetService("SoundService")
+local CollectionService  = game:GetService("CollectionService")
 local Stats              = game:GetService("Stats")
 
 local LP        = Players.LocalPlayer
@@ -25,13 +27,19 @@ local Camera    = workspace.CurrentCamera
 local function tween(o, ti, props, es, ed)
     return TweenService:Create(o, TweenInfo.new(ti, es or Enum.EasingStyle.Quad, ed or Enum.EasingDirection.Out), props)
 end
-local function clamp(n,a,b) if n<a then return a elseif n>b then return b else return n end end
+local function clamp(n,a,b) if n<a then return a elseif n>b then return n end return n end
 local function round(n,p) p=p or 0 local m=10^p return math.floor(n*m+0.5)/m end
 local function makeCorner(o,r) local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,r or 8); c.Parent=o; return c end
 local function makeStroke(o,th,tr) local s=Instance.new("UIStroke"); s.Thickness=th or 1; s.Transparency=tr or 0; s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; s.Parent=o; return s end
 local function pad(o,px) local p=Instance.new("UIPadding"); p.PaddingTop=UDim.new(0,px); p.PaddingBottom=UDim.new(0,px); p.PaddingLeft=UDim.new(0,px); p.PaddingRight=UDim.new(0,px); p.Parent=o; return p end
-local function hsl(h, s, l) local function f(n) local k=(n+h*12)%12 local a=s*math.min(l,1-l) return l - a * math.max(-1, math.min(math.min(k-3,9-k),1)) end return Color3.new(f(0),f(8),f(4)) end
 local function getFullPath(i) local ok,res=pcall(function() return i:GetFullName() end); return ok and res or "[path?]" end
+local function findAnyBasePart(obj)
+    if obj:IsA("BasePart") then return obj end
+    if obj:IsA("Model") and obj.PrimaryPart then return obj.PrimaryPart end
+    local ok,desc = pcall(function() return obj:GetDescendants() end); if not ok then return nil end
+    for _,d in ipairs(desc) do if d:IsA("BasePart") then return d end end
+    return nil
+end
 
 --// Theme Engine
 local Themes = {
@@ -53,14 +61,12 @@ local Themes = {
 }
 local CurrentTheme = Themes.Dark
 
--- Theme registry: tema değişince yeniden boyanacak öğeler burada tutulur
+-- Theme registry: tema değişince repaint
 local ThemeRegistry = {}
 local function registerThemeUpdater(key, fn) ThemeRegistry[key] = fn end
 local function applyTheme(name)
     if name then CurrentTheme = Themes[name] or CurrentTheme end
-    for k,fn in pairs(ThemeRegistry) do
-        pcall(fn, CurrentTheme)
-    end
+    for _,fn in pairs(ThemeRegistry) do pcall(fn, CurrentTheme) end
 end
 
 --// State
@@ -86,7 +92,7 @@ local function notify(text, dur)
     t.Font=Enum.Font.GothamSemibold; t.TextSize=14; t.Text="  "..text
     t.AnchorPoint=Vector2.new(1,0); t.Position=UDim2.new(1,-10,0,10)
     t.Size=UDim2.new(0,0,0,28); t.TextXAlignment=Enum.TextXAlignment.Left
-    t.Parent=NotifLayer; makeCorner(t,6); makeStroke(t,1,.1)
+    t.Parent=NotifLayer; makeCorner(t,6); local st=makeStroke(t,1,.1); st.Color = CurrentTheme.Stroke
     local size=tween(t,.16,{Size=UDim2.new(0, math.clamp(t.TextBounds.X+22,160,520),0,28)}); size:Play()
     task.delay(dur,function() local tw=tween(t,.16,{Position=UDim2.new(1,-10,0,-34), BackgroundTransparency=1}); tw.Completed:Connect(function() t:Destroy() end); tw:Play() end)
 end
@@ -94,32 +100,29 @@ end
 --== WINDOW ==--
 local Window = Instance.new("Frame")
 Window.Name="Window"; Window.Size=UDim2.new(0, 860, 0, 540); Window.Position=UDim2.new(0.5,-430,0.5,-270)
-Window.BackgroundColor3=CurrentTheme.Bg; Window.Active=true; Window.Parent=Gui
+Window.Active=true; Window.Parent=Gui
 local winStroke = makeStroke(Window,1,.2); makeCorner(Window,10)
+registerThemeUpdater("Window", function(th) Window.BackgroundColor3 = th.Bg; winStroke.Color = th.Stroke end)
 
-registerThemeUpdater("Window", function(th)
-    Window.BackgroundColor3 = th.Bg
-    winStroke.Color = th.Stroke
-end)
-
--- TitleBar
+-- TitleBar + Theme + Bind
 local TitleBar = Instance.new("Frame")
 TitleBar.Name="TitleBar"; TitleBar.Size=UDim2.new(1,0,0,44); TitleBar.Parent=Window
 local tbStroke = makeStroke(TitleBar,1,.1); makeCorner(TitleBar,10)
 local Title = Instance.new("TextLabel"); Title.BackgroundTransparency=1; Title.Text="⚡ MYLF | Linoria+"
 Title.Font=Enum.Font.GothamBold; Title.TextSize=16; Title.TextXAlignment=Enum.TextXAlignment.Left
-Title.Size=UDim2.new(1,-180,1,0); Title.Position=UDim2.new(0,14,0,0); Title.Parent=TitleBar
+Title.Size=UDim2.new(1,-260,1,0); Title.Position=UDim2.new(0,14,0,0); Title.Parent=TitleBar
 local ThemeBtn = Instance.new("TextButton"); ThemeBtn.Text="Theme: Dark"; ThemeBtn.AutoButtonColor=false
 ThemeBtn.Font=Enum.Font.GothamSemibold; ThemeBtn.TextSize=13; ThemeBtn.AnchorPoint=Vector2.new(1,0.5)
-ThemeBtn.Position=UDim2.new(1,-10,0.5,0); ThemeBtn.Size=UDim2.new(0,160,0,26); ThemeBtn.Parent=TitleBar
-local tbtnStroke = makeStroke(ThemeBtn,1,.15); makeCorner(ThemeBtn,6)
+ThemeBtn.Position=UDim2.new(1,-180,0.5,0); ThemeBtn.Size=UDim2.new(0,160,0,26); ThemeBtn.Parent=TitleBar
+local BindBtn = Instance.new("TextButton"); BindBtn.Text="Bind: LeftShift"; BindBtn.AutoButtonColor=false
+BindBtn.Font=Enum.Font.GothamSemibold; BindBtn.TextSize=13; BindBtn.AnchorPoint=Vector2.new(1,0.5)
+BindBtn.Position=UDim2.new(1,-10,0.5,0); BindBtn.Size=UDim2.new(0,150,0,26); BindBtn.Parent=TitleBar
+local tbtnStroke = makeStroke(ThemeBtn,1,.15); local bindStroke = makeStroke(BindBtn,1,.15); makeCorner(ThemeBtn,6); makeCorner(BindBtn,6)
 registerThemeUpdater("TitleBar", function(th)
-    TitleBar.BackgroundColor3 = th.Panel
-    tbStroke.Color = th.Stroke
+    TitleBar.BackgroundColor3 = th.Panel; tbStroke.Color = th.Stroke
     Title.TextColor3 = th.Text
-    ThemeBtn.TextColor3 = th.Text
-    ThemeBtn.BackgroundColor3 = th.Hover
-    tbtnStroke.Color = th.Stroke
+    ThemeBtn.TextColor3 = th.Text; ThemeBtn.BackgroundColor3 = th.Hover; tbtnStroke.Color = th.Stroke
+    BindBtn.TextColor3  = th.Text; BindBtn.BackgroundColor3  = th.Hover; bindStroke.Color = th.Stroke
 end)
 
 -- Drag only TitleBar
@@ -144,10 +147,7 @@ local Sidebar = Instance.new("Frame")
 Sidebar.Position=UDim2.new(0,10,0,58); Sidebar.Size=UDim2.new(0,190,1,-68); Sidebar.Parent=Window
 local sbStroke = makeStroke(Sidebar,1,.08); makeCorner(Sidebar,8); pad(Sidebar,8)
 local SideList = Instance.new("UIListLayout", Sidebar); SideList.Padding=UDim.new(0,8)
-registerThemeUpdater("Sidebar", function(th)
-    Sidebar.BackgroundColor3 = th.Panel
-    sbStroke.Color = th.Stroke
-end)
+registerThemeUpdater("Sidebar", function(th) Sidebar.BackgroundColor3 = th.Panel; sbStroke.Color = th.Stroke end)
 
 local function makeTabButton(text, icon)
     local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=(icon and (icon.."  ") or "")..text
@@ -155,9 +155,7 @@ local function makeTabButton(text, icon)
     local st = makeStroke(b,1,.2); makeCorner(b,6)
     b.MouseEnter:Connect(function() tween(b,.08,{BackgroundColor3=CurrentTheme.AccentSoft}):Play() end)
     b.MouseLeave:Connect(function() tween(b,.12,{BackgroundColor3=CurrentTheme.Hover}):Play() end)
-    registerThemeUpdater("btn_"..text, function(th)
-        b.TextColor3 = th.Text; b.BackgroundColor3 = th.Hover; st.Color = th.Stroke
-    end)
+    registerThemeUpdater("btn_"..text, function(th) b.TextColor3 = th.Text; b.BackgroundColor3 = th.Hover; st.Color = th.Stroke end)
     return b
 end
 
@@ -198,10 +196,7 @@ function Controls.Toggle(parent,label,default,callback)
     local btn=Instance.new("TextButton"); btn.AutoButtonColor=false; btn.Text=default and "ON" or "OFF"; btn.Font=Enum.Font.GothamBold; btn.TextSize=12
     btn.Size=UDim2.new(0,78,0,24); btn.Position=UDim2.new(1,-88,0.5,-12); btn.Parent=row
     local bst = makeStroke(btn,1,.2); makeCorner(btn,6)
-    registerThemeUpdater("toggle_"..label, function(th)
-        btn.TextColor3 = default and th.Green or th.Red
-        btn.BackgroundColor3 = th.Hover; bst.Color = th.Stroke
-    end)
+    registerThemeUpdater("toggle_"..label, function(th) btn.TextColor3 = default and th.Green or th.Red; btn.BackgroundColor3 = th.Hover; bst.Color = th.Stroke end)
     local on=default or false
     btn.MouseButton1Click:Connect(function()
         on=not on; btn.Text=on and "ON" or "OFF"; btn.TextColor3= on and CurrentTheme.Green or CurrentTheme.Red
@@ -217,19 +212,17 @@ function Controls.Slider(parent,label,min,max,default,fmt,callback)
     local fill=Instance.new("Frame"); fill.Size=UDim2.new((default-min)/(max-min),0,1,0); fill.Parent=frame; makeCorner(fill,6)
     local valText=Instance.new("TextLabel"); valText.BackgroundTransparency=1; valText.Font=Enum.Font.GothamSemibold; valText.TextSize=12
     valText.Size=UDim2.new(0,60,1,0); valText.AnchorPoint=Vector2.new(1,0); valText.Position=UDim2.new(1,-6,0,0); valText.Parent=frame; valText.Text=(fmt or "%d"):format(default)
-    registerThemeUpdater("slider_"..label, function(th)
-        frame.BackgroundColor3=th.Hover; fst.Color=th.Stroke; fill.BackgroundColor3=th.Accent; valText.TextColor3=th.Text
-    end)
+    registerThemeUpdater("slider_"..label, function(th) frame.BackgroundColor3=th.Hover; fst.Color=th.Stroke; fill.BackgroundColor3=th.Accent; valText.TextColor3=th.Text end)
     local dragging=false; local value=default or min
     local function setFromX(x)
-        local rel=clamp((x-frame.AbsolutePosition.X)/frame.AbsoluteSize.X,0,1)
+        local rel=math.clamp((x-frame.AbsolutePosition.X)/frame.AbsoluteSize.X,0,1)
         value = round(min + (max-min)*rel, 2); fill.Size=UDim2.new((value-min)/(max-min),0,1,0); valText.Text=(fmt or "%d"):format(value)
         if callback then callback(value) end
     end
     frame.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true; setFromX(input.Position.X) end end)
     frame.InputEnded:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end end)
     UserInputService.InputChanged:Connect(function(input) if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then setFromX(input.Position.X) end end)
-    return {Set=function(v) value=clamp(v,min,max); fill.Size=UDim2.new((value-min)/(max-min),0,1,0); valText.Text=(fmt or "%d"):format(value); if callback then callback(value) end end, Get=function() return value end}
+    return {Set=function(v) value=math.clamp(v,min,max); fill.Size=UDim2.new((value-min)/(max-min),0,1,0); valText.Text=(fmt or "%d"):format(value); if callback then callback(value) end end, Get=function() return value end}
 end
 function Controls.Dropdown(parent,label,items,defaultIdx,callback)
     local row,lab=makeRow(parent,label)
@@ -239,23 +232,50 @@ function Controls.Dropdown(parent,label,items,defaultIdx,callback)
     local idx=defaultIdx or 1; btn.Text=items[idx] or "-"
     local listFrame=Instance.new("Frame"); listFrame.Visible=false; listFrame.Size=UDim2.new(0,160,0, math.min(6,#items)*24+10)
     listFrame.AnchorPoint=Vector2.new(0,0); listFrame.Position=UDim2.new(1,-170,0.5,14); listFrame.Parent=row; local lst = makeStroke(listFrame,1,.15); makeCorner(listFrame,6); pad(listFrame,6)
-    registerThemeUpdater("dropdown_"..label, function(th)
-        btn.TextColor3=th.Text; btn.BackgroundColor3=th.Hover; bst.Color=th.Stroke
-        listFrame.BackgroundColor3=th.Panel; lst.Color=th.Stroke
-    end)
+    registerThemeUpdater("dropdown_"..label, function(th) btn.TextColor3=th.Text; btn.BackgroundColor3=th.Hover; bst.Color=th.Stroke; listFrame.BackgroundColor3=th.Panel; lst.Color=th.Stroke end)
     local ul=Instance.new("UIListLayout", listFrame); ul.Padding=UDim.new(0,6)
     for i,v in ipairs(items) do
         local it=Instance.new("TextButton"); it.AutoButtonColor=false; it.Font=Enum.Font.Gotham; it.TextSize=12; it.Text=v
         it.Size=UDim2.new(1,0,0,24); it.Parent=listFrame; local ist = makeStroke(it,1,.0); makeCorner(it,6)
-        registerThemeUpdater("dropdown_item_"..label.."_"..tostring(i), function(th)
-            it.TextColor3=th.Text; it.BackgroundColor3=th.Hover; ist.Color=th.Stroke
-        end)
+        registerThemeUpdater("dropdown_item_"..label.."_"..tostring(i), function(th) it.TextColor3=th.Text; it.BackgroundColor3=th.Hover; ist.Color=th.Stroke end)
         it.MouseEnter:Connect(function() tween(it,.08,{BackgroundColor3=CurrentTheme.AccentSoft}):Play() end)
         it.MouseLeave:Connect(function() tween(it,.12,{BackgroundColor3=CurrentTheme.Hover}):Play() end)
         it.MouseButton1Click:Connect(function() idx=i; btn.Text=v; listFrame.Visible=false; if callback then callback(v,i) end end)
     end
     btn.MouseButton1Click:Connect(function() listFrame.Visible=not listFrame.Visible end)
     return {SetIndex=function(i) if items[i] then idx=i; btn.Text=items[i]; if callback then callback(items[i],i) end end end, GetIndex=function() return idx end, GetValue=function() return items[idx] end}
+end
+function Controls.Button(parent,label,callback)
+    local row,lab=makeRow(parent,label)
+    lab.Size=UDim2.new(0.55,0,1,0); lab.Text=label
+    local btn=Instance.new("TextButton"); btn.AutoButtonColor=false; btn.Text="Run"; btn.Font=Enum.Font.GothamSemibold; btn.TextSize=12
+    btn.Size=UDim2.new(0,80,0,24); btn.Position=UDim2.new(1,-88,0.5,-12); btn.Parent=row
+    local bst=makeStroke(btn,1,.15); makeCorner(btn,6)
+    registerThemeUpdater("button_"..label, function(th) btn.TextColor3=th.Text; btn.BackgroundColor3=th.Hover; bst.Color=th.Stroke end)
+    btn.MouseButton1Click:Connect(function() if callback then callback() end end)
+    return btn
+end
+function Controls.Keybind(parent,label,initialKey, onChanged)
+    local row,_ = makeRow(parent,label)
+    local btn=Instance.new("TextButton"); btn.AutoButtonColor=false; btn.Text=tostring(initialKey and initialKey.Name or "None"); btn.Font=Enum.Font.GothamSemibold; btn.TextSize=12
+    btn.Size=UDim2.new(0,120,0,24); btn.Position=UDim2.new(1,-128,0.5,-12); btn.Parent=row
+    local bst=makeStroke(btn,1,.15); makeCorner(btn,6)
+    registerThemeUpdater("keybind_"..label, function(th) btn.TextColor3=th.Text; btn.BackgroundColor3=th.Hover; bst.Color=th.Stroke end)
+    btn.MouseButton1Click:Connect(function()
+        btn.Text = "Press..."
+        local listening = true
+        local conn; conn = UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if input.KeyCode ~= Enum.KeyCode.Unknown then
+                listening = false
+                btn.Text = input.KeyCode.Name
+                if onChanged then onChanged(input.KeyCode) end
+                if conn then conn:Disconnect() end
+            end
+        end)
+        task.delay(5, function() if listening and conn then conn:Disconnect(); btn.Text = tostring(initialKey and initialKey.Name or "None") end end)
+    end)
+    return {Set=function(k) btn.Text=(k and k.Name) or "None" end}
 end
 
 --== OVERLAY (Crosshair + Crown HUD) ==--
@@ -265,7 +285,7 @@ local Overlay=Instance.new("ScreenGui"); Overlay.Name="MYLF_HUD"; Overlay.Ignore
 local Crosshair=Instance.new("Frame"); Crosshair.Name="Crosshair"; Crosshair.AnchorPoint=Vector2.new(.5,.5); Crosshair.Position=UDim2.fromScale(.5,.5)
 Crosshair.Size=UDim2.fromOffset(2,2); Crosshair.BackgroundTransparency=1; Crosshair.Visible=true; Crosshair.Parent=Overlay
 local arms={} for i=1,4 do local a=Instance.new("Frame"); a.BorderSizePixel=0; a.Parent=Crosshair; arms[i]=a end
-local CrosshairCfg={Enabled=true, Gap=6, Length=8, Thickness=2, Opacity=1, Color=CurrentTheme.Accent}
+local CrosshairCfg={Enabled=true, Gap=6, Length=8, Thickness=2, Opacity=1, Color=Themes.Dark.Accent}
 local function layoutCrosshair()
     for _,a in ipairs(arms) do a.BackgroundTransparency=1-CrosshairCfg.Opacity; a.BackgroundColor3=CrosshairCfg.Color end
     arms[1].Size=UDim2.fromOffset(CrosshairCfg.Thickness, CrosshairCfg.Length); arms[1].Position=UDim2.fromOffset(-CrosshairCfg.Thickness/2, -(CrosshairCfg.Gap+CrosshairCfg.Length))
@@ -276,7 +296,7 @@ local function layoutCrosshair()
 end
 layoutCrosshair()
 
--- CROWN HUD (tema accent'e bağlı stroke + rainbow alt çizgi) — screenshot benzeri
+-- CROWN HUD
 local CrownPanel=Instance.new("Frame"); CrownPanel.AnchorPoint=Vector2.new(.5,0); CrownPanel.Position=UDim2.new(.5,0,0,8); CrownPanel.Size=UDim2.fromOffset(300,26)
 CrownPanel.Parent=Overlay; pad(CrownPanel,4); local cps = makeStroke(CrownPanel,1,.15); makeCorner(CrownPanel,8)
 local CrownText=Instance.new("TextLabel"); CrownText.BackgroundTransparency=1; CrownText.Font=Enum.Font.GothamSemibold; CrownText.TextSize=12; CrownText.TextXAlignment=Enum.TextXAlignment.Center
@@ -284,13 +304,16 @@ CrownText.Size=UDim2.new(1,-10,1,-8); CrownText.Position=UDim2.fromOffset(5,0); 
 local RainbowBar=Instance.new("Frame"); RainbowBar.BorderSizePixel=0; RainbowBar.AnchorPoint=Vector2.new(.5,1); RainbowBar.Position=UDim2.new(.5,0,1,0); RainbowBar.Size=UDim2.new(1,-6,0,3); RainbowBar.Parent=CrownPanel; makeCorner(RainbowBar,2)
 local grad=Instance.new("UIGradient", RainbowBar)
 
+-- Theme affecting crown
 registerThemeUpdater("Crown", function(th)
     CrownPanel.BackgroundColor3 = th.Panel
     cps.Color = th.Accent
     CrownText.TextColor3 = th.Text
+    CrosshairCfg.Color = th.Accent
+    layoutCrosshair()
 end)
 
--- Crown metrikleri
+-- Crown metrics
 local hbAvg, rsAvg, hbN, rsN, halfA, frameCount = 0,0,0,0,0,0
 RunService.Heartbeat:Connect(function(dt) hbN+=1; hbAvg=hbAvg + (dt - hbAvg)/hbN end)
 RunService.RenderStepped:Connect(function(dt)
@@ -333,45 +356,37 @@ tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
 tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
 tSettings.MouseButton1Click:Connect(function() showPage("Settings") end)
 
---== FEATURES (kozm.) ==--
+--== FEATURES (örnek kozmik) ==--
 do
     local left  = newSection(pFeatures, "HUD / Overlay")
     local right = newSection(pFeatures, "Quick Actions")
 
     Controls.Toggle(left, "Crown FPS Panel", true, function(on) CrownPanel.Visible = on end)
     Controls.Toggle(left, "Crosshair", true, function(on) Crosshair.Visible = on end)
-
-    Controls.Button(right, "Crown", "Snap Now", function()
-        notify(("FPS %s | FOV %d"):format(tostring(Camera:GetRenderCFrame() and "OK" and round( (function() return 0 end)(),0) or "?"), round(Camera.FieldOfView,0)))
+    Controls.Button(right, "Notify Snapshot", function()
+        local okPing="?" pcall(function() local it=Stats.Network.ServerStatsItem["Data Ping"]; if it then okPing=tostring(it:GetValueString()):gsub(" RTT","") end end)
+        notify(("Ping %s | FOV %d"):format(okPing, round(Camera.FieldOfView,0)), 2.0)
     end)
 end
 
 --== PLAYER ==--
 do
-    local left  = newSection(pPlayer, "Movement / Camera")
+    local left  = newSection(pPlayer, "Camera")
     local right = newSection(pPlayer, "Waypoints")
 
-    -- Camera Mode
     Controls.Dropdown(left, "Camera Mode", {"ThirdPerson","FirstPerson","Orbital"}, 1, function(v)
         if v=="ThirdPerson" then
-            LP.CameraMode = Enum.CameraMode.Classic
-            Camera.CameraType = Enum.CameraType.Custom
+            LP.CameraMode = Enum.CameraMode.Classic; Camera.CameraType = Enum.CameraType.Custom
         elseif v=="FirstPerson" then
-            LP.CameraMode = Enum.CameraMode.LockFirstPerson
-            Camera.CameraType = Enum.CameraType.Custom
+            LP.CameraMode = Enum.CameraMode.LockFirstPerson; Camera.CameraType = Enum.CameraType.Custom
         elseif v=="Orbital" then
-            LP.CameraMode = Enum.CameraMode.Classic
-            Camera.CameraType = Enum.CameraType.Orbital
+            LP.CameraMode = Enum.CameraMode.Classic; Camera.CameraType = Enum.CameraType.Orbital
         end
         notify("Kamera: "..v)
     end)
 
-    -- FOV
-    Controls.Slider(left, "Field of View", 60, 100, Camera.FieldOfView, "%d", function(v)
-        Camera.FieldOfView = v
-    end)
+    Controls.Slider(left, "Field of View", 60, 100, Camera.FieldOfView, "%d", function(v) Camera.FieldOfView = v end)
 
-    -- Waypoints (client-only Billboard)
     local WayFolder = Instance.new("Folder"); WayFolder.Name = "MYLF_Waypoints_Local"; WayFolder.Parent = workspace
     local function createWaypoint(name, pos)
         local part = Instance.new("Part"); part.Anchored = true; part.CanCollide=false; part.Transparency = 1; part.Size = Vector3.new(1,1,1); part.CFrame = CFrame.new(pos); part.Parent = WayFolder
@@ -384,11 +399,11 @@ do
     end
     local function clearWaypoints() for _,v in ipairs(WayFolder:GetChildren()) do v:Destroy() end end
 
-    Controls.Button(right, "Waypoint", "Add Current", function()
+    Controls.Button(right, "Add Waypoint", function()
         local char = LP.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if hrp then local nm = "WP-"..string.sub(HttpService:GenerateGUID(false),1,4); createWaypoint(nm, hrp.Position + Vector3.new(0,3,0)); notify("Waypoint eklendi: "..nm) else notify("Karakter bulunamadı.", 2.0) end
     end)
-    Controls.Button(right, "Waypoint", "Clear All", function() clearWaypoints(); notify("Tüm waypoint'ler silindi.") end)
+    Controls.Button(right, "Clear Waypoints", function() clearWaypoints(); notify("Tüm waypoint'ler silindi.") end)
 end
 
 --== VISUALS ==--
@@ -402,10 +417,7 @@ do
     Controls.Slider(left, "Thickness", 1, 8, CrosshairCfg.Thickness, "%d", function(v) CrosshairCfg.Thickness=v; layoutCrosshair() end)
     Controls.Slider(left, "Opacity", 0, 1, CrosshairCfg.Opacity, "%.2f", function(v) CrosshairCfg.Opacity=v; layoutCrosshair() end)
 
-    Controls.Dropdown(right, "Theme", {"Dark","Midnight","Neon","Black","Red"}, 1, function(v)
-        ThemeBtn.Text = "Theme: "..v
-        applyTheme(v)
-    end)
+    Controls.Dropdown(right, "Theme", {"Dark","Midnight","Neon","Black","Red"}, 1, function(v) ThemeBtn.Text = "Theme: "..v; applyTheme(v) end)
 end
 
 --== HUD ==--
@@ -413,43 +425,57 @@ do
     local left  = newSection(pHUD, "Performance")
     local right = newSection(pHUD, "Toggles")
 
-    local fpsToggle = Controls.Toggle(right, "Show FPS/Ping/CPU/GPU", true, function(on) CrownPanel.Visible = on end)
+    Controls.Toggle(right, "Show FPS/Ping/CPU/GPU", true, function(on) CrownPanel.Visible = on end)
     CrownPanel.Visible = true
 
-    Controls.Button(left, "Snapshot", "Notify Now", function()
+    Controls.Button(left, "Notify Perf Snapshot", function()
         local okPing="?" pcall(function() local it=Stats.Network.ServerStatsItem["Data Ping"]; if it then okPing=tostring(it:GetValueString()):gsub(" RTT","") end end)
-        notify(("FPS %s | Ping %s | FOV %d"):format("?", okPing, round(Camera.FieldOfView,0)), 2.2)
+        notify(("FPS? | Ping %s | FOV %d"):format(okPing, round(Camera.FieldOfView,0)), 2.2)
     end)
 end
 
---== SCANNER ==--
+--== SCANNER (gelişmiş) ==--
 do
     local left   = newSection(pScanner, "Categories")
     local middle = newSection(pScanner, "Results")
     local right  = newSection(pScanner, "Details")
 
-    -- Search box + refresh
+    -- Search + Type Filter + Auto Refresh
     local searchRow = Instance.new("Frame"); searchRow.BackgroundTransparency=1; searchRow.Size=UDim2.new(1,0,0,28); searchRow.Parent=left
-    local searchBox = Instance.new("TextBox"); searchBox.PlaceholderText="Search..."; searchBox.Font=Enum.Font.Gotham; searchBox.TextSize=12; searchBox.ClearTextOnFocus=false
-    searchBox.Size=UDim2.new(1,-90,1,0); searchBox.Parent=searchRow
+    local searchBox = Instance.new("TextBox"); searchBox.PlaceholderText="Search by name..."; searchBox.Font=Enum.Font.Gotham; searchBox.TextSize=12; searchBox.ClearTextOnFocus=false
+    searchBox.Size=UDim2.new(1,-190,1,0); searchBox.Parent=searchRow
     local sst = makeStroke(searchBox,1,.15); makeCorner(searchBox,6)
-    registerThemeUpdater("scanner_search", function(th) searchBox.TextColor3=th.Text; searchBox.PlaceholderColor3=th.SubText; searchBox.BackgroundColor3=th.Hover; sst.Color=th.Stroke end)
     local refreshBtn = Instance.new("TextButton"); refreshBtn.AutoButtonColor=false; refreshBtn.Text="Refresh"; refreshBtn.Font=Enum.Font.GothamSemibold; refreshBtn.TextSize=12
-    refreshBtn.Size=UDim2.new(0,80,1,0); refreshBtn.Position=UDim2.new(1,-80,0,0); refreshBtn.Parent=searchRow
+    refreshBtn.Size=UDim2.new(0,80,1,0); refreshBtn.Position=UDim2.new(1,-180,0,0); refreshBtn.Parent=searchRow
     local rbst=makeStroke(refreshBtn,1,.15); makeCorner(refreshBtn,6)
-    registerThemeUpdater("scanner_refresh", function(th) refreshBtn.BackgroundColor3=th.Hover; refreshBtn.TextColor3=th.Text; rbst.Color=th.Stroke end)
+    local autoToggle = Instance.new("TextButton"); autoToggle.AutoButtonColor=false; autoToggle.Text="Auto: OFF"; autoToggle.Font=Enum.Font.GothamSemibold; autoToggle.TextSize=12
+    autoToggle.Size=UDim2.new(0,90,1,0); autoToggle.Position=UDim2.new(1,-90,0,0); autoToggle.Parent=searchRow
+    local abst=makeStroke(autoToggle,1,.15); makeCorner(autoToggle,6)
+    local autoOn=false; local autoLoop=nil
+
+    registerThemeUpdater("scanner_search", function(th)
+        searchBox.TextColor3=th.Text; searchBox.PlaceholderColor3=th.SubText; searchBox.BackgroundColor3=th.Hover; sst.Color=th.Stroke
+        refreshBtn.BackgroundColor3=th.Hover; refreshBtn.TextColor3=th.Text; rbst.Color=th.Stroke
+        autoToggle.BackgroundColor3=th.Hover; autoToggle.TextColor3=th.Text; abst.Color=th.Stroke
+    end)
+
+    local filterRow = Instance.new("Frame"); filterRow.BackgroundTransparency=1; filterRow.Size=UDim2.new(1,0,0,28); filterRow.Parent=left
+    local typeFilter = "All"
+    local dd = Controls.Dropdown(filterRow, "Type Filter", {"All","Remote","Tool","NPC(Humanoid)","ProximityPrompt","ClickDetector","Sound","BillboardGui","Part","Model","Camera","UI(TextLabel)","Accessory","MeshPart"}, 1, function(v) typeFilter = v end)
 
     -- Category buttons
-    local catList = {"Players","Workspace","ReplicatedStorage","Lighting","StarterGui"}
-    local catFrame = Instance.new("Frame"); catFrame.BackgroundTransparency=1; catFrame.Size=UDim2.new(1,0,1,-34); catFrame.Position=UDim2.new(0,0,0,34); catFrame.Parent=left
+    local catList = {"Players","NPCs","Workspace","Remotes","Proximity","ClickDetectors","Sounds","PlayerGui","StarterGui","Lighting","Teams","Accessories"}
+    local catFrame = Instance.new("Frame"); catFrame.BackgroundTransparency=1; catFrame.Size=UDim2.new(1,0,1,-64); catFrame.Position=UDim2.new(0,0,0,64); catFrame.Parent=left
     local catLayout = Instance.new("UIListLayout", catFrame); catLayout.Padding=UDim.new(0,6)
     local currentCat = "Players"
+    local catButtons = {}
 
     local function makeCat(text)
         local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=text; b.Font=Enum.Font.GothamSemibold; b.TextSize=12; b.Size=UDim2.new(1,0,0,24); b.Parent=catFrame
         local bst=makeStroke(b,1,.15); makeCorner(b,6)
         registerThemeUpdater("scanner_cat_"..text, function(th) b.TextColor3=th.Text; b.BackgroundColor3 = (currentCat==text) and th.AccentSoft or th.Hover; bst.Color=th.Stroke end)
-        b.MouseButton1Click:Connect(function() currentCat=text; applyTheme() end)
+        b.MouseButton1Click:Connect(function() currentCat=text; for n,btn in pairs(catButtons) do applyTheme() end; end)
+        catButtons[text]=b
     end
     for _,c in ipairs(catList) do makeCat(c) end
 
@@ -460,56 +486,154 @@ do
     local rst = makeStroke(results,1,.08); makeCorner(results,6); pad(results,6)
     registerThemeUpdater("scanner_results", function(th) results.BackgroundColor3=th.Hover; results.ScrollBarImageColor3=th.Accent; rst.Color=th.Stroke end)
 
+    -- Right details panel base
+    local function clearRight()
+        for _,v in ipairs(right:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") or v:IsA("TextBox") or v:IsA("ScrollingFrame") or v:IsA("TextButton") then v:Destroy() end end
+    end
+    local function labelRight(text, size)
+        local l=Instance.new("TextLabel"); l.BackgroundTransparency=1; l.Font=Enum.Font.Gotham; l.TextSize=size or 12; l.TextXAlignment=Enum.TextXAlignment.Left; l.TextYAlignment=Enum.TextYAlignment.Top; l.TextWrapped=true
+        l.Size=UDim2.new(1,0,0, math.max(24, size==14 and 20 or 18)); l.Parent=right; registerThemeUpdater("scanner_rlabel_"..HttpService:GenerateGUID(false), function(th) l.TextColor3=th.SubText end); l.Text=text; return l
+    end
+    local function buttonRight(text, cb)
+        local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=text; b.Font=Enum.Font.GothamSemibold; b.TextSize=12; b.Size=UDim2.new(0,120,0,24); b.Parent=right
+        local bst=makeStroke(b,1,.15); makeCorner(b,6); registerThemeUpdater("scanner_rbtn_"..text, function(th) b.TextColor3=th.Text; b.BackgroundColor3=th.Hover; bst.Color=th.Stroke end)
+        b.MouseButton1Click:Connect(function() if cb then cb() end end); return b
+    end
+
+    -- Selection highlight
+    local SelHL = Instance.new("Highlight"); SelHL.Enabled=false; SelHL.FillTransparency=1; SelHL.OutlineColor = CurrentTheme.Accent; SelHL.Parent = Overlay
+    registerThemeUpdater("scanner_selhl", function(th) SelHL.OutlineColor = th.Accent end)
+    local selectedRef = nil
+
+    local limitMax = 1200 -- performans koruması
+
+    local function isTypeAllowed(obj, filter)
+        if filter=="All" then return true end
+        if filter=="Remote" then return obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") end
+        if filter=="Tool" then return obj:IsA("Tool") end
+        if filter=="NPC(Humanoid)" then return (obj:IsA("Model") or obj:IsA("Folder")) and (obj:FindFirstChildOfClass("Humanoid") ~= nil) end
+        if filter=="ProximityPrompt" then return obj:IsA("ProximityPrompt") end
+        if filter=="ClickDetector" then return obj:IsA("ClickDetector") end
+        if filter=="Sound" then return obj:IsA("Sound") end
+        if filter=="BillboardGui" then return obj:IsA("BillboardGui") end
+        if filter=="Part" then return obj:IsA("BasePart") end
+        if filter=="Model" then return obj:IsA("Model") end
+        if filter=="Camera" then return obj:IsA("Camera") end
+        if filter=="UI(TextLabel)" then return obj:IsA("TextLabel") end
+        if filter=="Accessory" then return obj:IsA("Accessory") end
+        if filter=="MeshPart" then return obj:IsA("MeshPart") end
+        return true
+    end
+
     local function addResultLine(text, ref)
         local row=Instance.new("TextButton"); row.AutoButtonColor=false; row.TextXAlignment=Enum.TextXAlignment.Left
         row.Font=Enum.Font.Gotham; row.TextSize=12; row.Size=UDim2.new(1,0,0,24); row.Text="  "..text; row.Parent=results
-        local rst=makeStroke(row,1,.0); makeCorner(row,6)
-        registerThemeUpdater("scanner_row_"..text, function(th) row.TextColor3=th.Text; row.BackgroundColor3=th.Panel; rst.Color=th.Stroke end)
+        local r_st=makeStroke(row,1,.0); makeCorner(row,6)
+        registerThemeUpdater("scanner_row_"..text, function(th) row.TextColor3=th.Text; row.BackgroundColor3=th.Panel; r_st.Color=th.Stroke end)
         row.MouseButton1Click:Connect(function()
-            -- write details
-            for _,v in ipairs(right:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") or v:IsA("ScrollingFrame") then v:Destroy() end end
+            selectedRef = ref
+            clearRight()
             local head = Instance.new("TextLabel"); head.BackgroundTransparency=1; head.Font=Enum.Font.GothamBold; head.TextSize=14; head.Text="Details"; head.Size=UDim2.new(1,0,0,20); head.Parent=right
             registerThemeUpdater("scanner_details_head", function(th) head.TextColor3=th.Text end)
-            local box = Instance.new("TextLabel"); box.TextWrapped=true; box.TextXAlignment=Enum.TextXAlignment.Left; box.TextYAlignment=Enum.TextYAlignment.Top
-            box.Size=UDim2.new(1,-0,1,-24); box.Position=UDim2.new(0,0,0,24); box.Parent=right
-            registerThemeUpdater("scanner_details_box", function(th) box.BackgroundTransparency=1; box.TextColor3=th.SubText end)
-            local info = {}
-            table.insert(info, "Name: "..tostring(ref.Name))
-            table.insert(info, "Class: "..tostring(ref.ClassName))
-            table.insert(info, "Path: "..getFullPath(ref))
-            local ch = 0; pcall(function() ch = #ref:GetChildren() end)
-            table.insert(info, "Children: "..tostring(ch))
-            box.Text = table.concat(info, "\n")
+
+            -- Info
+            local tags = {}
+            local okTags, tagList = pcall(function() return CollectionService:GetTags(ref) end)
+            if okTags and tagList then tags = tagList end
+            local attrCount = 0; local attrsStr=""
+            local okAttr, attrs = pcall(function() return ref:GetAttributes() end)
+            if okAttr and attrs then
+                for k,v in pairs(attrs) do attrCount += 1; attrsStr = attrsStr..tostring(k)..": "..tostring(v).."\n" end
+            end
+
+            labelRight("Name: "..tostring(ref.Name), 12)
+            labelRight("Class: "..tostring(ref.ClassName), 12)
+            labelRight("Path: "..getFullPath(ref), 12)
+            labelRight("Tags: "..( (#tags>0) and table.concat(tags,", ") or "-" ), 12)
+            labelRight("Attributes ("..attrCount.."):\n"..(attrsStr ~= "" and attrsStr or "-"), 12)
+
+            -- Controls
+            local bp = findAnyBasePart(ref)
+            buttonRight("Highlight", function()
+                if bp or ref:IsA("Model") then SelHL.Adornee = ref; SelHL.Enabled=true else SelHL.Enabled=false end
+            end)
+            buttonRight("Unhighlight", function() SelHL.Enabled=false end)
+            if bp then
+                buttonRight("Focus Camera", function()
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, bp.Position)
+                    notify("Camera focused.")
+                end)
+            end
+            if ref:IsA("Sound") then
+                buttonRight("Play", function() ref:Play() end)
+                buttonRight("Stop", function() ref:Stop() end)
+            end
+
+            local copyBox = Instance.new("TextBox"); copyBox.ClearTextOnFocus=false; copyBox.TextEditable=true; copyBox.Text=getFullPath(ref)
+            copyBox.Size=UDim2.new(1,0,0,26); copyBox.Parent=right; makeCorner(copyBox,6); local cbst=makeStroke(copyBox,1,.1)
+            registerThemeUpdater("scanner_copybox", function(th) copyBox.TextColor3=th.Text; copyBox.BackgroundColor3=th.Hover; cbst.Color=th.Stroke end)
         end)
     end
 
     local function iterateCategory(cat, query)
         for _,v in ipairs(results:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-        local function push(obj, tag)
+        local shown=0
+        local function tryPush(obj, tag)
+            if shown>=limitMax then return end
             if query and query~="" then
                 if not string.find(string.lower(obj.Name), string.lower(query), 1, true) then return end
             end
-            addResultLine((tag and (tag.." | ") or "")..obj.Name, obj)
+            if not isTypeAllowed(obj, typeFilter) then return end
+            addResultLine((tag and (tag.." | ") or "")..obj.Name, obj); shown+=1
         end
+
         if cat=="Players" then
-            for _,plr in ipairs(Players:GetPlayers()) do push(plr, "Player") end
+            for _,plr in ipairs(Players:GetPlayers()) do
+                tryPush(plr, "Player")
+                if plr.Backpack then for _,tool in ipairs(plr.Backpack:GetChildren()) do tryPush(tool, "Tool") end end
+                local char = plr.Character; if char then tryPush(char, "Character") end
+            end
+        elseif cat=="NPCs" then
+            local desc = workspace:GetDescendants()
+            for _,d in ipairs(desc) do
+                local hum = d:IsA("Model") and d:FindFirstChildOfClass("Humanoid")
+                if hum then tryPush(d, "NPC") end
+            end
         elseif cat=="Workspace" then
-            for _,child in ipairs(workspace:GetChildren()) do push(child, "WS") end
-        elseif cat=="ReplicatedStorage" then
-            local rs = ReplicatedStorage
-            for _,child in ipairs(rs:GetChildren()) do
-                if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
-                    push(child, "Remote")
-                else
-                    push(child, "RS")
-                end
+            for _,child in ipairs(workspace:GetChildren()) do tryPush(child, "WS") end
+        elseif cat=="Remotes" then
+            local searchSpaces = {ReplicatedStorage, workspace}
+            for _,space in ipairs(searchSpaces) do
+                local desc = space:GetDescendants()
+                for _,d in ipairs(desc) do if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") then tryPush(d, "Remote") end end
             end
+        elseif cat=="Proximity" then
+            for _,d in ipairs(workspace:GetDescendants()) do if d:IsA("ProximityPrompt") then tryPush(d, "Prompt") end end
+        elseif cat=="ClickDetectors" then
+            for _,d in ipairs(workspace:GetDescendants()) do if d:IsA("ClickDetector") then tryPush(d, "Click") end end
+        elseif cat=="Sounds" then
+            for _,d in ipairs(SoundService:GetDescendants()) do if d:IsA("Sound") then tryPush(d, "SoundService") end end
+            for _,d in ipairs(workspace:GetDescendants()) do if d:IsA("Sound") then tryPush(d, "WS") end end
+        elseif cat=="PlayerGui" then
+            for _,d in ipairs(LP:WaitForChild("PlayerGui"):GetDescendants()) do
+                if d:IsA("TextLabel") or d:IsA("ImageLabel") or d:IsA("BillboardGui") then tryPush(d, "UI") end
+            end
+        elseif cat=="StarterGui" then
+            local sg = game:GetService("StarterGui")
+            for _,d in ipairs(sg:GetDescendants()) do
+                if d:IsA("TextLabel") or d:IsA("ImageLabel") or d:IsA("BillboardGui") then tryPush(d, "UI") end
+            end
+        elseif cat=="Lighting" then
+            for _,d in ipairs(game:GetService("Lighting"):GetChildren()) do tryPush(d, "Light") end
+        elseif cat=="Teams" then
+            for _,d in ipairs(game:GetService("Teams"):GetChildren()) do tryPush(d, "Team") end
+        elseif cat=="Accessories" then
+            for _,d in ipairs(workspace:GetDescendants()) do if d:IsA("Accessory") then tryPush(d, "Acc") end end
         else
-            local svc = game:GetService(cat) or nil
-            if svc then
-                for _,child in ipairs(svc:GetChildren()) do push(child, cat) end
-            end
+            -- default
+            for _,child in ipairs(workspace:GetChildren()) do tryPush(child, cat) end
         end
+        addResultLine(("— %d item(s) —"):format(shown), right) -- dummy footer
     end
 
     local function refresh()
@@ -518,6 +642,15 @@ do
 
     refreshBtn.MouseButton1Click:Connect(refresh)
     searchBox:GetPropertyChangedSignal("Text"):Connect(function() refresh() end)
+    autoToggle.MouseButton1Click:Connect(function()
+        autoOn = not autoOn
+        autoToggle.Text = "Auto: "..(autoOn and "ON" or "OFF")
+        if autoOn and not autoLoop then
+            autoLoop = task.spawn(function()
+                while autoOn do refresh(); task.wait(1.5) end
+            end)
+        end
+    end)
     refresh()
 end
 
@@ -526,29 +659,17 @@ do
     local left  = newSection(pSettings, "Menu / Keys")
     local right = newSection(pSettings, "About")
 
-    -- Global Toggle (dinleyici)
-    Controls.Toggle(left, "Change Menu Key (press after ON)", false, function(on)
-        if on then
-            local waiting=true
-            notify("Yeni tuşu bas…")
-            local conn; conn = UserInputService.InputBegan:Connect(function(input, gp)
-                if gp then return end
-                if input.KeyCode ~= Enum.KeyCode.Unknown then
-                    State.GlobalToggleKey = input.KeyCode
-                    notify("Menu key: "..tostring(State.GlobalToggleKey))
-                    waiting=false
-                    if conn then conn:Disconnect() end
-                end
-            end)
-            task.delay(5, function() if waiting and conn then conn:Disconnect(); notify("Key atama iptal.") end end)
-        end
+    local kb = Controls.Keybind(left, "Menu Toggle Key", State.GlobalToggleKey, function(newKey)
+        State.GlobalToggleKey = newKey
+        BindBtn.Text = "Bind: "..newKey.Name
+        notify("Menu key -> "..newKey.Name)
     end)
 
     local about = Instance.new("TextLabel"); about.BackgroundTransparency=1; about.TextWrapped=true
     about.Font=Enum.Font.Gotham; about.TextSize=12; about.TextXAlignment=Enum.TextXAlignment.Left; about.TextYAlignment=Enum.TextYAlignment.Top
     about.Size=UDim2.new(1,0,1,-0); about.Parent=right
     registerThemeUpdater("about", function(th) about.TextColor3=th.SubText end)
-    about.Text = "MYLF Linoria+ — client-safe UI/HUD/Scanner paketi.\nTema Accent rengine bağlı crown stroke + rainbow underline.\nBuild: mylf.txt"
+    about.Text = "MYLF Linoria+ — client-safe UI/HUD/Scanner.\nCrown stroke tema renklerine bağlı, altta rainbow bar.\nBuild: mylf.txt rev2"
 end
 
 -- Global menu toggle
@@ -559,13 +680,27 @@ UserInputService.InputBegan:Connect(function(input,gp)
     end
 end)
 
--- Theme cycler (TitleBar)
+-- TitleBar: Theme cycler + Keybind capture
 local themeList = {"Dark","Midnight","Neon","Black","Red"}
 local themeIdx=1
 ThemeBtn.MouseButton1Click:Connect(function()
     themeIdx = themeIdx % #themeList + 1
     ThemeBtn.Text = "Theme: "..themeList[themeIdx]
     applyTheme(themeList[themeIdx])
+end)
+BindBtn.MouseButton1Click:Connect(function()
+    BindBtn.Text = "Bind: ..."
+    local listening = true
+    local conn; conn = UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode ~= Enum.KeyCode.Unknown then
+            State.GlobalToggleKey = input.KeyCode
+            BindBtn.Text = "Bind: "..input.KeyCode.Name
+            notify("Menu key -> "..input.KeyCode.Name)
+            if conn then conn:Disconnect() end
+        end
+    end)
+    task.delay(5, function() if listening and conn then conn:Disconnect(); BindBtn.Text="Bind: "..(State.GlobalToggleKey and State.GlobalToggleKey.Name or "None") end end)
 end)
 
 -- İlk boyama
