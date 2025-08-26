@@ -27,7 +27,7 @@ local Camera    = workspace.CurrentCamera
 local function tween(o, ti, props, es, ed)
     return TweenService:Create(o, TweenInfo.new(ti, es or Enum.EasingStyle.Quad, ed or Enum.EasingDirection.Out), props)
 end
-local function clamp(n,a,b) if n<a then return a elseif n>b then return n end return n end
+local function clamp(n,a,b) if n<a then return a elseif n>b then return b else return n end end
 local function round(n,p) p=p or 0 local m=10^p return math.floor(n*m+0.5)/m end
 local function makeCorner(o,r) local c=Instance.new("UICorner"); c.CornerRadius=UDim.new(0,r or 8); c.Parent=o; return c end
 local function makeStroke(o,th,tr) local s=Instance.new("UIStroke"); s.Thickness=th or 1; s.Transparency=tr or 0; s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; s.Parent=o; return s end
@@ -411,8 +411,8 @@ do
 
     -- [[ Linoria-Compat Shim ]] --
     -- Amaç: bindToggle / g:AddSlider / Options.*:OnChanged kalıplarını desteklemek
-    local Options = rawget(getfenv(0), "Options") or {}
-    rawset(getfenv(0), "Options", Options)
+    local Options = _G.MYLF_Options or {}
+    _G.MYLF_Options = Options
 
     local function makeGroup(targetSection)
         local group = {}
