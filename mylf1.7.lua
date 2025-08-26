@@ -41,6 +41,27 @@ local function findAnyBasePart(obj)
     return nil
 end
 
+
+--== EXTERNAL FEATURES (safe loader) ==--
+local features = nil
+local function try(fn, ...)
+    if type(fn) == "function" then
+        local ok, err = pcall(fn, ...)
+        if not ok then warn("[features] "..tostring(err)) end
+    end
+end
+do
+    local ok, mod = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
+    end)
+    if ok and type(mod) == "table" then
+        features = mod
+        warn("[MYLF] features9.8.lua loaded.")
+    else
+        warn("[MYLF] features9.8.lua FAILED: "..tostring(mod))
+    end
+end
+
 --// Theme Engine
 local Themes = {
     Dark     ={Bg=Color3.fromRGB(20,20,26),   Panel=Color3.fromRGB(28,28,36),   Accent=Color3.fromRGB(120,115,245), AccentSoft=Color3.fromRGB(95,90,210),
@@ -366,7 +387,118 @@ do
     Controls.Button(right, "Notify Snapshot", function()
         local okPing="?" pcall(function() local it=Stats.Network.ServerStatsItem["Data Ping"]; if it then okPing=tostring(it:GetValueString()):gsub(" RTT","") end end)
         notify(("Ping %s | FOV %d"):format(okPing, round(Camera.FieldOfView,0)), 2.0)
+    
+    -- === Examples bound to external features (auto-safe) ===
+    Controls.Toggle(left,  "Enable Aimbot",           false, function(on) try(features and features.ToggleAimbot, on) end)
+    Controls.Toggle(left,  "Silent Aim",              false, function(on) try(features and features.ToggleSilentAim, on) end)
+    Controls.Toggle(left,  "Magic Bullet (Fallback)", false, function(on) try(features and features.ToggleMagicBullet, on) end)
+
+    -- Aim FOV (if your features has SetAimFOV or reads features._aimFOV)
+    features = features or {}
+    features._aimFOV = tonumber(features._aimFOV) or 60
+    Controls.Slider(right, "Aim FOV", 10, 180, features._aimFOV, "%0.0f", function(v)
+        features._aimFOV = v
+        try(features and features.SetAimFOV, v)
     end)
+
+    -- Teleport Offsets (AutoFarm/Behind logic)
+    features._tpX = tonumber(features._tpX) or 0
+    features._tpY = tonumber(features._tpY) or 0
+    features._tpZ = tonumber(features._tpZ) or 25
+    Controls.Slider(right, "TP Offset X", -50, 50,  features._tpX, "%0.0f", function(v) features._tpX=v; try(features and features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
+    Controls.Slider(right, "TP Offset Y", -50, 50,  features._tpY, "%0.0f", function(v) features._tpY=v; try(features and features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
+    Controls.Slider(right, "TP Offset Z",   1, 100, features._tpZ, "%0.0f", function(v) features._tpZ=v; try(features and features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
+
+    -- [[ Linoria-Compat Shim ]] --
+    -- Amaç: bindToggle / g:AddSlider / Options.*:OnChanged kalıplarını desteklemek
+    local Options = rawget(getfenv(0), "Options") or {}
+    rawset(getfenv(0), "Options", Options)
+
+    local function makeGroup(targetSection)
+        local group = {}
+
+        function group:AddToggle(key, cfg)
+            local default = (cfg and cfg.Default) or false
+            local text    = (cfg and cfg.Text) or key
+            local opt = { Value = default }
+            function opt:OnChanged(cb) self._cb = cb end
+            local ui = Controls.Toggle(targetSection, text, default, function(v)
+                opt.Value = v
+                if opt._cb then pcall(opt._cb, v) end
+            end)
+            Options[key] = opt
+            return opt
+        end
+
+        function group:AddSlider(key, cfg)
+            local text    = (cfg and cfg.Text) or key
+            local min     = (cfg and cfg.Min) or 0
+            local max     = (cfg and cfg.Max) or 100
+            local default = (cfg and cfg.Default) or min
+            local rounding= (cfg and cfg.Rounding) or 0
+            local fmt = ("%%0.%df"):format(math.max(0, rounding))
+            local opt = { Value = default }
+            function opt:OnChanged(cb) self._cb = cb end
+            local ui = Controls.Slider(targetSection, text, min, max, default, fmt, function(v)
+                opt.Value = v
+                if opt._cb then pcall(opt._cb, v) end
+            end)
+            Options[key] = opt
+            return opt
+        end
+
+        return group
+    end
+
+    local function bindToggle(group, key, label, featureFn)
+        local opt = group:AddToggle(key, {Text = label, Default = false})
+        opt:OnChanged(function(on) try(featureFn, on) end)
+        return opt
+    end
+
+    -- Gruplar: soldaki section'ı "g", sağdakini "gRight" yapalım
+    local g      = makeGroup(left)
+    local gRight = makeGroup(right)
+
+    -- === Kullanıcının snippet'i: otomatik bağlama ===
+    bindToggle(g, "aimbot",   "Enable Aimbot",          features and features.ToggleAimbot)
+    bindToggle(g, "headshotRedirect", "Force Headshot", features and features.ToggleHeadshotRedirect)
+    bindToggle(g, "fireRate", "Hard Fire Rate",         features and features.ToggleFireRate)
+    bindToggle(g, "silent",   "Silent Aim",             features and features.ToggleSilentAim)
+    bindToggle(g, "magic",    "Magic Bullet (Fallback)",features and features.ToggleMagicBullet)
+    bindToggle(g, "killAura", "☠️ Kill Aura",           features and features.ToggleKillAura)
+
+    bindToggle(g, "esp",         "Enable ESP",            features and features.ToggleESP)
+    bindToggle(g, "enemyBigHB",  "🎯 Enemy Big Hitbox",   features and features.ToggleEnemyBigHitbox)
+
+    bindToggle(g, "speed",     "Speed Boost (50)",     features and features.ToggleSpeed)
+    bindToggle(g, "fly",       "Fly (LCtrl down)",     features and features.ToggleFly)
+    bindToggle(g, "infjump",   "Infinite Jump",        features and features.ToggleInfiniteJump)
+    bindToggle(g, "godmode",   "💀 Godmode",           features and features.ToggleGodmode)
+    bindToggle(g, "hardInvis", "👻 Hard Invisible",    features and features.ToggleHardInvisible)
+    bindToggle(g, "noclip",    "NoClip",               features and features.ToggleNoclip)
+
+    bindToggle(g, "tpkey",       "Teleport (T Key)",         features and features.ToggleTeleport)
+    bindToggle(g, "autoBehind",  "⚡ Always Behind Enemy",   features and features.ToggleAutoBehind)
+    bindToggle(g, "autoTP",      "⚡ Auto Farm Enemy",       features and features.ToggleAutoTeleportToEnemy)
+
+    gRight:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default= tonumber((features and features._tpX) or 0) or 0, Rounding=0})
+    gRight:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default= tonumber((features and features._tpY) or 0) or 0, Rounding=0})
+    gRight:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default= tonumber((features and features._tpZ) or 25) or 25, Rounding=0})
+
+    Options.tpX:OnChanged(function(val)
+        if features then features._tpX = val end
+        try(features and features.SetTeleportOffset, val, (features and features._tpY) or 0, (features and features._tpZ) or 25)
+    end)
+    Options.tpY:OnChanged(function(val)
+        if features then features._tpY = val end
+        try(features and features.SetTeleportOffset, (features and features._tpX) or 0, val, (features and features._tpZ) or 25)
+    end)
+    Options.tpZ:OnChanged(function(val)
+        if features then features._tpZ = val end
+        try(features and features.SetTeleportOffset, (features and features._tpX) or 0, (features and features._tpY) or 0, val)
+    end)
+
 end
 
 --== PLAYER ==--
