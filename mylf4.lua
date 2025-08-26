@@ -141,6 +141,17 @@ local TitleBar=Instance.new("Frame"); TitleBar.Size=UDim2.new(1,0,0,44); TitleBa
 makeCorner(TitleBar,10); makeStroke(TitleBar,1,.1)
 local Title=Instance.new("TextLabel"); Title.BackgroundTransparency=1; Title.Text="⚡ MYLF | Hub Premium"; Title.Font=Enum.Font.GothamBold; Title.TextSize=16
 Title.TextColor3=CurrentTheme.Text; Title.TextXAlignment=Enum.TextXAlignment.Left; Title.Position=UDim2.new(0,14,0,0); Title.Size=UDim2.new(1,-160,1,0); Title.Parent=TitleBar
+local Crown = Instance.new("TextLabel")
+Crown.Name = "Crown"
+Crown.BackgroundTransparency = 1
+Crown.Text = "👑"
+Crown.Font = Enum.Font.GothamBlack
+Crown.TextSize = 18
+Crown.TextColor3 = CurrentTheme.Accent
+Crown.AnchorPoint = Vector2.new(1, 0.5)
+Crown.Position = UDim2.new(1, -160, 0.5, 0) -- Theme butonunun soluna
+Crown.Size = UDim2.new(0, 24, 0, 24)
+Crown.Parent = TitleBar
 
 -- Sidebar
 local Sidebar=Instance.new("Frame"); Sidebar.BackgroundColor3=CurrentTheme.Panel; Sidebar.Position=UDim2.new(0,10,0,60); Sidebar.Size=UDim2.new(0,190,1,-70); Sidebar.Parent=Window
@@ -260,7 +271,7 @@ local tUtility  = makeTabButton("Utility / TP","")
 local tHUD      = makeTabButton("HUD","")
 local tSettings = makeTabButton("Settings","⚙️")
 local tScanner = makeTabButton("Scanner", "🔍")
-bindTab(tScanner, "Scanner")
+
 
 local function showPage(name) for k,f in pairs(Pages) do f.Visible=(k==name) end end
 showPage("Combat")
@@ -270,6 +281,7 @@ tMovement.MouseButton1Click:Connect(function() showPage("Movement") end)
 tUtility.MouseButton1Click:Connect(function() showPage("Utility / TP") end)
 tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
 tSettings.MouseButton1Click:Connect(function() showPage("Settings") end)
+tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
 
 -- Sections (yapı aynı)
 local sCombatL  = newSection(pCombat,   "Aimbot / Weapon")
@@ -378,6 +390,35 @@ local CrownText = Instance.new("TextLabel")
 CrownText.BackgroundTransparency=1; CrownText.Font=Enum.Font.GothamBold; CrownText.TextSize=14; CrownText.TextColor3=Color3.fromRGB(20,20,25)
 CrownText.TextXAlignment=Enum.TextXAlignment.Center; CrownText.Size=UDim2.new(1,-12,1,-12); CrownText.Position=UDim2.fromOffset(6,0); CrownText.Parent=CrownPanel
 CrownText.Text = "FPS: --  |  CPU: -- ms  |  GPU: -- ms  |  Ping: --"
+-- [NEREYE] HudTop (FPS/Ping label) oluşturulduktan SONRA ekle
+
+local RainbowBar = Instance.new("Frame")
+RainbowBar.Name = "RainbowBar"
+RainbowBar.BackgroundColor3 = Color3.fromRGB(255,255,255)
+RainbowBar.BorderSizePixel = 0
+RainbowBar.Position = UDim2.new(0, 10, 0, 28)   -- HudTop’un hemen altı
+RainbowBar.Size = UDim2.new(0, 220, 0, 3)       -- default genişlik
+RainbowBar.Parent = Overlay
+
+local RBGrad = Instance.new("UIGradient", RainbowBar)
+RBGrad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+    ColorSequenceKeypoint.new(0.16, Color3.fromRGB(255, 128, 0)),
+    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 255, 0)),
+    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 0)),
+    ColorSequenceKeypoint.new(0.66, Color3.fromRGB(0, 255, 255)),
+    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(0, 128, 255)),
+    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 255)),
+})
+RBGrad.Rotation = 0
+
+-- Yumuşak akış animasyonu (offset kaydırma)
+local _rbTicker = 0
+RunService.RenderStepped:Connect(function(dt)
+    _rbTicker = (_rbTicker + dt*0.25) % 1
+    RBGrad.Offset = Vector2.new(_rbTicker, 0)
+end)
+
 
 -- Draggable Crown (aynı mantık)
 do
@@ -430,7 +471,11 @@ Controls.Toggle(sHUDR, "Crosshair ON/OFF", false, function(on)
     safeCall("ToggleCrosshair", on)
 end)
 Controls.Button(sScan, "Game Objects", "Scan Game", function()
-    
+    local rbWidth = 220
+Controls.Slider(sHud2, "Rainbow Width", 60, 420, rbWidth, "%d", function(v)
+    rbWidth = v
+    RainbowBar.Size = UDim2.new(0, rbWidth, 0, 3)
+end)
 
     print("===== GAME DUMP START =====")
     for _, line in ipairs(dump) do
@@ -491,42 +536,87 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- Scanner Function
+-- Listbox (ScrollingFrame)
+local listBox = Instance.new("ScrollingFrame")
+listBox.BackgroundColor3 = CurrentTheme.Bg
+listBox.BorderSizePixel = 0
+listBox.AutomaticCanvasSize = Enum.AutomaticSize.Y
+listBox.CanvasSize = UDim2.new(0,0,0,0)
+listBox.ScrollBarThickness = 6
+listBox.Size = UDim2.new(1, -12, 1, -12)
+listBox.Parent = sScan
+makeCorner(listBox, 6); makeStroke(listBox, 1, .08)
+pad(listBox, 6)
+
+local uiList = Instance.new("UIListLayout", listBox)
+uiList.SortOrder = Enum.SortOrder.LayoutOrder
+uiList.Padding = UDim.new(0, 4)
+
+-- Tek satır (label) üretici
+local function pushLine(parent, text, isHeader)
+    local l = Instance.new("TextLabel")
+    l.BackgroundTransparency = 1
+    l.Size = UDim2.new(1, 0, 0, isHeader and 22 or 20)
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.AutoLocalize = false
+    if isHeader then
+        l.Font = Enum.Font.GothamBold
+        l.TextSize = 14
+        l.TextColor3 = CurrentTheme.Accent
+        l.Text = "== "..text.." =="
+    else
+        l.Font = Enum.Font.Code
+        l.TextSize = 13
+        l.TextColor3 = CurrentTheme.Text
+        l.Text = text
+    end
+    l.Parent = parent
+    return l
+end
+
+-- Ağaç tarayıcı
 local function scanFolder(folder, indent, parentFrame)
     indent = indent or ""
-    for _, obj in ipairs(folder:GetChildren()) do
-        local line = Instance.new("TextLabel")
-        line.BackgroundTransparency = 1
-        line.Size = UDim2.new(1,0,0,20)
-        line.Font = Enum.Font.Code
-        line.TextSize = 13
-        line.TextXAlignment = Enum.TextXAlignment.Left
-        line.TextColor3 = CurrentTheme.Text
-        line.Text = indent .. obj.ClassName .. " : " .. obj.Name
-        line.Parent = parentFrame
-
-        if #obj:GetChildren() > 0 then
-            scanFolder(obj, indent.."   ", parentFrame)
-        end
+    local ok, children = pcall(function() return folder:GetChildren() end)
+    if not ok then return end
+    for _, obj in ipairs(children) do
+        pushLine(parentFrame, indent .. obj.ClassName .. " : " .. obj.Name, false)
+        -- altını da gez
+        scanFolder(obj, indent .. "   ", parentFrame)
     end
 end
-or _,v in ipairs(listBox:GetChildren()) do
+
+-- Butonlar
+Controls.Button(sScan, "Scan", "Scan Now", function()
+    -- Clear önceki satırlar
+    for _,v in ipairs(listBox:GetChildren()) do
         if v:IsA("TextLabel") then v:Destroy() end
     end
 
-    for _, root in ipairs({workspace, game.ReplicatedStorage, game.StarterGui, game.Players}) do
-        local header = Instance.new("TextLabel")
-        header.BackgroundTransparency = 1
-        header.Size = UDim2.new(1,0,0,22)
-        header.Font = Enum.Font.GothamBold
-        header.TextSize = 14
-        header.TextXAlignment = Enum.TextXAlignment.Left
-        header.TextColor3 = CurrentTheme.Accent
-        header.Text = "== "..root.Name.." =="
-        header.Parent = listBox
+    -- Kök düğümler
+    local roots = {
+        workspace,
+        game.ReplicatedStorage,
+        game.Players,
+        game.StarterGui,
+        game.StarterPlayer,
+        game.Lighting,
+        game.SoundService
+    }
 
+    for _,root in ipairs(roots) do
+        pushLine(listBox, root.Name, true)
         scanFolder(root, "  ", listBox)
     end
+
+    notify("Scan tamamlandı.")
+end)
+
+Controls.Button(sScan, "Scan", "Clear List", function()
+    for _,v in ipairs(listBox:GetChildren()) do
+        if v:IsA("TextLabel") then v:Destroy() end
+    end
+    notify("Liste temizlendi.")
 end)
 
 
