@@ -1,11 +1,10 @@
 --[[ 
     ⚡ MYLF Linoria+ Legit UI Framework (Client-Safe) ⚡
-    - Tek LocalScript (PlayerGui). Hile/remote/hook YOK — sadece UI/HUD köprüsü.
-    - features9.8.lua'daki izinli fonksiyonlara güvenli çağrı (ALLOW) yapılır.
-    - Sekmeler: Features (3 kolon), Player, Visuals, HUD, Scanner, Settings
-    - Crown FPS Panel (tema uyumlu, rainbow alt çizgi) + Crosshair
-    - Drag sadece TitleBar (slider sürükleyince pencere kaymaz)
-    - Aç/Kapa: LeftShift
+    - Tek LocalScript (PlayerGui). Sadece UI/HUD ve güvenli köprü çağrıları.
+    - features9.8.lua içindeki izinli fonksiyonlara (ALLOW) safeCall yapar.
+    - Sekmeler: Features (grid, otomatik yerleşim), Player, Visuals, HUD, Scanner, Settings
+    - Crown FPS Panel (tema + rainbow), Crosshair, TitleBar-only drag (slider sürüklerken menü kaymaz)
+    - Global Aç/Kapa: LeftShift
 ]]
 
 --// === Features Köprüsü ===
@@ -67,8 +66,8 @@ end
 local function clamp(n, a, b) if n < a then return a elseif n > b then return b else return n end end
 local function round(n, p) p = p or 0 local m = 10^p return math.floor(n*m+0.5)/m end
 local function makeCorner(o, r) local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, r or 8); c.Parent = o; return c end
-local function makeStroke(o, th, tr) local s = Instance.new("UIStroke"); s.Thickness = th or 1; s.Transparency = tr or 0; s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border; s.Parent = o; return s end
-local function pad(o, px) local p = Instance.new("UIPadding"); p.PaddingTop=UDim.new(0,px); p.PaddingBottom=UDim.new(0,px); p.PaddingLeft=UDim.new(0,px); p.PaddingRight=UDim.new(0,px); p.Parent=o; return p end
+local function makeStroke(o, th, tr) local s = Instance.new("UIStroke"); s.Thickness = th or 1; s.Transparency = tr or 0; s.ApplyStrokeMode=Enum.ApplyStrokeMode.Border; s.Parent=o; return s end
+local function pad(o, px) local p=Instance.new("UIPadding"); p.PaddingTop=UDim.new(0,px); p.PaddingBottom=UDim.new(0,px); p.PaddingLeft=UDim.new(0,px); p.PaddingRight=UDim.new(0,px); p.Parent=o; return p end
 local function hsl(h, s, l) local function f(n) local k=(n+h*12)%12 local a=s*math.min(l,1-l) return l - a*math.max(-1, math.min(math.min(k-3,9-k),1)) end return Color3.new(f(0),f(8),f(4)) end
 
 --// Theme Engine
@@ -94,14 +93,14 @@ local function notify(text, dur)
     dur = dur or 2.5
     local t=Instance.new("TextLabel"); t.BackgroundColor3=CurrentTheme.Panel; t.TextColor3=CurrentTheme.Text; t.Font=Enum.Font.GothamSemibold; t.TextSize=14
     t.Text="  "..text; t.AnchorPoint=Vector2.new(1,0); t.Position=UDim2.new(1,-10,0,10); t.Size=UDim2.new(0,0,0,28); t.TextXAlignment=Enum.TextXAlignment.Left; t.Parent=NotifLayer
-    makeCorner(t,6); makeStroke(t,1,.1); Instance.new("UISizeConstraint", t).MaxSize = Vector2.new(520, 40)
-    tween(t,.18,{Size=UDim2.new(0, math.clamp(t.TextBounds.X+22,160,500), 0, 28)}):Play()
+    makeCorner(t,6); makeStroke(t,1,.1); Instance.new("UISizeConstraint", t).MaxSize=Vector2.new(520,40)
+    tween(t,.18,{Size=UDim2.new(0, math.clamp(t.TextBounds.X+22,160,500),0,28)}):Play()
     task.delay(dur,function() local tw=tween(t,.18,{Position=UDim2.new(1,-10,0,-34), BackgroundTransparency=1}); tw.Completed:Connect(function() t:Destroy() end); tw:Play() end)
 end
 
 -- Main Window
 local Window = Instance.new("Frame")
-Window.Name="Window"; Window.Size=UDim2.new(0, 820, 0, 500); Window.Position=UDim2.new(0.5,-410,0.5,-250); Window.BackgroundColor3=CurrentTheme.Bg; Window.Active=true; Window.Parent=Gui
+Window.Name="Window"; Window.Size=UDim2.new(0, 840, 0, 520); Window.Position=UDim2.new(0.5,-420,0.5,-260); Window.BackgroundColor3=CurrentTheme.Bg; Window.Active=true; Window.Parent=Gui
 makeCorner(Window,10); makeStroke(Window,1,.2)
 
 -- TitleBar (Drag sadece burada!)
@@ -135,7 +134,7 @@ end
 
 -- Sidebar
 local Sidebar = Instance.new("Frame")
-Sidebar.BackgroundColor3=CurrentTheme.Panel; Sidebar.Position=UDim2.new(0,10,0,58); Sidebar.Size=UDim2.new(0,170,1,-68); Sidebar.Parent=Window
+Sidebar.BackgroundColor3=CurrentTheme.Panel; Sidebar.Position=UDim2.new(0,10,0,58); Sidebar.Size=UDim2.new(0,180,1,-68); Sidebar.Parent=Window
 makeCorner(Sidebar,8); makeStroke(Sidebar,1,.08); pad(Sidebar,8)
 local SideList = Instance.new("UIListLayout", Sidebar); SideList.Padding=UDim.new(0,8)
 
@@ -147,23 +146,40 @@ local function makeTabButton(text, icon)
     return b
 end
 
--- Content
+-- Content container (Features sayfası scrollable grid olacak)
 local Content = Instance.new("Frame")
-Content.BackgroundTransparency=1; Content.Position=UDim2.new(0,190,0,58); Content.Size=UDim2.new(1,-200,1,-68); Content.Parent=Window
+Content.BackgroundTransparency=1; Content.Position=UDim2.new(0,200,0,58); Content.Size=UDim2.new(1,-210,1,-68); Content.Parent=Window
 
--- Pages & Sections
+-- Pages
 local Pages={}
 local function newPage(name)
     local p=Instance.new("Frame"); p.Visible=false; p.BackgroundColor3=CurrentTheme.Panel; p.Size=UDim2.new(1,0,1,0); p.Parent=Content
     makeCorner(p,8); makeStroke(p,1,.08); pad(p,10)
-    local list=Instance.new("UIListLayout", p); list.Padding=UDim.new(0,10); list.FillDirection=Enum.FillDirection.Horizontal
     Pages[name]=p; return p
 end
 
--- widthScale opsiyonlu section (default 0.5 = 2 kolon; 0.33 = 3 kolon)
-local function newSection(parent, title, widthScale)
-    widthScale = widthScale or 0.5
-    local s=Instance.new("Frame"); s.BackgroundColor3=CurrentTheme.Bg; s.Size=UDim2.new(widthScale,-8,1,0); s.Parent=parent
+-- Features için özel Grid sayfası (taşma fix: otomatik yerleşim)
+local function newGridPage(name, cols, rows, padPx)
+    local sf = Instance.new("ScrollingFrame")
+    sf.Visible=false; sf.BackgroundColor3=CurrentTheme.Panel; sf.Size=UDim2.new(1,0,1,0); sf.Parent=Content
+    sf.ScrollBarThickness=6; sf.CanvasSize=UDim2.new()
+    makeCorner(sf,8); makeStroke(sf,1,.08); pad(sf,10)
+
+    local grid = Instance.new("UIGridLayout", sf)
+    grid.SortOrder = Enum.SortOrder.LayoutOrder
+    grid.FillDirection = Enum.FillDirection.Horizontal
+    grid.CellPadding = UDim2.new(0, padPx or 10, 0, padPx or 10)
+    grid.FillDirectionMaxColumns = cols or 3
+    -- Hücre boyutu: genişlik = 1/cols, yükseklik = 1/rows
+    local cp = padPx or 10
+    grid.CellSize = UDim2.new(1/(cols or 3), -((cp)*((cols or 3)-1))/ (cols or 3), 1/(rows or 2), -((cp)*((rows or 2)-1))/ (rows or 2))
+
+    Pages[name] = sf
+    return sf
+end
+
+local function newSection(parent, title)
+    local s=Instance.new("Frame"); s.BackgroundColor3=CurrentTheme.Bg; s.Parent=parent
     makeCorner(s,8); makeStroke(s,1,.08); pad(s,10)
     local t=Instance.new("TextLabel"); t.BackgroundTransparency=1; t.Text=title; t.Font=Enum.Font.GothamBold; t.TextSize=14; t.TextColor3=CurrentTheme.Text; t.Size=UDim2.new(1,0,0,18); t.Parent=s
     local list=Instance.new("UIListLayout", s); list.Padding=UDim.new(0,8)
@@ -175,7 +191,7 @@ local Controls={}
 local function makeRow(parent,label)
     local f=Instance.new("Frame"); f.BackgroundTransparency=1; f.Size=UDim2.new(1,0,0,28); f.Parent=parent
     local l=Instance.new("TextLabel"); l.BackgroundTransparency=1; l.Text=label; l.Font=Enum.Font.Gotham; l.TextSize=13; l.TextXAlignment=Enum.TextXAlignment.Left
-    l.TextColor3=CurrentTheme.SubText; l.Size=UDim2.new(0.5,0,1,0); l.Parent=f
+    l.TextColor3=CurrentTheme.SubText; l.Size=UDim2.new(0.6,0,1,0); l.Parent=f
     return f,l
 end
 function Controls.Toggle(parent,label,default,callback)
@@ -193,7 +209,7 @@ function Controls.Toggle(parent,label,default,callback)
 end
 function Controls.Slider(parent,label,min,max,default,fmt,callback)
     local row,lab=makeRow(parent,label)
-    local frame=Instance.new("Frame"); frame.Size=UDim2.new(0.48,0,0,24); frame.Position=UDim2.new(0.52,0,0.5,-12); frame.BackgroundColor3=CurrentTheme.Hover; frame.Parent=row
+    local frame=Instance.new("Frame"); frame.Size=UDim2.new(0.38,0,0,24); frame.Position=UDim2.new(0.62,0,0.5,-12); frame.BackgroundColor3=CurrentTheme.Hover; frame.Parent=row
     makeCorner(frame,6); makeStroke(frame,1,.15)
     local fill=Instance.new("Frame"); fill.BackgroundColor3=CurrentTheme.Accent; fill.Size=UDim2.new((default-min)/(max-min),0,1,0); fill.Parent=frame; makeCorner(fill,6)
     local valText=Instance.new("TextLabel"); valText.BackgroundTransparency=1; valText.TextColor3=CurrentTheme.Text; valText.Font=Enum.Font.GothamSemibold; valText.TextSize=12
@@ -226,27 +242,6 @@ function Controls.Dropdown(parent,label,items,defaultIdx,callback)
     end
     btn.MouseButton1Click:Connect(function() listFrame.Visible=not listFrame.Visible end)
     return {SetIndex=function(i) if items[i] then idx=i; btn.Text=items[i]; if callback then callback(items[i],i) end end end, GetIndex=function() return idx end, GetValue=function() return items[idx] end}
-end
-function Controls.Color(parent,label,default,callback)
-    local row,lab=makeRow(parent,label)
-    local box=Instance.new("TextButton"); box.AutoButtonColor=false; box.Text=""; box.Size=UDim2.new(0,36,0,24); box.Position=UDim2.new(1,-46,0.5,-12)
-    box.BackgroundColor3=default or CurrentTheme.Accent; box.Parent=row; makeCorner(box,6); makeStroke(box,1,.15)
-    local picking=false
-    box.MouseButton1Click:Connect(function() picking=not picking; notify(picking and "Renk seç: ekrana tıkla." or "Renk seçimi kapandı.") end)
-    UserInputService.InputBegan:Connect(function(input,gp)
-        if picking and input.UserInputType==Enum.UserInputType.MouseButton1 then
-            picking=false; local rel=(input.Position.X%512)/512; local c=hsl(rel,.7,.55); box.BackgroundColor3=c; if callback then callback(c) end
-        end
-    end)
-    return {Set=function(c) box.BackgroundColor3=c; if callback then callback(c) end end, Get=function() return box.BackgroundColor3 end}
-end
-function Controls.Button(parent,label,text,callback)
-    local row,lab=makeRow(parent,label)
-    local btn=Instance.new("TextButton"); btn.AutoButtonColor=false; btn.Text=text or "Run"; btn.Font=Enum.Font.GothamSemibold; btn.TextSize=12; btn.TextColor3=CurrentTheme.Text
-    btn.BackgroundColor3=CurrentTheme.Hover; btn.Size=UDim2.new(0,120,0,24); btn.Position=UDim2.new(1,-130,0.5,-12); btn.Parent=row; makeCorner(btn,6); makeStroke(btn,1,.15)
-    btn.MouseEnter:Connect(function() tween(btn,.08,{BackgroundColor3=CurrentTheme.AccentSoft}):Play() end)
-    btn.MouseLeave:Connect(function() tween(btn,.12,{BackgroundColor3=CurrentTheme.Hover}):Play() end)
-    btn.MouseButton1Click:Connect(function() if callback then callback() end end); return btn
 end
 
 -- Overlay (Crosshair + Crown Panel)
@@ -295,18 +290,8 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
--- Waypoints (örnek HUD aracı)
-local WayFolder=Instance.new("Folder"); WayFolder.Name="MYLF_Waypoints_Local"; WayFolder.Parent=workspace
-local function createWaypoint(name,pos)
-    local part=Instance.new("Part"); part.Anchored=true; part.CanCollide=false; part.Transparency=1; part.Size=Vector3.new(1,1,1); part.CFrame=CFrame.new(pos); part.Parent=WayFolder
-    local att=Instance.new("Attachment", part); local bb=Instance.new("BillboardGui"); bb.Adornee=att; bb.Size=UDim2.fromOffset(160,40); bb.AlwaysOnTop=true; bb.Parent=part
-    local label=Instance.new("TextLabel"); label.Size=UDim2.new(1,0,1,0); label.BackgroundColor3=CurrentTheme.Panel; label.TextColor3=CurrentTheme.Text; label.Font=Enum.Font.GothamBold; label.TextSize=14; label.Text="📍 "..name; label.Parent=bb; makeCorner(label,6); makeStroke(label,1,.15)
-    return part
-end
-local function clearWaypoints() for _,v in ipairs(WayFolder:GetChildren()) do v:Destroy() end end
-
 -- Pages
-local pFeatures = newPage("Features")   -- 3 kolon
+local pFeatures = newGridPage("Features", 3, 2, 10) -- otomatik konumlanır, taşma yok (3 sütun x 2 satır)
 local pPlayer   = newPage("Player")
 local pVisuals  = newPage("Visuals")
 local pHUD      = newPage("HUD")
@@ -330,15 +315,14 @@ tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
 tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
 tSettings.MouseButton1Click:Connect(function() showPage("Settings") end)
 
---========== FEATURES (3x2 düzen) ==========
--- Satır 1: Combat / Visuals / Movement
-local sFCombat   = newSection(pFeatures, "Rage / Combat",   1/3)
-local sFVisuals  = newSection(pFeatures, "Visuals / ESP",   1/3)
-local sFMove     = newSection(pFeatures, "Movement",        1/3)
--- Satır 2: Protection / Utility / Offsets
-local sFProt     = newSection(pFeatures, "Protection",      1/3)
-local sFUtil     = newSection(pFeatures, "Utility / TP",    1/3)
-local sFOffsets  = newSection(pFeatures, "Teleport Offsets",1/3)
+--========== FEATURES (grid hücreleri: otomatik) ==========
+-- 6 hücre: Combat / Visuals / Movement / Protection / Utility / Offsets
+local sFCombat   = newSection(pFeatures, "Rage / Combat")
+local sFVisuals  = newSection(pFeatures, "Visuals / ESP")
+local sFMove     = newSection(pFeatures, "Movement")
+local sFProt     = newSection(pFeatures, "Protection")
+local sFUtil     = newSection(pFeatures, "Utility / TP")
+local sFOffsets  = newSection(pFeatures, "Teleport Offsets")
 
 -- Combat
 Controls.Toggle(sFCombat,"Aimbot",false,function(on) safeCall("ToggleAimbot", on) end)
@@ -373,8 +357,12 @@ Controls.Slider(sFOffsets,"tpY",-50,50,tpY,"%0.0f",function(v) tpY=v; safeCall("
 Controls.Slider(sFOffsets,"tpZ",  1,100,tpZ,"%0.0f",function(v) tpZ=v; safeCall("SetTeleportOffset", tpX,tpY,tpZ) end)
 
 --========== PLAYER ==========
-local sMovement = newSection(pPlayer, "Movement / Camera")
-local sTools    = newSection(pPlayer, "Utilities")
+local function newHalfSection(parent,title) local s=Instance.new("Frame"); s.BackgroundColor3=CurrentTheme.Bg; s.Size=UDim2.new(0.5,-8,1,0); s.Parent=parent; makeCorner(s,8); makeStroke(s,1,.08); pad(s,10)
+local t=Instance.new("TextLabel"); t.BackgroundTransparency=1; t.Text=title; t.Font=Enum.Font.GothamBold; t.TextSize=14; t.TextColor3=CurrentTheme.Text; t.Size=UDim2.new(1,0,0,18); t.Parent=s
+local l=Instance.new("UIListLayout", s); l.Padding=UDim.new(0,8); return s end
+
+local sMovement = newHalfSection(pPlayer, "Movement / Camera")
+local sTools    = newHalfSection(pPlayer, "Utilities")
 
 Controls.Dropdown(sMovement, "Camera Mode", {"ThirdPerson","FirstPerson","Orbital"}, 1, function(v)
     if v=="ThirdPerson" then LP.CameraMode = Enum.CameraMode.Classic; Camera.CameraType=Enum.CameraType.Custom
@@ -392,13 +380,20 @@ end)
 
 Controls.Button(sTools,"Waypoint","Add Current",function()
     local char=LP.Character; local hrp=char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then local nm="WP-"..string.sub(HttpService:GenerateGUID(false),1,4); createWaypoint(nm, hrp.Position+Vector3.new(0,3,0)); notify("Waypoint eklendi: "..nm) else notify("Karakter bulunamadı.",2.0) end
+    if hrp then local nm="WP-"..string.sub(HttpService:GenerateGUID(false),1,4); local f=workspace:FindFirstChild("MYLF_Waypoints_Local"); if not f then f=Instance.new("Folder",workspace); f.Name="MYLF_Waypoints_Local" end
+        local part=Instance.new("Part"); part.Anchored=true; part.CanCollide=false; part.Transparency=1; part.Size=Vector3.new(1,1,1); part.CFrame=CFrame.new(hrp.Position+Vector3.new(0,3,0)); part.Parent=f
+        local att=Instance.new("Attachment", part); local bb=Instance.new("BillboardGui"); bb.Adornee=att; bb.Size=UDim2.fromOffset(160,40); bb.AlwaysOnTop=true; bb.Parent=part
+        local label=Instance.new("TextLabel"); label.Size=UDim2.new(1,0,1,0); label.BackgroundColor3=CurrentTheme.Panel; label.TextColor3=CurrentTheme.Text; label.Font=Enum.Font.GothamBold; label.TextSize=14; label.Text="📍 "..nm; label.Parent=bb; makeCorner(label,6); makeStroke(label,1,.15)
+        notify("Waypoint eklendi: "..nm)
+    else notify("Karakter bulunamadı.",2.0) end
 end)
-Controls.Button(sTools,"Waypoint","Clear All",function() clearWaypoints(); notify("Tüm waypoint'ler silindi.") end)
+Controls.Button(sTools,"Waypoint","Clear All",function()
+    local f=workspace:FindFirstChild("MYLF_Waypoints_Local"); if f then f:Destroy() end; notify("Tüm waypoint'ler silindi.")
+end)
 
 --========== VISUALS ==========
-local sCross = newSection(pVisuals, "Crosshair")
-local sTheme = newSection(pVisuals, "Theme / Colors")
+local sCross = newHalfSection(pVisuals, "Crosshair")
+local sTheme = newHalfSection(pVisuals, "Theme / Colors")
 
 local crossToggle = Controls.Toggle(sCross, "Enable Crosshair", true, function(on)
     CrosshairCfg.Enabled=on; layoutCrosshair(); safeCall("ToggleCrosshair", on)
@@ -420,29 +415,27 @@ local function repaintTheme(name)
         for _,sec in ipairs(p:GetChildren()) do if sec:IsA("Frame") and sec~=p then sec.BackgroundColor3=T.Bg end end
     end
     CrosshairCfg.Color = CrosshairCfg.Color or T.Accent; layoutCrosshair()
-    CrownPanel.BackgroundColor3=T.Yellow -- crown altın tonu
+    CrownPanel.BackgroundColor3=T.Yellow
 end
-
 Controls.Dropdown(sTheme,"Theme", themeOrder, 1, function(val)
     repaintTheme(val); ThemeBtn.Text="Theme: "..val; notify("Tema: "..val)
 end)
 Controls.Color(sTheme, "Accent Override", CurrentTheme.Accent, function(c) CurrentTheme.Accent=c; layoutCrosshair(); notify("Accent güncellendi.") end)
 
 --========== HUD ==========
-local sHudL = newSection(pHUD, "Crown Performance Panel")
-local sHudR = newSection(pHUD, "HUD Toggles")
+local sHudL = newHalfSection(pHUD, "Crown Performance Panel")
+local sHudR = newHalfSection(pHUD, "HUD Toggles")
 
 local hudToggle = Controls.Toggle(sHudR, "Show Crown Panel", true, function(on)
     CrownPanel.Visible=on; safeCall("ToggleHUDPanel", on)
 end)
-
 Controls.Button(sHudL, "Snapshot", "Notify Now", function()
     notify("HUD aktif — Crown panel üstte.", 2.0)
 end)
 
 --========== SCANNER ==========
-local sScanL = newSection(pScanner,"Explorer")
-local sScanR = newSection(pScanner,"Details")
+local sScanL = newHalfSection(pScanner,"Explorer")
+local sScanR = newHalfSection(pScanner,"Details")
 
 local bar=Instance.new("Frame", sScanL); bar.Size=UDim2.new(1,0,0,28); bar.BackgroundColor3=CurrentTheme.Hover; makeCorner(bar,6)
 local search=Instance.new("TextBox",bar); search.Size=UDim2.new(1,-80,1,0); search.Position=UDim2.new(0,6,0,0)
@@ -478,8 +471,8 @@ end
 btn.MouseButton1Click:Connect(doScan)
 
 --========== SETTINGS ==========
-local sBind = newSection(pSettings, "Keybinds / Visibility")
-local sMeta = newSection(pSettings, "Meta / Theme Button")
+local sBind = newHalfSection(pSettings, "Keybinds / Visibility")
+local sMeta = newHalfSection(pSettings, "Meta / Theme Button")
 
 local bindBtn = Controls.Button(sBind, "Crosshair Bind", "Set Key (none)", function()
     if State.BindListening then return end; State.BindListening="CrosshairToggle"; notify("Crosshair için bir tuşa bas.")
@@ -489,7 +482,7 @@ Controls.Button(sBind, "Visibility", "Hide/Show Window", function()
     notify(State.Visible and "Menü gösterildi." or "Menü gizlendi.")
 end)
 
-local themeIdx=1
+local themeOrder={"Dark","Midnight","Neon","Black","Red"}; local themeIdx=1
 local function setThemeByName(name) repaintTheme(name); ThemeBtn.Text="Theme: "..name end
 ThemeBtn.MouseButton1Click:Connect(function() themeIdx = themeIdx % #themeOrder + 1; setThemeByName(themeOrder[themeIdx]); notify("Tema: "..themeOrder[themeIdx]) end)
 setThemeByName("Dark")
