@@ -132,23 +132,43 @@ do -- Drag only on TitleBar
     end)
 end
 
--- Sidebar
+-- === Sidebar ===
 local Sidebar = Instance.new("Frame")
-Sidebar.BackgroundColor3=CurrentTheme.Panel; Sidebar.Position=UDim2.new(0,10,0,58); Sidebar.Size=UDim2.new(0,180,1,-68); Sidebar.Parent=Window
-makeCorner(Sidebar,8); makeStroke(Sidebar,1,.08); pad(Sidebar,8)
-local SideList = Instance.new("UIListLayout", Sidebar); SideList.Padding=UDim.new(0,8)
+Sidebar.BackgroundColor3=CurrentTheme.Panel
+Sidebar.Position=UDim2.new(0,10,0,58)
+Sidebar.Size=UDim2.new(0,180,1,-68)
+Sidebar.Parent=Window
+makeCorner(Sidebar,8)
+makeStroke(Sidebar,1,.08)
+pad(Sidebar,8)
+
+local SideList = Instance.new("UIListLayout", Sidebar)
+SideList.Padding=UDim.new(0,8)
 
 local function makeTabButton(text, icon)
-    local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=(icon and (icon.."  ") or "")..text; b.Font=Enum.Font.GothamSemibold; b.TextSize=14
-    b.TextColor3=CurrentTheme.Text; b.BackgroundColor3=CurrentTheme.Hover; b.Size=UDim2.new(1,-4,0,34); b.Parent=Sidebar; makeCorner(b,6); makeStroke(b,1,.2)
+    local b=Instance.new("TextButton")
+    b.AutoButtonColor=false
+    b.Text=(icon and (icon.."  ") or "")..text
+    b.Font=Enum.Font.GothamSemibold
+    b.TextSize=14
+    b.TextColor3=CurrentTheme.Text
+    b.BackgroundColor3=CurrentTheme.Hover
+    b.Size=UDim2.new(1,-4,0,34)
+    b.Parent=Sidebar
+    makeCorner(b,6)
+    makeStroke(b,1,.2)
     b.MouseEnter:Connect(function() tween(b,.08,{BackgroundColor3=CurrentTheme.AccentSoft}):Play() end)
     b.MouseLeave:Connect(function() tween(b,.12,{BackgroundColor3=CurrentTheme.Hover}):Play() end)
     return b
 end
 
 -- Content container (Features sayfası scrollable grid olacak)
+-- === Content container ===
 local Content = Instance.new("Frame")
-Content.BackgroundTransparency=1; Content.Position=UDim2.new(0,200,0,58); Content.Size=UDim2.new(1,-210,1,-68); Content.Parent=Window
+Content.BackgroundTransparency=1
+Content.Position=UDim2.new(0,200,0,58)
+Content.Size=UDim2.new(1,-210,1,-68)
+Content.Parent=Window
 
 -- Pages
 local Pages={}
@@ -469,6 +489,15 @@ local function doScan()
     list.CanvasSize=UDim2.new(0,0,0, lay.AbsoluteContentSize.Y+12); notify(("Scan done (%d items)."):format(count))
 end
 btn.MouseButton1Click:Connect(doScan)
+
+-- Tıklama bağlamaları
+tFeatures.MouseButton1Click:Connect(function() showPage("Features") end)
+tPlayer.MouseButton1Click:Connect(function() showPage("Player") end)
+tVisuals.MouseButton1Click:Connect(function() showPage("Visuals") end)
+tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
+tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
+tSettings.MouseButton1Click:Connect(function() showPage("Settings") end)
+
 
 --========== SETTINGS ==========
 local sBind = newHalfSection(pSettings, "Keybinds / Visibility")
