@@ -1,8 +1,7 @@
 --==[ ⚡ MYLF UI Skeleton Library (Single-File) ]==--
 -- Kullanım: local MYLF = loadstring(game:HttpGet(URL))()
--- Amaç: Linoria benzeri API ile minimal, genişletilebilir bir iskelet sunmak.
 -- API: :CreateWindow → :AddTab → :AddSection → :AddToggle/:AddSlider/:AddDropdown/:AddButton/:AddKeybind/:AddLabel
--- Not: Bu bir iskelet; stil, animasyon ve gelişmiş bileşenler için alanlar hazır.
+-- Bu sürümde: TopBar sağda FPS/RAM göstergesi + rainbow bar + stats hook noktaları
 
 --// Services
 local Players            = game:GetService("Players")
@@ -10,12 +9,12 @@ local RunService         = game:GetService("RunService")
 local UserInputService   = game:GetService("UserInputService")
 local TweenService       = game:GetService("TweenService")
 local HttpService        = game:GetService("HttpService")
+local Stats              = game:GetService("Stats")
 
 local LP = Players.LocalPlayer
 
 --// Helpers
 local function newInst(c, p) local i = Instance.new(c); if p then i.Parent = p end; return i end
-
 local function round(n, r)
     r = r or 0
     if r <= 0 then return math.floor(n + 0.5) end
@@ -34,6 +33,7 @@ local function Signal()
 end
 
 local function GiveSignal(self, conn)
+    self._connections = self._connections or {}
     table.insert(self._connections, conn)
     return conn
 end
@@ -50,20 +50,21 @@ end
 
 local function Pad(inst, p) local u = newInst("UIPadding", inst); p = p or 8; u.PaddingTop = UDim.new(0,p); u.PaddingLeft = UDim.new(0,p); u.PaddingRight=UDim.new(0,p); u.PaddingBottom=UDim.new(0,p); return u end
 
-local function MakeDraggable(frame, dragHandle)
+-- owner: bağlantıları toplayacağımız table, frame: sürüklenecek frame, dragHandle: header
+local function MakeDraggable(owner, frame, dragHandle)
     dragHandle = dragHandle or frame
     local dragging, dragStart, startPos
-    GiveSignal(frame, dragHandle.InputBegan:Connect(function(input)
+    GiveSignal(owner, dragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos  = frame.Position
-            input.Changed:Connect(function()
+            GiveSignal(owner, input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
+            end))
         end
     end))
-    GiveSignal(frame, UserInputService.InputChanged:Connect(function(input)
+    GiveSignal(owner, UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
             frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
@@ -86,6 +87,13 @@ ThemeManager._themes = {
         Bad       = Color3.fromRGB(255,95,95),
         Button    = Color3.fromRGB(40,40,48),
         Slider    = Color3.fromRGB(52,52,60),
+        Rainbow1  = Color3.fromRGB(255,0,0),
+        Rainbow2  = Color3.fromRGB(255,165,0),
+        Rainbow3  = Color3.fromRGB(255,255,0),
+        Rainbow4  = Color3.fromRGB(0,255,0),
+        Rainbow5  = Color3.fromRGB(0,255,255),
+        Rainbow6  = Color3.fromRGB(0,128,255),
+        Rainbow7  = Color3.fromRGB(200,0,255),
     },
     ["Pink"] = {
         Bg        = Color3.fromRGB(20,16,20),
@@ -99,6 +107,13 @@ ThemeManager._themes = {
         Bad       = Color3.fromRGB(255,110,140),
         Button    = Color3.fromRGB(48,36,56),
         Slider    = Color3.fromRGB(60,44,68),
+        Rainbow1  = Color3.fromRGB(255,0,128),
+        Rainbow2  = Color3.fromRGB(255,128,0),
+        Rainbow3  = Color3.fromRGB(255,255,0),
+        Rainbow4  = Color3.fromRGB(0,255,128),
+        Rainbow5  = Color3.fromRGB(0,255,255),
+        Rainbow6  = Color3.fromRGB(0,128,255),
+        Rainbow7  = Color3.fromRGB(200,0,255),
     }
 }
 function ThemeManager:Get(name) return self._themes[name] or self._themes["Default"] end
@@ -106,7 +121,7 @@ function ThemeManager:Set(name, t) self._themes[name] = t end
 
 --// Library Root
 local Library = {
-    __VERSION  = "1.0-skeleton",
+    __VERSION  = "1.1-skeleton-fpsram",
     _connections = {},
     _toasts = {},
 }
@@ -174,10 +189,13 @@ function Library:CreateWindow(opts)
         _theme   = self._theme,
         _connections = {},
         _tabs    = {},
+        _tick    = Signal(),
         Title    = (opts and opts.Title) or "MYLF Window",
         Sub      = (opts and opts.Sub) or "",
         Visible  = true,
         Keybind  = (opts and opts.Keybind) or Enum.KeyCode.RightShift,
+        _statsProvider = nil, -- hook: custom fps/mem sağlayıcı
+        _fps = 0, _mem = 0,
     }, Window)
 
     -- Root panel
@@ -191,6 +209,7 @@ function Library:CreateWindow(opts)
 
     -- TopBar
     local top = newInst("Frame", root)
+    top.Name = "TopBar"
     top.Size = UDim2.new(1, 0, 0, 44)
     top.BackgroundColor3 = self._theme.Panel
     MakeCorner(top, 8); MakeStroke(top, 1, .85); Pad(top, 10)
@@ -202,8 +221,9 @@ function Library:CreateWindow(opts)
     title.TextSize = 16
     title.TextColor3 = win._theme.Text
     title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Size = UDim2.new(1, -180, 1, -20)
+    title.Size = UDim2.new(1, -240, 1, -20)
     title.Position = UDim2.new(0, 8, 0, 10)
+    win._titleLabel = title
 
     local sub = newInst("TextLabel", top)
     sub.BackgroundTransparency = 1
@@ -212,9 +232,11 @@ function Library:CreateWindow(opts)
     sub.TextSize = 12
     sub.TextColor3 = win._theme.SubText
     sub.TextXAlignment = Enum.TextXAlignment.Left
-    sub.Size = UDim2.new(1, -180, 0, 14)
+    sub.Size = UDim2.new(1, -240, 0, 14)
     sub.Position = UDim2.new(0, 8, 0, 24)
+    win._subLabel = sub
 
+    -- Close / Visibility
     local closeBtn = newInst("TextButton", top)
     closeBtn.Size = UDim2.new(0, 28, 0, 28)
     closeBtn.Position = UDim2.new(1, -36, 0, 8)
@@ -229,9 +251,46 @@ function Library:CreateWindow(opts)
         win:SetVisible(not win.Visible)
     end))
 
-    MakeDraggable(root, top)
+    -- PERF CLUSTER (FPS/RAM + Rainbow bar)
+    local perf = newInst("Frame", top)
+    perf.Name = "Perf"
+    perf.Size = UDim2.new(0, 180, 0, 28)
+    perf.Position = UDim2.new(1, -220, 0, 8)
+    perf.BackgroundColor3 = win._theme.Button
+    MakeCorner(perf, 6); MakeStroke(perf,1,.8); Pad(perf,8)
 
-    -- Body split: Tabs (left) + Pages (right)
+    local perfLbl = newInst("TextLabel", perf)
+    perfLbl.Name = "Label"
+    perfLbl.BackgroundTransparency = 1
+    perfLbl.Font = Enum.Font.GothamSemibold
+    perfLbl.TextSize = 13
+    perfLbl.TextColor3 = win._theme.Text
+    perfLbl.TextXAlignment = Enum.TextXAlignment.Center
+    perfLbl.Size = UDim2.new(1, 0, 1, -8)
+    perfLbl.Position = UDim2.new(0,0,0,0)
+    perfLbl.Text = "FPS -- • RAM -- MB"
+
+    local bar = newInst("Frame", perf)
+    bar.Name = "Rainbow"
+    bar.Size = UDim2.new(1, -8, 0, 2)
+    bar.Position = UDim2.new(0, 4, 1, -4)
+    bar.BackgroundTransparency = 0
+    MakeCorner(bar, 2)
+
+    local grad = newInst("UIGradient", bar)
+    grad.Rotation = 0
+    grad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0.00, win._theme.Rainbow1),
+        ColorSequenceKeypoint.new(0.16, win._theme.Rainbow2),
+        ColorSequenceKeypoint.new(0.33, win._theme.Rainbow3),
+        ColorSequenceKeypoint.new(0.50, win._theme.Rainbow4),
+        ColorSequenceKeypoint.new(0.66, win._theme.Rainbow5),
+        ColorSequenceKeypoint.new(0.83, win._theme.Rainbow6),
+        ColorSequenceKeypoint.new(1.00, win._theme.Rainbow7),
+    })
+    grad.Offset = Vector2.new(0,0)
+
+    -- Body: Tabs (left) + Pages (right)
     local body = newInst("Frame", root)
     body.Name = "Body"
     body.BackgroundTransparency = 1
@@ -266,6 +325,39 @@ function Library:CreateWindow(opts)
         end
     end))
 
+    -- Draggable
+    MakeDraggable(win, root, top)
+
+    --== PERF UPDATE LOOP + RAINBOW ANIM ==--
+    local fpsAvg = 60
+    local tAccum = 0
+    local gradShift = 0
+    GiveSignal(win, RunService.RenderStepped:Connect(function(dt)
+        -- fps (exponential smoothing)
+        local cur = 1 / math.max(dt, 1/1000)
+        fpsAvg = fpsAvg * 0.90 + cur * 0.10
+
+        -- rainbow akışı
+        gradShift = (gradShift + dt * 0.5) % 1
+        grad.Offset = Vector2.new(gradShift, 0)
+
+        tAccum = tAccum + dt
+        if tAccum >= 0.25 then
+            local mem
+            if win._statsProvider then
+                local f, m = win._statsProvider()
+                if typeof(f) == "number" then fpsAvg = f end
+                if typeof(m) == "number" then mem = m end
+            end
+            mem = mem or (Stats and Stats:GetTotalMemoryUsageMb() or 0)
+            win._fps = math.floor(fpsAvg + 0.5)
+            win._mem = math.floor(mem + 0.5)
+            perfLbl.Text = ("FPS %d • RAM %d MB"):format(win._fps, win._mem)
+            win._tick:Fire(dt, win._fps, win._mem)
+            tAccum = 0
+        end
+    end))
+
     return win
 end
 
@@ -274,22 +366,22 @@ function Window:SetVisible(v)
     self._root.Visible = self.Visible
 end
 
-function Window:SetKeybind(keycode)
-    self.Keybind = keycode
-end
+function Window:SetKeybind(keycode) self.Keybind = keycode end
+function Window:SetTitle(t) self.Title = t; if self._titleLabel then self._titleLabel.Text = t end end
+function Window:SetSubtitle(t) self.Sub = t; if self._subLabel then self._subLabel.Text = t end end
 
-function Window:SetTitle(t)
-    self.Title = t
-    local top = self._root:FindFirstChild("Frame")
-    if top and top:FindFirstChildWhichIsA("TextLabel") then
-        top:FindFirstChildWhichIsA("TextLabel").Text = t
-    end
-end
+-- Hook: kendi istatistik sağlayıcını ver → her güncellemede çağrılır
+-- Beklenen dönüş: return fpsNumber, memMbNumber (ikisi de optional; vermediğini biz hesaplarız)
+function Window:SetStatsProvider(fn) self._statsProvider = fn end
+
+-- Hook: her frame tetiklenir (smoothed fps & mem ile)
+function Window:OnTick(fn) return self._tick:Connect(fn) end
+
+function Window:GetFPS() return self._fps or 0 end
+function Window:GetRAMMB() return self._mem or 0 end
 
 --// Tab Class
-local Tab = {}
-Tab.__index = Tab
-
+local Tab = {} ; Tab.__index = Tab
 function Window:AddTab(def)
     def = def or {}
     local tab = setmetatable({
@@ -352,9 +444,7 @@ function Window:AddTab(def)
     GiveSignal(tab, b.MouseLeave:Connect(function()
         TweenService:Create(b, TweenInfo.new(.15), {BackgroundColor3 = tab._active and tab._theme.Accent or tab._theme.Button}):Play()
     end))
-    GiveSignal(tab, b.MouseButton1Click:Connect(function()
-        tab:Show()
-    end))
+    GiveSignal(tab, b.MouseButton1Click:Connect(function() tab:Show() end))
 
     table.insert(self._tabs, tab)
     if #self._tabs == 1 then tab:Show() end
@@ -374,9 +464,7 @@ function Tab:Show()
 end
 
 --// Section Class
-local Section = {}
-Section.__index = Section
-
+local Section = {} ; Section.__index = Section
 function Tab:AddSection(title)
     local s = setmetatable({
         _tab = self,
@@ -417,7 +505,6 @@ function Tab:AddSection(title)
 end
 
 --// Controls
--- Base control factory
 local function ControlBase(section, kind, id)
     return {
         _section = section,
@@ -518,7 +605,6 @@ function Section:AddToggle(id, opts)
     function c:Set(v) v = not not v; if c.Value == v then return end; c.Value = v; render(v); c:FireChanged(v) end
     function c:Get() return c.Value end
 
-    -- initial
     render(c.Value)
     return c
 end
@@ -598,7 +684,6 @@ function Section:AddSlider(id, opts)
     end
     function c:Get() return c.Value end
 
-    -- initial
     c:Set(c.Value)
     return c
 end
@@ -636,7 +721,6 @@ function Section:AddDropdown(id, opts)
     btn.BackgroundColor3 = c._theme.Button
     MakeCorner(btn, 6); MakeStroke(btn,1,.85)
 
-    -- Simple popup
     local open = false
     local popup
     local function closePopup()
@@ -652,7 +736,6 @@ function Section:AddDropdown(id, opts)
         popup.BackgroundColor3 = c._theme.Panel
         MakeCorner(popup, 8); MakeStroke(popup,1,.85); Pad(popup,6)
         local list = newInst("UIListLayout", popup); list.Padding = UDim.new(0,6)
-
         for _,v in ipairs(c.Values) do
             local it = newInst("TextButton", popup)
             it.Size = UDim2.new(1,0,0,22)
@@ -678,12 +761,8 @@ function Section:AddDropdown(id, opts)
     table.insert(c._connections, UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if open and input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local mpos = UserInputService:GetMouseLocation()
-            local absPos = btn.AbsolutePosition
-            local absSize= btn.AbsoluteSize
-            local inside = mpos.X>=absPos.X and mpos.X<=absPos.X+absSize.X and mpos.Y>=absPos.Y and mpos.Y<=absPos.Y+absSize.Y
-            -- tıklama buton dışında ise popup kapansın
-            if not inside then closePopup() end
+            -- dış tıkta kapansın (yaklaşık kontrol)
+            closePopup()
         end
     end))
 
@@ -752,28 +831,22 @@ function Section:AddKeybind(id, opts)
     return c
 end
 
---// Export cleanups
+--// Destroyers
 function Window:Destroy()
-    for _,t in ipairs(self._tabs) do
-        for _,c in ipairs(t._connections) do pcall(function() c:Disconnect() end) end
+    for _,t in ipairs(self._tabs or {}) do
+        for _,c in ipairs(t._connections or {}) do pcall(function() c:Disconnect() end) end
         if t._page then t._page:Destroy() end
         if t._button then t._button:Destroy() end
     end
-    for _,c in ipairs(self._connections) do pcall(function() c:Disconnect() end) end
+    for _,c in ipairs(self._connections or {}) do pcall(function() c:Disconnect() end) end
     if self._root then self._root:Destroy() end
 end
 
---// Public: theme ops
 function Library:SetTheme(name, def) ThemeManager:Set(name, def) end
-function Library:UseTheme(name)
-    self._theme = ThemeManager:Get(name)
-end
-
---// Cleanup all
+function Library:UseTheme(name) self._theme = ThemeManager:Get(name) end
 function Library:Destroy()
-    for _,c in ipairs(self._connections) do pcall(function() c:Disconnect() end) end
+    for _,c in ipairs(self._connections or {}) do pcall(function() c:Disconnect() end) end
     if self._gui then self._gui:Destroy() end
 end
 
--- finalize
 return Library
