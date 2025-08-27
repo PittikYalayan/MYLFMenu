@@ -57,7 +57,6 @@ do
         warn("[MYLF] features9.8.lua FAILED: "..tostring(mod))
     end
 end
-
 --== THEME ENGINE ==--
 local Themes = {
     Dark     ={Bg=Color3.fromRGB(20,20,26),   Panel=Color3.fromRGB(28,28,36),   Accent=Color3.fromRGB(120,115,245), AccentSoft=Color3.fromRGB(95,90,210),
@@ -95,6 +94,7 @@ Gui.IgnoreGuiInset=true
 Gui.ResetOnSpawn=false
 Gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
 Gui.Parent=PlayerGui
+
 -- Notifications
 local NotifLayer = Instance.new("Frame")
 NotifLayer.Size=UDim2.new(1,0,1,0)
@@ -119,7 +119,7 @@ Window.Active=true; Window.Parent=Gui
 local winStroke = makeStroke(Window,1,.2); makeCorner(Window,10)
 registerThemeUpdater("Window", function(th) Window.BackgroundColor3 = th.Bg; winStroke.Color = th.Stroke end)
 
--- TitleBar + Theme + Bind
+-- TitleBar
 local TitleBar = Instance.new("Frame")
 TitleBar.Name="TitleBar"; TitleBar.Size=UDim2.new(1,0,0,44); TitleBar.Parent=Window
 local tbStroke = makeStroke(TitleBar,1,.1); makeCorner(TitleBar,10)
@@ -140,7 +140,7 @@ registerThemeUpdater("TitleBar", function(th)
     BindBtn.TextColor3  = th.Text; BindBtn.BackgroundColor3  = th.Hover; bindStroke.Color = th.Stroke
 end)
 
--- Drag only TitleBar
+-- Drag logic
 do
     local dragStart, startPos
     TitleBar.InputBegan:Connect(function(input)
@@ -164,42 +164,66 @@ local sbStroke = makeStroke(Sidebar,1,.08); makeCorner(Sidebar,8); pad(Sidebar,8
 local SideList = Instance.new("UIListLayout", Sidebar); SideList.Padding=UDim.new(0,8)
 registerThemeUpdater("Sidebar", function(th) Sidebar.BackgroundColor3 = th.Panel; sbStroke.Color = th.Stroke end)
 
-local function makeTabButton(text, icon)
-    local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=(icon and (icon.."  ") or "")..text
-    b.Font=Enum.Font.GothamSemibold; b.TextSize=14; b.Size=UDim2.new(1,-4,0,34); b.Parent=Sidebar
-    local st = makeStroke(b,1,.2); makeCorner(b,6)
-    b.MouseEnter:Connect(function() tween(b,.08,{BackgroundColor3=CurrentTheme.AccentSoft}):Play() end)
-    b.MouseLeave:Connect(function() tween(b,.12,{BackgroundColor3=CurrentTheme.Hover}):Play() end)
-    registerThemeUpdater("btn_"..text, function(th) b.TextColor3 = th.Text; b.BackgroundColor3 = th.Hover; st.Color = th.Stroke end)
-    return b
-end
-
--- Content
-local Content = Instance.new("Frame")
-Content.BackgroundTransparency=1; Content.Position=UDim2.new(0,210,0,58); Content.Size=UDim2.new(1,-220,1,-68); Content.Parent=Window
-
--- Pages
-local Pages={}
+-- Tab buttons + Content
+local Pages = {}
 local function newPage(name)
-    local p=Instance.new("Frame"); p.Visible=false; p.Size=UDim2.new(1,0,1,0); p.Parent=Content
+    local p=Instance.new("Frame"); p.Visible=false; p.Size=UDim2.new(1,0,1,0); p.Parent=Window
     local pst = makeStroke(p,1,.08); makeCorner(p,8); pad(p,10)
     local list = Instance.new("UIListLayout", p); list.Padding=UDim.new(0,10); list.FillDirection=Enum.FillDirection.Horizontal
     registerThemeUpdater("page_"..name, function(th) p.BackgroundColor3 = th.Panel; pst.Color = th.Stroke end)
     Pages[name]=p; return p
 end
 
-local function newSection(parent, title)
-    local s=Instance.new("Frame"); s.Size=UDim2.new(0.5,-8,1,0); s.Parent=parent
-    local sst = makeStroke(s,1,.08); makeCorner(s,8); pad(s,10)
-    local t=Instance.new("TextLabel"); t.BackgroundTransparency=1; t.Text=title; t.Font=Enum.Font.GothamBold; t.TextSize=14; t.Size=UDim2.new(1,0,0,18); t.Parent=s
-    registerThemeUpdater("section_"..title, function(th) s.BackgroundColor3 = th.Bg; sst.Color = th.Stroke; t.TextColor3 = th.Text end)
-    local l=Instance.new("UIListLayout", s); l.Padding=UDim.new(0,8)
-    return s
+local Content = Instance.new("Frame")
+Content.BackgroundTransparency=1; Content.Position=UDim2.new(0,210,0,58); Content.Size=UDim2.new(1,-220,1,-68); Content.Parent=Window
+-- Controls
+local Controls = {}
+
+function Controls.Toggle(parent,text,default,cb)
+    local b=Instance.new("TextButton")
+    b.AutoButtonColor=false; b.Text=text; b.Font=Enum.Font.GothamSemibold; b.TextSize=13
+    b.Size=UDim2.new(1,-4,0,28); b.Parent=parent
+    local st=makeStroke(b,1,.2); makeCorner(b,6)
+    registerThemeUpdater("toggle_"..text,function(th)
+        b.BackgroundColor3=th.Hover; b.TextColor3=th.Text; st.Color=th.Stroke
+    end)
+    local state=default or false
+    local function update() b.Text=((state and "☑ ") or "☐ ")..text end
+    update()
+    b.MouseButton1Click:Connect(function()
+        state=not state; update()
+        if cb then cb(state) end
+    end)
 end
 
--- Controls (Toggle, Slider, Dropdown, Button, Keybind)
--- (burayı kısaltmadan full bıraktım çünkü senin dosyadaki gibi gerekiyor)
--- ...
+function Controls.Slider(parent,text,min,max,default,fmt,cb)
+    local fr=Instance.new("Frame"); fr.Size=UDim2.new(1,-4,0,40); fr.Parent=parent; makeCorner(fr,6)
+    local lb=Instance.new("TextLabel"); lb.BackgroundTransparency=1; lb.Text=text.." ("..string.format(fmt,default)..")"
+    lb.Font=Enum.Font.GothamSemibold; lb.TextSize=13; lb.Size=UDim2.new(1,-10,0,20); lb.Position=UDim2.new(0,5,0,0); lb.Parent=fr
+    local sl=Instance.new("TextButton"); sl.AutoButtonColor=false; sl.Size=UDim2.new(1,-10,0,12); sl.Position=UDim2.new(0,5,0,22); sl.Parent=fr
+    local fill=Instance.new("Frame",sl); fill.BorderSizePixel=0; fill.Size=UDim2.new((default-min)/(max-min),0,1,0)
+    local st=makeStroke(sl,1,.2); makeCorner(sl,6); makeCorner(fill,6)
+    registerThemeUpdater("slider_"..text,function(th) fr.BackgroundColor3=th.Bg; lb.TextColor3=th.Text; sl.BackgroundColor3=th.Hover; fill.BackgroundColor3=th.Accent; st.Color=th.Stroke end)
+    local val=default
+    local function setv(v) v=clamp(v,min,max); val=v; lb.Text=text.." ("..string.format(fmt,v)..")"; fill.Size=UDim2.new((v-min)/(max-min),0,1,0); if cb then cb(v) end end
+    setv(default)
+    sl.MouseButton1Down:Connect(function(x,y)
+        local con; con=RunService.RenderStepped:Connect(function()
+            local mx=UserInputService:GetMouseLocation().X
+            local percent=clamp((mx-sl.AbsolutePosition.X)/sl.AbsoluteSize.X,0,1)
+            setv(min+(max-min)*percent)
+        end)
+        UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.MouseButton1 then con:Disconnect() end end)
+    end)
+end
+
+function Controls.Button(parent,text,cb)
+    local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=text
+    b.Font=Enum.Font.GothamSemibold; b.TextSize=13; b.Size=UDim2.new(1,-4,0,28); b.Parent=parent
+    local st=makeStroke(b,1,.2); makeCorner(b,6)
+    registerThemeUpdater("btn_"..text,function(th) b.BackgroundColor3=th.Hover; b.TextColor3=th.Text; st.Color=th.Stroke end)
+    b.MouseButton1Click:Connect(function() if cb then cb() end end)
+end
 
 --== OVERLAY (Crosshair + Crown HUD) ==--
 local Overlay=Instance.new("ScreenGui"); Overlay.Name="MYLF_HUD"; Overlay.IgnoreGuiInset=true; Overlay.ResetOnSpawn=false; Overlay.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; Overlay.Parent=PlayerGui
@@ -226,7 +250,20 @@ local CrownText=Instance.new("TextLabel"); CrownText.BackgroundTransparency=1; C
 CrownText.Size=UDim2.new(1,-10,1,-8); CrownText.Position=UDim2.fromOffset(5,0); CrownText.Parent=CrownPanel
 local RainbowBar=Instance.new("Frame"); RainbowBar.BorderSizePixel=0; RainbowBar.AnchorPoint=Vector2.new(.5,1); RainbowBar.Position=UDim2.new(.5,0,1,0); RainbowBar.Size=UDim2.new(1,-6,0,3); RainbowBar.Parent=CrownPanel; makeCorner(RainbowBar,2)
 local grad=Instance.new("UIGradient", RainbowBar)
--- Theme affecting crown
+grad.Color=ColorSequence.new{
+    ColorSequenceKeypoint.new(0,Color3.fromRGB(255,0,0)),
+    ColorSequenceKeypoint.new(.16,Color3.fromRGB(255,255,0)),
+    ColorSequenceKeypoint.new(.33,Color3.fromRGB(0,255,0)),
+    ColorSequenceKeypoint.new(.5,Color3.fromRGB(0,255,255)),
+    ColorSequenceKeypoint.new(.66,Color3.fromRGB(0,0,255)),
+    ColorSequenceKeypoint.new(.83,Color3.fromRGB(255,0,255)),
+    ColorSequenceKeypoint.new(1,Color3.fromRGB(255,0,0))}
+grad.Rotation=0
+grad.Offset=Vector2.new(0,0)
+grad.Transparency=NumberSequence.new(0)
+grad.Enabled=true
+grad.Name="RainbowGradient"
+--== THEME AFFECTING HUD ==--
 registerThemeUpdater("Crown", function(th)
     CrownPanel.BackgroundColor3 = th.Panel
     cps.Color = th.Accent
@@ -243,165 +280,208 @@ local pHUD      = newPage("HUD")
 local pScanner  = newPage("Scanner")
 local pSettings = newPage("Settings")
 
-local tFeatures = makeTabButton("Features","🛠")
-local tPlayer   = makeTabButton("Player","👤")
-local tVisuals  = makeTabButton("Visuals","🎨")
-local tHUD      = makeTabButton("HUD","📊")
-local tScanner  = makeTabButton("Scanner","🔍")
-local tSettings = makeTabButton("Settings","⚙️")
+local function makeTab(name,icon)
+    local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=(icon and (icon.."  ") or "")..name
+    b.Font=Enum.Font.GothamSemibold; b.TextSize=14; b.Size=UDim2.new(1,-4,0,34); b.Parent=Sidebar
+    local st=makeStroke(b,1,.2); makeCorner(b,6)
+    registerThemeUpdater("tab_"..name,function(th) b.TextColor3=th.Text; b.BackgroundColor3=th.Hover; st.Color=th.Stroke end)
+    b.MouseButton1Click:Connect(function()
+        for k,f in pairs(Pages) do f.Visible=false end
+        Pages[name].Visible=true
+    end)
+end
 
-local function showPage(name) for k,f in pairs(Pages) do f.Visible=(k==name) end end
-showPage("Features")
-tFeatures.MouseButton1Click:Connect(function() showPage("Features") end)
-tPlayer.MouseButton1Click:Connect(function() showPage("Player") end)
-tVisuals.MouseButton1Click:Connect(function() showPage("Visuals") end)
-tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
-tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
-tSettings.MouseButton1Click:Connect(function() showPage("Settings") end)
+makeTab("Features","🛠")
+makeTab("Player","👤")
+makeTab("Visuals","🎨")
+makeTab("HUD","📊")
+makeTab("Scanner","🔍")
+makeTab("Settings","⚙️")
+
+Pages["Features"].Visible=true
+
+--== SECTIONS ==--
+local function newSection(parent,title)
+    local s=Instance.new("Frame"); s.Size=UDim2.new(0.5,-8,1,0); s.Parent=parent
+    local st=makeStroke(s,1,.08); makeCorner(s,8); pad(s,10)
+    local t=Instance.new("TextLabel"); t.BackgroundTransparency=1; t.Text=title; t.Font=Enum.Font.GothamBold; t.TextSize=14; t.Size=UDim2.new(1,0,0,18); t.Parent=s
+    registerThemeUpdater("section_"..title,function(th) s.BackgroundColor3=th.Bg; st.Color=th.Stroke; t.TextColor3=th.Text end)
+    local l=Instance.new("UIListLayout",s); l.Padding=UDim.new(0,8)
+    return s
+end
 
 --== FEATURES ==--
 do
-    local left  = newSection(pFeatures, "HUD / Overlay")
-    local right = newSection(pFeatures, "Quick Actions")
+    local left  = newSection(pFeatures, "Combat / Visuals")
+    local right = newSection(pFeatures, "Movement / Teleport")
 
-    Controls.Toggle(left, "Crown FPS Panel", true, function(on) CrownPanel.Visible = on end)
-    Controls.Toggle(left, "Crosshair", true, function(on) Crosshair.Visible = on end)
-
-    -- Linoria-Compat Shim
+    -- Linoria-style options container
     local Options = _G.MYLF_Options or {}
     _G.MYLF_Options = Options
 
     local function makeGroup(targetSection)
         local group = {}
-        function group:AddToggle(key, cfg)
-            local default = (cfg and cfg.Default) or false
-            local text    = (cfg and cfg.Text) or key
-            local opt = { Value = default }
-            function opt:OnChanged(cb) self._cb = cb end
-            Controls.Toggle(targetSection, text, default, function(v)
-                opt.Value = v
-                if opt._cb then pcall(opt._cb, v) end
+        function group:AddToggle(key,cfg)
+            local default=(cfg and cfg.Default) or false
+            local text=(cfg and cfg.Text) or key
+            local opt={Value=default}
+            function opt:OnChanged(cb) self._cb=cb end
+            Controls.Toggle(targetSection,text,default,function(v)
+                opt.Value=v; if opt._cb then pcall(opt._cb,v) end
             end)
-            Options[key] = opt
-            return opt
+            Options[key]=opt; return opt
         end
-        function group:AddSlider(key, cfg)
-            local text    = (cfg and cfg.Text) or key
-            local min     = (cfg and cfg.Min) or 0
-            local max     = (cfg and cfg.Max) or 100
-            local default = (cfg and cfg.Default) or min
-            local rounding= (cfg and cfg.Rounding) or 0
-            local fmt = ("%%0.%df"):format(math.max(0, rounding))
-            local opt = { Value = default }
-            function opt:OnChanged(cb) self._cb = cb end
-            Controls.Slider(targetSection, text, min, max, default, fmt, function(v)
-                opt.Value = v
-                if opt._cb then pcall(opt._cb, v) end
+        function group:AddSlider(key,cfg)
+            local text=(cfg and cfg.Text) or key
+            local min=(cfg and cfg.Min) or 0
+            local max=(cfg and cfg.Max) or 100
+            local default=(cfg and cfg.Default) or min
+            local rounding=(cfg and cfg.Rounding) or 0
+            local fmt=("%%0.%df"):format(math.max(0,rounding))
+            local opt={Value=default}
+            function opt:OnChanged(cb) self._cb=cb end
+            Controls.Slider(targetSection,text,min,max,default,fmt,function(v)
+                opt.Value=v; if opt._cb then pcall(opt._cb,v) end
             end)
-            Options[key] = opt
-            return opt
+            Options[key]=opt; return opt
         end
         return group
     end
 
-    local function bindToggle(group, key, label, featureFn)
-        local opt = group:AddToggle(key, {Text = label, Default = false})
-        opt:OnChanged(function(on) try(featureFn, on) end)
+    local function bindToggle(group,key,label,featureFn)
+        local opt=group:AddToggle(key,{Text=label,Default=false})
+        opt:OnChanged(function(on) try(featureFn,on) end)
         return opt
     end
 
-    local g      = makeGroup(left)
-    local gRight = makeGroup(right)
+    local gCombat = makeGroup(left)
+    local gMove   = makeGroup(right)
 
     -- 🎯 AIM / COMBAT
-    bindToggle(g, "aimbot",   "Enable Aimbot",          features and features.ToggleAimbot)
-    bindToggle(g, "headshotRedirect", "Force Headshot", features and features.ToggleHeadshotRedirect)
-    bindToggle(g, "fireRate", "Hard Fire Rate",         features and features.ToggleFireRate)
-    bindToggle(g, "silent",   "Silent Aim",             features and features.ToggleSilentAim)
-    bindToggle(g, "magic",    "Magic Bullet (Fallback)",features and features.ToggleMagicBullet)
-    bindToggle(g, "killAura", "☠️ Kill Aura",           features and features.ToggleKillAura)
+    bindToggle(gCombat,"aimbot","Enable Aimbot",features and features.ToggleAimbot)
+    bindToggle(gCombat,"headshotRedirect","Force Headshot",features and features.ToggleHeadshotRedirect)
+    bindToggle(gCombat,"fireRate","Hard Fire Rate",features and features.ToggleFireRate)
+    bindToggle(gCombat,"silent","Silent Aim",features and features.ToggleSilentAim)
+    bindToggle(gCombat,"magic","Magic Bullet (Fallback)",features and features.ToggleMagicBullet)
+    bindToggle(gCombat,"killAura","☠️ Kill Aura",features and features.ToggleKillAura)
 
     -- 👁 VISUALS
-    bindToggle(g, "esp",        "Enable ESP",          features and features.ToggleESP)
-    bindToggle(g, "enemyBigHB", "🎯 Enemy Big Hitbox", features and features.ToggleEnemyBigHitbox)
+    bindToggle(gCombat,"esp","Enable ESP",features and features.ToggleESP)
+    bindToggle(gCombat,"enemyBigHB","🎯 Enemy Big Hitbox",features and features.ToggleEnemyBigHitbox)
 
     -- 🏃 MOVEMENT
-    bindToggle(g, "speed",     "Speed Boost (50)",   features and features.ToggleSpeed)
-    bindToggle(g, "fly",       "Fly (LCtrl down)",   features and features.ToggleFly)
-    bindToggle(g, "infjump",   "Infinite Jump",      features and features.ToggleInfiniteJump)
-    bindToggle(g, "godmode",   "💀 Godmode",         features and features.ToggleGodmode)
-    bindToggle(g, "hardInvis", "👻 Hard Invisible",  features and features.ToggleHardInvisible)
-    bindToggle(g, "noclip",    "NoClip",             features and features.ToggleNoclip)
+    bindToggle(gMove,"speed","Speed Boost (50)",features and features.ToggleSpeed)
+    bindToggle(gMove,"fly","Fly (LCtrl down)",features and features.ToggleFly)
+    bindToggle(gMove,"infjump","Infinite Jump",features and features.ToggleInfiniteJump)
+    bindToggle(gMove,"godmode","💀 Godmode",features and features.ToggleGodmode)
+    bindToggle(gMove,"hardInvis","👻 Hard Invisible",features and features.ToggleHardInvisible)
+    bindToggle(gMove,"noclip","NoClip",features and features.ToggleNoclip)
 
     -- 🌀 TELEPORT
-    bindToggle(g, "tpkey",      "Teleport (T Key)",        features and features.ToggleTeleport)
-    bindToggle(g, "autoBehind", "⚡ Always Behind Enemy",  features and features.ToggleAutoBehind)
-    bindToggle(g, "autoTP",     "⚡ Auto Farm Enemy",      features and features.ToggleAutoTeleportToEnemy)
+    bindToggle(gMove,"tpkey","Teleport (T Key)",features and features.ToggleTeleport)
+    bindToggle(gMove,"autoBehind","⚡ Always Behind Enemy",features and features.ToggleAutoBehind)
+    bindToggle(gMove,"autoTP","⚡ Auto Farm Enemy",features and features.ToggleAutoTeleportToEnemy)
 
     -- 📐 TELEPORT OFFSETS
-    gRight:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default= tonumber((features and features._tpX) or 0) or 0, Rounding=0})
-    gRight:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default= tonumber((features and features._tpY) or 0) or 0, Rounding=0})
-    gRight:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default= tonumber((features and features._tpZ) or 25) or 25, Rounding=0})
+    gMove:AddSlider("tpX",{Text="X Offset",Min=-50,Max=50,Default=tonumber((features and features._tpX) or 0) or 0,Rounding=0})
+    gMove:AddSlider("tpY",{Text="Y Offset",Min=-50,Max=50,Default=tonumber((features and features._tpY) or 0) or 0,Rounding=0})
+    gMove:AddSlider("tpZ",{Text="Z Offset",Min=1,Max=100,Default=tonumber((features and features._tpZ) or 25) or 25,Rounding=0})
 
     Options.tpX:OnChanged(function(val)
-        if features then features._tpX = val end
-        try(features and features.SetTeleportOffset, val, (features and features._tpY) or 0, (features and features._tpZ) or 25)
+        if features then features._tpX=val end
+        try(features and features.SetTeleportOffset,val,(features and features._tpY) or 0,(features and features._tpZ) or 25)
     end)
     Options.tpY:OnChanged(function(val)
-        if features then features._tpY = val end
-        try(features and features.SetTeleportOffset, (features and features._tpX) or 0, val, (features and features._tpZ) or 25)
+        if features then features._tpY=val end
+        try(features and features.SetTeleportOffset,(features and features._tpX) or 0,val,(features and features._tpZ) or 25)
     end)
     Options.tpZ:OnChanged(function(val)
-        if features then features._tpZ = val end
-        try(features and features.SetTeleportOffset, (features and features._tpX) or 0, (features and features._tpY) or 0, val)
+        if features then features._tpZ=val end
+        try(features and features.SetTeleportOffset,(features and features._tpX) or 0,(features and features._tpY) or 0,val)
     end)
 end
-
 --== PLAYER ==--
 do
     local left = newSection(pPlayer,"Movement")
-    Controls.Slider(left,"Walkspeed",0,100,16,"%d",function(v) pcall(function() LP.Character.Humanoid.WalkSpeed=v end) end)
-    Controls.Slider(left,"JumpPower",0,200,50,"%d",function(v) pcall(function() LP.Character.Humanoid.JumpPower=v end) end)
-    Controls.Toggle(left,"Infinite Jump",false,function(on) if features then features.ToggleInfiniteJump(on) end end)
-    Controls.Toggle(left,"Fly (Ctrl)",false,function(on) if features then features.ToggleFly(on) end end)
+    Controls.Slider(left,"Walkspeed",0,100,16,"%d",function(v)
+        pcall(function() LP.Character.Humanoid.WalkSpeed=v end)
+    end)
+    Controls.Slider(left,"JumpPower",0,200,50,"%d",function(v)
+        pcall(function() LP.Character.Humanoid.JumpPower=v end)
+    end)
+    Controls.Toggle(left,"Infinite Jump",false,function(on)
+        if features then features.ToggleInfiniteJump(on) end
+    end)
+    Controls.Toggle(left,"Fly (Ctrl)",false,function(on)
+        if features then features.ToggleFly(on) end
+    end)
 end
 
 --== VISUALS ==--
 do
     local left = newSection(pVisuals,"Crosshair")
-    Controls.Slider(left,"Gap",0,20,6,"%d",function(v) CrosshairCfg.Gap=v; layoutCrosshair() end)
-    Controls.Slider(left,"Length",0,20,8,"%d",function(v) CrosshairCfg.Length=v; layoutCrosshair() end)
-    Controls.Slider(left,"Thickness",1,5,2,"%d",function(v) CrosshairCfg.Thickness=v; layoutCrosshair() end)
-    Controls.Slider(left,"Opacity",0,1,1,"%.2f",function(v) CrosshairCfg.Opacity=v; layoutCrosshair() end)
+    Controls.Slider(left,"Gap",0,20,6,"%d",function(v)
+        CrosshairCfg.Gap=v; layoutCrosshair()
+    end)
+    Controls.Slider(left,"Length",0,20,8,"%d",function(v)
+        CrosshairCfg.Length=v; layoutCrosshair()
+    end)
+    Controls.Slider(left,"Thickness",1,5,2,"%d",function(v)
+        CrosshairCfg.Thickness=v; layoutCrosshair()
+    end)
+    Controls.Slider(left,"Opacity",0,1,1,"%.2f",function(v)
+        CrosshairCfg.Opacity=v; layoutCrosshair()
+    end)
+
     local right = newSection(pVisuals,"Theme")
-    local themeOpt = Controls.Dropdown(right,"Select Theme",{"Dark","Midnight","Neon","Black","Red"},"Dark",function(val) applyTheme(val) end)
+    Controls.Button(right,"Dark Theme",function() applyTheme("Dark") end)
+    Controls.Button(right,"Midnight Theme",function() applyTheme("Midnight") end)
+    Controls.Button(right,"Neon Theme",function() applyTheme("Neon") end)
+    Controls.Button(right,"Black Theme",function() applyTheme("Black") end)
+    Controls.Button(right,"Red Theme",function() applyTheme("Red") end)
 end
 
 --== HUD ==--
 do
-    local left = newSection(pHUD,"FPS / PING")
-    Controls.Toggle(left,"Show Crown Panel",true,function(on) CrownPanel.Visible=on end)
-    Controls.Toggle(left,"Show Crosshair",true,function(on) Crosshair.Visible=on end)
-    local right = newSection(pHUD,"Notifications")
-    Controls.Button(right,"Test Notify",function() notify("This is a test!") end)
-end
+    local left = newSection(pHUD,"FPS / Ping")
+    Controls.Toggle(left,"Show Crown Panel",true,function(on)
+        CrownPanel.Visible=on
+    end)
+    Controls.Toggle(left,"Show Crosshair",true,function(on)
+        Crosshair.Visible=on
+    end)
 
+    local right = newSection(pHUD,"Notifications")
+    Controls.Button(right,"Test Notify",function()
+        notify("This is a test notification!")
+    end)
+end
 --== SCANNER ==--
 do
     local left = newSection(pScanner,"Objects")
-    Controls.Button(left,"Refresh",function() notify("Scanner refreshed.") end)
+    Controls.Button(left,"Refresh",function()
+        notify("Scanner refreshed.")
+    end)
+
     local right = newSection(pScanner,"Auto")
-    Controls.Toggle(right,"Auto Refresh",false,function(on) notify("AutoRefresh: "..tostring(on)) end)
+    Controls.Toggle(right,"Auto Refresh",false,function(on)
+        notify("AutoRefresh: "..tostring(on))
+    end)
 end
 
 --== SETTINGS ==--
 do
     local left = newSection(pSettings,"Menu")
-    Controls.Button(left,"Rejoin",function() game:GetService("TeleportService"):Teleport(game.PlaceId,LP) end)
-    Controls.Button(left,"Copy Discord",function() setclipboard("https://discord.gg/mylf") notify("Discord copied.") end)
+    Controls.Button(left,"Rejoin",function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId,LP)
+    end)
+    Controls.Button(left,"Copy Discord",function()
+        setclipboard("https://discord.gg/mylf")
+        notify("Discord link copied to clipboard!")
+    end)
 end
 
--- Global menu toggle
+--== GLOBAL MENU TOGGLE ==--
 UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
     if input.KeyCode == State.GlobalToggleKey then
@@ -409,7 +489,7 @@ UserInputService.InputBegan:Connect(function(input,gp)
     end
 end)
 
--- TitleBar: Theme cycler + Keybind capture
+--== TITLEBAR BUTTONS ==--
 local themeList = {"Dark","Midnight","Neon","Black","Red"}
 local themeIdx=1
 ThemeBtn.MouseButton1Click:Connect(function()
@@ -417,10 +497,11 @@ ThemeBtn.MouseButton1Click:Connect(function()
     ThemeBtn.Text = "Theme: "..themeList[themeIdx]
     applyTheme(themeList[themeIdx])
 end)
+
 BindBtn.MouseButton1Click:Connect(function()
     BindBtn.Text = "Bind: ..."
     local listening = true
-    local conn; conn = UserInputService.InputBegan:Connect(function(input, gp)
+    local conn; conn = UserInputService.InputBegan:Connect(function(input,gp)
         if gp then return end
         if input.KeyCode ~= Enum.KeyCode.Unknown then
             State.GlobalToggleKey = input.KeyCode
@@ -429,8 +510,12 @@ BindBtn.MouseButton1Click:Connect(function()
             if conn then conn:Disconnect() end
         end
     end)
-    task.delay(5, function() if listening and conn then conn:Disconnect(); BindBtn.Text="Bind: "..(State.GlobalToggleKey and State.GlobalToggleKey.Name or "None") end end)
+    task.delay(5,function()
+        if listening and conn then conn:Disconnect()
+            BindBtn.Text="Bind: "..(State.GlobalToggleKey and State.GlobalToggleKey.Name or "None")
+        end
+    end)
 end)
 
--- İlk boyama
+--== APPLY THEME ON START ==--
 applyTheme("Dark")
