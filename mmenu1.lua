@@ -546,12 +546,24 @@ end
 local function clearWaypoints() for _,v in ipairs(WayFolder:GetChildren()) do v:Destroy() end end
 
 --// Build Pages
+local pAim      = newPage("P-Aim")
+local pESP      = newPage("P-ESP")
+local pMove     = newPage("P-Movement")
+local pTP       = newPage("P-Teleport")
+local pScan     = newPage("Scanner")
+local pSetExt   = newPage("P-Settings")
 local pPlayer   = newPage("Player")
 local pVisuals  = newPage("Visuals")
 local pHUD      = newPage("HUD")
 local pSettings = newPage("Settings")
 
 -- Tabs
+local tAim      = makeTabButton("P-Aim",      "🎯")
+local tESP      = makeTabButton("P-ESP",      "👁")
+local tMove     = makeTabButton("P-Movement", "🏃")
+local tTP       = makeTabButton("P-Teleport", "🌀")
+local tScan     = makeTabButton("Scanner",    "🔍")
+local tSet      = makeTabButton("P-Settings", "⚙️")
 local tPlayer   = makeTabButton("Player",  "👤")
 local tVisuals  = makeTabButton("Visuals", "🎨")
 local tHUD      = makeTabButton("HUD",     "🧭")
@@ -561,6 +573,13 @@ local function showPage(name)
     for k,frame in pairs(Pages) do frame.Visible = (k==name) end
 end
 showPage("Player")
+
+tAim.MouseButton1Click:Connect(function() showPage("P-Aim") end)
+tESP.MouseButton1Click:Connect(function() showPage("P-ESP") end)
+tMove.MouseButton1Click:Connect(function() showPage("P-Movement") end)
+tTP.MouseButton1Click:Connect(function() showPage("P-Teleport") end)
+tScan.MouseButton1Click:Connect(function() showPage("Scanner") end)
+tSet.MouseButton1Click:Connect(function() showPage("P-Settings") end)
 
 tPlayer.MouseButton1Click:Connect(function() showPage("Player") end)
 tVisuals.MouseButton1Click:Connect(function() showPage("Visuals") end)
@@ -642,6 +661,21 @@ Controls.Color(sTheme, "Accent Color (Override)", CurrentTheme.Accent, function(
     CurrentTheme.Accent = c
     notify("Accent değişti.")
 end)
+
+--------------------
+ local sAim = newSection(pAim, "Aim / Combat")
+    Controls.Toggle(sAim, "Enable Aimbot",          false, ToggleSafe(features.ToggleAimbot))
+    Controls.Toggle(sAim, "Silent Aim",             false, ToggleSafe(features.ToggleSilentAim))
+    Controls.Toggle(sAim, "Force Headshot",         false, ToggleSafe(features.ToggleHeadshotRedirect))
+    Controls.Toggle(sAim, "Hard Fire Rate",         false, ToggleSafe(features.ToggleFireRate))
+    Controls.Toggle(sAim, "Magic Bullet (Fallback)",false, ToggleSafe(features.ToggleMagicBullet))
+    Controls.Toggle(sAim, "☠️ Kill Aura",           false, ToggleSafe(features.ToggleKillAura))
+
+
+
+
+
+
 
 -- HUD PAGE
 local sHud = newSection(pHUD, "Performance")
@@ -791,9 +825,7 @@ end)
 --== [MYLF EXTENSION BLOCK — paste to end of your mylf.lua, change nothing above] ==--
 
 -- 0) FEATURES bağla (senin istediğin gibi loadstring)
-local features = loadstring(game:HttpGet(
-  "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"
-))()
+local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
 
 -- Küçük yardımcı: güvenli toggle çağrısı
 local function ToggleSafe(fn)
@@ -808,41 +840,16 @@ local function ToggleSafe(fn)
 end
 
 -- 1) Yeni Tabs + Pages (mevcut yapıyı kullan)
-local tAim      = makeTabButton("P-Aim",      "🎯")
-local tESP      = makeTabButton("P-ESP",      "👁")
-local tMove     = makeTabButton("P-Movement", "🏃")
-local tTP       = makeTabButton("P-Teleport", "🌀")
-local tScan     = makeTabButton("Scanner",    "🔍")
-local tSet      = makeTabButton("P-Settings", "⚙️")
 
-local pAim      = newPage("P-Aim")
-local pESP      = newPage("P-ESP")
-local pMove     = newPage("P-Movement")
-local pTP       = newPage("P-Teleport")
-local pScan     = newPage("Scanner")
-local pSetExt   = newPage("P-Settings")
+
 
 -- showPage zaten base’de var; sadece tab-click bağları:
-tAim.MouseButton1Click:Connect(function() showPage("P-Aim") end)
-tESP.MouseButton1Click:Connect(function() showPage("P-ESP") end)
-tMove.MouseButton1Click:Connect(function() showPage("P-Movement") end)
-tTP.MouseButton1Click:Connect(function() showPage("P-Teleport") end)
-tScan.MouseButton1Click:Connect(function() showPage("Scanner") end)
-tSet.MouseButton1Click:Connect(function() showPage("P-Settings") end)
+
 
 -- 2) P-Aim
-do
-    local sAim = newSection(pAim, "Aim / Combat")
-    Controls.Toggle(sAim, "Enable Aimbot",          false, ToggleSafe(features.ToggleAimbot))
-    Controls.Toggle(sAim, "Silent Aim",             false, ToggleSafe(features.ToggleSilentAim))
-    Controls.Toggle(sAim, "Force Headshot",         false, ToggleSafe(features.ToggleHeadshotRedirect))
-    Controls.Toggle(sAim, "Hard Fire Rate",         false, ToggleSafe(features.ToggleFireRate))
-    Controls.Toggle(sAim, "Magic Bullet (Fallback)",false, ToggleSafe(features.ToggleMagicBullet))
-    Controls.Toggle(sAim, "☠️ Kill Aura",           false, ToggleSafe(features.ToggleKillAura))
-end
 
 -- 3) P-ESP (scrollable page içi)
-do
+
     -- sayfa layout’unu bozmayalım: içinde scroll alanı aç
     local scroll = Instance.new("ScrollingFrame")
     scroll.Name = "ESPScroll"
@@ -897,7 +904,7 @@ do
 end
 
 -- 4) P-Movement
-do
+
     local s1 = newSection(pMove, "Movement")
     Controls.Toggle(s1, "Speed Boost (50)", false, ToggleSafe(features.ToggleSpeed))
     Controls.Toggle(s1, "Fly (LCtrl down)", false, ToggleSafe(features.ToggleFly))
@@ -909,10 +916,10 @@ do
     Controls.Toggle(s2, "👻 Hard Invisible",false, ToggleSafe(features.ToggleHardInvisible))
     Controls.Toggle(s2, "Tiny Hitbox",      false, ToggleSafe(features.ToggleTinyHitbox))
     Controls.Toggle(s2, "My Tiny Hitbox",   false, ToggleSafe(features.ToggleMyTinyHitbox))
-end
+
 
 -- 5) P-Teleport (tp sliders burada)
-do
+
     local sCore   = newSection(pTP, "Teleport / Farm")
     local sOffset = newSection(pTP, "Offsets")
 
@@ -924,10 +931,10 @@ do
     Controls.Slider(sOffset, "X Offset", -50, 50, 0,  "%d", function(v) tpX = v; if features.SetTeleportOffset then pcall(features.SetTeleportOffset, tpX, tpY, tpZ) end end)
     Controls.Slider(sOffset, "Y Offset", -50, 50, 0,  "%d", function(v) tpY = v; if features.SetTeleportOffset then pcall(features.SetTeleportOffset, tpX, tpY, tpZ) end end)
     Controls.Slider(sOffset, "Z Offset",   1,100, 25, "%d", function(v) tpZ = v; if features.SetTeleportOffset then pcall(features.SetTeleportOffset, tpX, tpY, tpZ) end end)
-end
+
 
 -- 6) P-Settings (ek)
-do
+
     local sGen = newSection(pSetExt, "General")
     Controls.Toggle(sGen, "Always On Top", false, function(on)
         -- base Gui ismi: MYLF_LinoriaPlus (bkz. base)
@@ -940,10 +947,10 @@ do
         -- ThemeDropdownBtn zaten tab’dan değişiyor; burada sadece ufak alternatif accent dokunuşu
         -- (base repaint mekanizması setThemeByName ile çalışıyor)
     end)
-end
+
 
 -- 7) Scanner (Backpack/Character/Workspace)
-do
+
     local sTop = newSection(pScan, "Scanner / Tools")
     local listFrame = Instance.new("ScrollingFrame")
     listFrame.Name = "ScanList"
@@ -990,7 +997,7 @@ do
         pull(LP.Character, "character")
         pull(LP.Backpack, "backpack")
         return items
-    end
+    
 
     local selection = nil
     local function redraw()
@@ -1050,7 +1057,7 @@ do
 end
 
 -- 8) Slider sürüklerken pencere kayma FIX (yapıyı bozmadan)
-do
+
     local UIS = game:GetService("UserInputService")
     local allowDrag = false
     UIS.InputBegan:Connect(function(input, gp)
@@ -1073,6 +1080,6 @@ do
             State.Dragging = false -- anında iptal: slider çekerken pencere kıpırdamaz
         end
     end)
-end
+
 
 --== [/MYLF EXTENSION BLOCK] ==--
