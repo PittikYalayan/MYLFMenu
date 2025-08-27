@@ -629,6 +629,9 @@ end)
 local sAim = newSection(pcheat, "Aim")
 local sEsp = newSection(pcheat, "Esp")
 
+local crossToggle = Controls.Toggle(sAim, "Enable AimBot", true, function(on)
+            features.Enabled = on; ToggleAimbot(on)
+        end)
 -- VISUALS PAGE
 local sCross = newSection(pVisuals, "Crosshair")
 local sTheme = newSection(pVisuals, "Theme / Colors")
