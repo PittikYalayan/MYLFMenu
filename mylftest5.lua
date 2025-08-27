@@ -1,8 +1,8 @@
 --[[ 
-    ⚡ MYLF Linoria+ Legit UI Framework (Client-Safe) + Ultra Scanner + Perf HUD ⚡
-    - Tek LocalScript (PlayerGui).
-    - Exploit/hook/remote patch yok (client-safe).
-    - Aç/Kapa (menu): Settings -> "Menu Toggle" bind (default: LeftShift)
+    ⚡ MYLF Linoria+ Legit UI + Perf HUD + Scanner (mylf2.6 tarzı) ⚡
+    - Tek LocalScript (PlayerGui)
+    - Exploit/hook/remote patch yok (client-safe)
+    - Menü gizle/göster: Settings > Keybinds > "Menu Toggle" (default: LeftShift)
 ]]
 
 --// Services
@@ -17,7 +17,7 @@ local LP = Players.LocalPlayer
 local PlayerGui = LP:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
---// features link (istenildiği gibi)
+--// features (isteğe bağlı)
 local features = setmetatable({}, { __index = function() return function() end end })
 pcall(function()
     features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
@@ -176,7 +176,7 @@ local function newSection(parent,title)
     local s=Instance.new("Frame"); s.BackgroundTransparency=0; s.BackgroundColor3=CurrentTheme.Bg; s.Size=UDim2.new(0.5,-8,1,0); s.Parent=parent
     makeCorner(s,8); makeStroke(s,1,.08); pad(s,10)
     local t=Instance.new("TextLabel"); t.BackgroundTransparency=1; t.Text=title; t.Font=Enum.Font.GothamBold; t.TextSize=14; t.TextColor3=CurrentTheme.Text; t.Size=UDim2.new(1,0,0,18); t.Parent=s
-    local list=Instance.new("UIListLayout",s); list.Padding=UDim2.new(0,8); list.SortOrder=Enum.SortOrder.LayoutOrder
+    local list=Instance.new("UIListLayout",s); list.Padding=UDim.new(0,8); list.SortOrder=Enum.SortOrder.LayoutOrder
     return s
 end
 
@@ -264,7 +264,7 @@ function Controls.Button(parent,label,text,callback)
     return btn
 end
 
---// Crosshair Overlay (GUI-based)
+-- Overlay
 local Overlay=Instance.new("ScreenGui"); Overlay.Name="MYLF_HUD"; Overlay.IgnoreGuiInset=true; Overlay.ResetOnSpawn=false; Overlay.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; Overlay.Parent=PlayerGui
 
 -- === Perf HUD (Rainbow Bar + Drag) ===
@@ -329,41 +329,38 @@ local function cvPercent()
     local std=math.sqrt(var/#pingSamples)
     return (std/mean)*100
 end
-
--- smoothing helpers (EMA)
 local function ema(prev,new,alpha) return prev + alpha*(new-prev) end
 local emaAlpha=0.15
 
--- fps calc
-local dtAccum, dtCount = 0, 0
 RunService.RenderStepped:Connect(function(dt)
-    dtAccum+=dt; dtCount+=1
-    rs_ms = ema(rs_ms, dt*1000, emaAlpha)     -- GPU ~ render frame time (yaklaşık)
-    if dtAccum>=0.5 then
-        fps = round(dtCount/dtAccum,0); dtAccum,dtCount=0,0
-        -- Ping al
-        pcall(function()
-            local item = Stats.Network.ServerStatsItem["Data Ping"]
-            if item then
-                local s = tostring(item:GetValueString()):gsub(" RTT",""):gsub(" ms","")
-                local v = tonumber(s) or 0
-                ping_ms = v; pushPing(v)
-            end
-        end)
-        -- RAM
-        pcall(function() ram_mb = round(Stats:GetTotalMemoryUsageMb(),1) end)
-        -- yaz
-        PerfText.Text = ("FPS: %d | Ping: %s (%.1f%%CV) | CPU: %.1f ms | GPU: %.1f ms | RAM: %.0f MB")
-            :format(fps, tostring(round(ping_ms,1)), round(cvPercent(),1), hb_ms, rs_ms, ram_mb)
-    end
-    -- rainbow anim
+    rs_ms = ema(rs_ms, dt*1000, emaAlpha)     -- GPU ~ render frame time
     grad.Rotation = (grad.Rotation + (MonitorCfg and MonitorCfg.RainbowSpeed or 40)*dt) % 360
 end)
-RunService.Heartbeat:Connect(function(dt)
-    hb_ms = ema(hb_ms, dt*1000, emaAlpha)
-end)
+do
+    local dtAccum, dtCount = 0, 0
+    RunService.RenderStepped:Connect(function(dt)
+        dtAccum+=dt; dtCount+=1
+        if dtAccum>=0.5 then
+            fps = round(dtCount/dtAccum,0); dtAccum,dtCount=0,0
+            pcall(function()
+                local item = Stats.Network.ServerStatsItem["Data Ping"]
+                if item then
+                    local s = tostring(item:GetValueString()):gsub(" RTT",""):gsub(" ms","")
+                    local v = tonumber(s) or 0
+                    ping_ms = v; pushPing(v)
+                end
+            end)
+            pcall(function() ram_mb = round(Stats:GetTotalMemoryUsageMb(),1) end)
+            PerfText.Text = ("FPS: %d | Ping: %s (%.1f%%CV) | CPU: %.1f ms | GPU: %.1f ms | RAM: %.0f MB")
+                :format(fps, tostring(round(ping_ms,1)), round(cvPercent(),1), hb_ms, rs_ms, ram_mb)
+        end
+    end)
+    RunService.Heartbeat:Connect(function(dt)
+        hb_ms = ema(hb_ms, dt*1000, emaAlpha)
+    end)
+end
 
--- Crosshair (duruyor – Visuals sayfasında kontrol)
+-- Crosshair (Visuals sayfasından kontrol)
 local Crosshair=Instance.new("Frame"); Crosshair.Name="Crosshair"; Crosshair.AnchorPoint=Vector2.new(0.5,0.5); Crosshair.Position=UDim2.fromScale(0.5,0.5)
 Crosshair.Size=UDim2.fromOffset(2,2); Crosshair.BackgroundTransparency=1; Crosshair.Visible=true; Crosshair.Parent=Overlay
 local arms={} for i=1,4 do local a=Instance.new("Frame"); a.BackgroundColor3=CurrentTheme.Accent; a.BorderSizePixel=0; a.Parent=Crosshair; makeCorner(a,2); arms[i]=a end
@@ -378,7 +375,7 @@ local function layoutCrosshair()
 end
 layoutCrosshair()
 
--- FPS text (köşe)
+-- Köşe HUD (opsiyonel küçük metin)
 local HudTop=Instance.new("TextLabel")
 HudTop.BackgroundTransparency=1; HudTop.TextColor3=CurrentTheme.SubText; HudTop.Font=Enum.Font.GothamSemibold; HudTop.TextSize=13
 HudTop.TextXAlignment=Enum.TextXAlignment.Left; HudTop.Position=UDim2.new(0,10,0,50); HudTop.Size=UDim2.new(0,260,0,18); HudTop.Parent=Overlay
@@ -400,7 +397,7 @@ local function clearWaypoints() for _,v in ipairs(WayFolder:GetChildren()) do v:
 local pPlayer   = newPage("Player")
 local pScanner  = newPage("Scanner")
 local pVisuals  = newPage("Visuals")
-local pMonitor  = newPage("Monitor")   -- <-- yeni, kaydırılabilir ayarlar
+local pMonitor  = newPage("Monitor")   -- kaydırılabilir ayarlar
 local pSettings = newPage("Settings")
 
 -- Tabs
@@ -462,7 +459,6 @@ local sHUD = newSection(monScroll,"Performance HUD")
 local sPerf= newSection(monScroll,"Smoothing / Metrics")
 local sUtil= newSection(monScroll,"Utilities")
 
--- Monitor config
 MonitorCfg = { RainbowSpeed=40, BarHeight=4, ShowHud=true }
 local hudToggle=Controls.Toggle(sHUD,"Show Perf HUD",true,function(on) MonitorCfg.ShowHud=on; PerfDock.Visible=on end)
 Controls.Slider(sHUD,"Rainbow Speed",5,120,MonitorCfg.RainbowSpeed,"%d",function(v) MonitorCfg.RainbowSpeed=v end)
@@ -490,7 +486,7 @@ do
     sBind.CrossBtn=btn
 end
 
--- Menu Toggle bind (İSTENEN)
+-- Menu Toggle bind (istenen)
 do
     local lb=Instance.new("TextLabel"); lb.BackgroundTransparency=1; lb.Text="Bind: Menu Toggle"; lb.Font=Enum.Font.Gotham; lb.TextSize=13; lb.TextColor3=CurrentTheme.SubText; lb.Size=UDim2.new(1,0,0,18); lb.Parent=sBind
     local btn=Instance.new("TextButton"); btn.AutoButtonColor=false; btn.Text="Set Key ("..State.GlobalToggleKey.Name..")"; btn.Font=Enum.Font.GothamSemibold; btn.TextSize=12; btn.TextColor3=CurrentTheme.Text
@@ -513,7 +509,7 @@ local themeOrder={"Dark","Midnight","Neon"}
 local function setThemeByName(name)
     local t=Themes[name] or Themes.Dark; CurrentTheme=t
     Window.BackgroundColor3=t.Bg; TitleBar.BackgroundColor3=t.Panel; Title.TextColor3=t.Text; ThemeDropdownBtn.TextColor3=t.Text; ThemeDropdownBtn.BackgroundColor3=t.Hover
-    Sidebar.BackgroundColor3=t.Panel; HudTop.TextColor3=t.SubText; PerfDock.BackgroundColor3=t.Panel; PerfText.TextColor3=t.Text; makeStroke(PerfDock,1,.08)
+    Sidebar.BackgroundColor3=t.Panel; HudTop.TextColor3=t.SubText; PerfDock.BackgroundColor3=t.Panel; PerfText.TextColor3=t.Text
     for _,b in ipairs(Sidebar:GetChildren()) do if b:IsA("TextButton") then b.TextColor3=t.Text; b.BackgroundColor3=t.Hover end end
     for _,page in pairs(Pages) do page.BackgroundColor3=t.Panel; for _,sec in ipairs(page:GetChildren()) do if sec:IsA("Frame") and sec~=page then sec.BackgroundColor3=t.Bg end end end
     layoutCrosshair()
@@ -529,18 +525,18 @@ UserInputService.InputBegan:Connect(function(input,gp)
         local key=input.KeyCode
         if State.BindListening=="CrosshairToggle" then
             State.Binds["CrosshairToggle"]=key
-            sBind.CrossBtn.Text="Set Key ("..key.Name..")"
+            if sBind and sBind.CrossBtn then sBind.CrossBtn.Text="Set Key ("..key.Name..")" end
             notify("Crosshair bind: "..key.Name)
         elseif State.BindListening=="MenuToggle" then
             State.GlobalToggleKey=key
-            sBind.MenuBtn.Text="Set Key ("..key.Name..")"
+            if sBind and sBind.MenuBtn then sBind.MenuBtn.Text="Set Key ("..key.Name..")" end
             GlobalHint.Text="Global Toggle: "..key.Name.." (gizle/göster)"
             notify("Menu toggle bind: "..key.Name)
         end
         State.BindListening=nil
         return
     end
-    -- menu gizle/göster
+    -- menü gizle/göster
     if input.KeyCode==State.GlobalToggleKey then
         State.Visible=not State.Visible; Window.Visible=State.Visible
         notify(State.Visible and "Menü gösterildi." or "Menü gizlendi.")
@@ -557,12 +553,12 @@ end)
 LP.CharacterAdded:Connect(function() task.delay(1.0,function() layoutCrosshair(); HudTop.Visible=true end) end)
 
 -- Toast
-notify("MYLF Linoria+ yüklendi. Settings > Keybinds ile menu tuşunu ayarla.",3.2)
+notify("MYLF Linoria+ yüklendi. Settings > Keybinds ile menu tuşunu ayarla.",3.0)
 
 -- ======================================================================
 -- ============================== SCANNER ================================
 -- ======================================================================
--- mylf2.6 tarzı: Players / Workspace / Backpack otomatik tarama, arama/filtre, ping/track/inspect.
+-- mylf2.6 tarzı: Players / Workspace / Backpack otomatik tarama + arama/filtre + ping/track/inspect
 
 local ScannerState = {
     Auto=true, Interval=2.0, MaxItems=300, Search="", Section="All",
@@ -575,8 +571,9 @@ local scRoot=Instance.new("ScrollingFrame"); scRoot.Size=UDim2.new(1,0,1,0); scR
 scRoot.ScrollBarThickness=4; scRoot.BackgroundTransparency=1; scRoot.Parent=pScanner; pad(scRoot,8)
 local scList=Instance.new("UIListLayout",scRoot); scList.Padding=UDim.new(0,10)
 
-local function topBar(parent)
-    local bar=Instance.new("Frame"); bar.Size=UDim2.new(1,0,0,64); bar.BackgroundColor3=CurrentTheme.Bg; bar.Parent=parent; makeCorner(bar,8); makeStroke(bar,1,.08); pad(bar,8)
+-- üst bar
+do
+    local bar=Instance.new("Frame"); bar.Size=UDim2.new(1,0,0,64); bar.BackgroundColor3=CurrentTheme.Bg; bar.Parent=scRoot; makeCorner(bar,8); makeStroke(bar,1,.08); pad(bar,8)
     local hl=Instance.new("UIListLayout",bar); hl.Padding=UDim.new(0,8); hl.FillDirection=Enum.FillDirection.Horizontal
 
     local search=Instance.new("TextBox"); search.PlaceholderText="Search name/path..."; search.Font=Enum.Font.Gotham; search.TextSize=13
@@ -610,10 +607,7 @@ local function topBar(parent)
     local types=Instance.new("Frame"); types.Size=UDim2.new(0,610,1,-16); types.BackgroundTransparency=1; types.Parent=bar
     local tl=Instance.new("UIListLayout",types); tl.Padding=UDim.new(0,8); tl.FillDirection=Enum.FillDirection.Horizontal
     mini(types,"Deep","Deep"); mini(types,"Tools","IncludeTools"); mini(types,"Prompts","IncludePrompts"); mini(types,"ClickDet","IncludeClickDetectors"); mini(types,"Remotes","IncludeRemotes")
-
-    return bar
 end
-topBar(scRoot)
 
 local function clearChildren(frame) for _,ch in ipairs(frame:GetChildren()) do if ch:IsA("Frame") then ch:Destroy() end end end
 local function miniRow(parent,title,subtitle)
@@ -621,7 +615,7 @@ local function miniRow(parent,title,subtitle)
     local t=Instance.new("TextLabel"); t.BackgroundTransparency=1; t.Text=title; t.Font=Enum.Font.GothamSemibold; t.TextSize=13; t.TextColor3=CurrentTheme.Text; t.Size=UDim2.new(1,-220,0,20); t.Parent=f
     local s=Instance.new("TextLabel"); s.BackgroundTransparency=1; s.Text=subtitle or ""; s.Font=Enum.Font.Gotham; s.TextSize=12; s.TextColor3=CurrentTheme.SubText; s.Size=UDim2.new(1,-220,0,18); s.Position=UDim2.new(0,0,0,22); s.Parent=f
     local box=Instance.new("Frame"); box.BackgroundTransparency=1; box.Size=UDim2.new(0,210,1,0); box.AnchorPoint=Vector2.new(1,0); box.Position=UDim2.new(1,0,0,0); box.Parent=f
-    local ul=Instance.new("UIListLayout",box); ul.Padding=UDim2.new(0,6); ul.FillDirection=Enum.FillDirection.Horizontal
+    local ul=Instance.new("UIListLayout",box); ul.Padding=UDim.new(0,6); ul.FillDirection=Enum.FillDirection.Horizontal
     local function mk(text,cb) local b=Instance.new("TextButton"); b.AutoButtonColor=false; b.Text=text; b.Font=Enum.Font.GothamSemibold; b.TextSize=12; b.TextColor3=CurrentTheme.Text
         b.BackgroundColor3=CurrentTheme.Bg; b.Size=UDim2.new(0,100,0,24); b.Parent=box; makeCorner(b,6); makeStroke(b,1,.12)
         b.MouseButton1Click:Connect(cb)
@@ -632,6 +626,7 @@ local function miniRow(parent,title,subtitle)
     return f,mk
 end
 
+local TrackedMap = {}
 local function pingInstance(inst,label)
     local part=findAttachablePart(inst)
     if not part then notify("Ping: uygun konum yok"); return end
@@ -639,7 +634,9 @@ local function pingInstance(inst,label)
     notify("Ping atıldı: "..(label or inst.Name))
 end
 local function trackInstance(inst)
-    if Tracked[inst] then local t=Tracked[inst]; if t.conn then t.conn:Disconnect() end; if t.gui then t.gui:Destroy() end; Tracked[inst]=nil; notify("Tracking kapatıldı: "..inst.Name); return end
+    if TrackedMap[inst] then
+        local t=TrackedMap[inst]; if t.conn then t.conn:Disconnect() end; if t.gui then t.gui:Destroy() end; TrackedMap[inst]=nil; notify("Tracking kapatıldı: "..inst.Name); return
+    end
     local part=findAttachablePart(inst); if not part then notify("Track: BasePart yok"); return end
     local bb=Instance.new("BillboardGui"); bb.Adornee=part; bb.Size=UDim2.fromOffset(160,38); bb.AlwaysOnTop=true; bb.Parent=Overlay
     local lab=Instance.new("TextLabel"); lab.Size=UDim2.new(1,0,1,0); lab.BackgroundColor3=CurrentTheme.Panel; lab.TextColor3=CurrentTheme.Text; lab.Font=Enum.Font.GothamBold; lab.TextSize=13
@@ -647,7 +644,7 @@ local function trackInstance(inst)
     local conn=RunService.RenderStepped:Connect(function()
         pcall(function() local my=LP.Character and LP.Character:FindFirstChild("HumanoidRootPart"); if my then local d=(part.Position-my.Position).Magnitude; lab.Text=("👁 %s  |  %.1fm"):format(inst.Name,d) end end)
     end)
-    Tracked[inst]={gui=bb,conn=conn}; notify("Tracking açıldı: "..inst.Name)
+    TrackedMap[inst]={gui=bb,conn=conn}; notify("Tracking açıldı: "..inst.Name)
 end
 
 local function matchesSearch(txt) local s=ScannerState.Search if s=="" then return true end return string.find(string.lower(txt or ""), s, 1, true)~=nil end
@@ -700,7 +697,7 @@ local function renderPlayers()
         local row,mk=miniRow(secPlayers,(e.DisplayName or e.Name),subt)
         mk("Ping",function() local target=(Players:FindFirstChild(e.Name) and Players[e.Name].Character) or workspace:FindFirstChild(e.DisplayName or e.Name); pingInstance(target or workspace:FindFirstChild(e.Name) or workspace:FindFirstChildOfClass("Model"), e.DisplayName or e.Name) end)
         mk("Track",function() local target=Players:FindFirstChild(e.Name) and Players[e.Name].Character if not target then notify("Track: karakter yok.") return end trackInstance(target) end)
-        mk("Inspect",function() local ok,js=pcall(function() return HttpService:JSONEncode(e) end); notify(ok and "JSON hazır (Inspector yok)" or "JSON err") end)
+        mk("Inspect",function() local ok,js=pcall(function() return HttpService:JSONEncode(e) end); notify(ok and "JSON hazır (kopyala)" or "JSON err") end)
     end
 end
 local function renderWorkspace()
@@ -717,7 +714,7 @@ local function renderWorkspace()
                 if inst then pingInstance(inst,e.Name) else notify("Nesne yok.") end
             end)
             mk("Track",function() local inst=workspace:FindFirstChild(e.Name,true) if inst then trackInstance(inst) else notify("Nesne yok.") end end)
-            mk("Inspect",function() local ok,js=pcall(function() return HttpService:JSONEncode(e) end); notify(ok and "JSON hazır (Inspector yok)" or "JSON err") end)
+            mk("Inspect",function() local ok,js=pcall(function() return HttpService:JSONEncode(e) end); notify(ok and "JSON hazır (kopyala)" or "JSON err") end)
         end
     end end
 end
@@ -727,9 +724,10 @@ local function renderBackpack()
         local subt=("%s | Children: %d | %s"):format(e.Handle and "Has Handle" or "No Handle", e.ChildrenCount or 0, e.Path or "-")
         local row,mk=miniRow(secBackpack,e.Name or "-",subt)
         mk("Ping",function() local inst=LP:FindFirstChild("Backpack") and LP.Backpack:FindFirstChild(e.Name) if inst then pingInstance(inst,e.Name) else notify("Backpack objesi yok.") end end)
-        mk("Inspect",function() local ok,js=pcall(function() return HttpService:JSONEncode(e) end); notify(ok and "JSON hazır (Inspector yok)" or "JSON err") end)
+        mk("Inspect",function() local ok,js=pcall(function() return HttpService:JSONEncode(e) end); notify(ok and "JSON hazır (kopyala)" or "JSON err") end)
     end
 end
+
 local statStrip=Instance.new("TextLabel"); statStrip.BackgroundColor3=CurrentTheme.Panel; statStrip.TextColor3=CurrentTheme.SubText; statStrip.Font=Enum.Font.GothamSemibold; statStrip.TextSize=12
 statStrip.TextXAlignment=Enum.TextXAlignment.Left; statStrip.Size=UDim2.new(1,0,0,26); statStrip.Text="Players: 0 | Workspace: 0 | Backpack: 0"; statStrip.Parent=scRoot; makeCorner(statStrip,6); makeStroke(statStrip,1,.08); pad(statStrip,6)
 
