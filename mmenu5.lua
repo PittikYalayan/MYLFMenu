@@ -252,7 +252,7 @@ local function makeTabButton(text, icon)
     b.BackgroundColor3 = CurrentTheme.Hover
     b.Size = UDim2.new(1, -4, 0, 34)
     b.Parent = Sidebar
-    makeCorner(b, 6); local st = makeStroke(b, 1, .2)
+    makeCorner(b, 6); makeStroke(b, 1, .2)
     b.MouseEnter:Connect(function() tween(b,.12,{BackgroundColor3=CurrentTheme.AccentSoft}):Play() end)
     b.MouseLeave:Connect(function() tween(b,.18,{BackgroundColor3=CurrentTheme.Hover}):Play() end)
     return b
@@ -363,7 +363,6 @@ function Controls.Dropdown(parent, label, items, defaultIdx, callback)
     btn.BackgroundColor3=CurrentTheme.Hover; btn.Size=UDim2.new(0,160,0,24); btn.Position=UDim2.new(1,-170,0.5,-12); btn.Parent=row
     makeCorner(btn,6); makeStroke(btn,1,.15)
     local idx = defaultIdx or 1; btn.Text = items[idx] or "-"
-    local open=false
     local listFrame = Instance.new("Frame"); listFrame.Visible=false; listFrame.BackgroundColor3=CurrentTheme.Panel; listFrame.Size=UDim2.new(0,160,0, math.min(6,#items)*24+10)
     listFrame.AnchorPoint=Vector2.new(0,0); listFrame.Position = UDim2.new(1,-170,0.5,14); listFrame.Parent=row; makeCorner(listFrame,6); makeStroke(listFrame,1,.15); pad(listFrame,6)
     local ul = Instance.new("UIListLayout", listFrame); ul.Padding=UDim.new(0,6)
@@ -545,8 +544,25 @@ tPlayer.MouseButton1Click:Connect(function() showPage("Player") end)
 tVisuals.MouseButton1Click:Connect(function() showPage("Visuals") end)
 tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
 
---== FEATURES BAĞLA ==--
-local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
+--== features loader (SAFE) ==--
+local features = {}
+do
+    local ok, ret = pcall(function()
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.8.lua"))()
+    end)
+    if ok and type(ret) == "table" then
+        features = ret
+    else
+        warn("[MYLF] features9.8.lua yüklenemedi, UI yine kurulacak (stub). Hata: "..tostring(ret))
+        features = setmetatable({}, {
+            __index = function()
+                return function(...) return false end
+            end
+        })
+        features._tpX, features._tpY, features._tpZ = 0, 0, 25
+        function features.SetTeleportOffset(x,y,z) features._tpX, features._tpY, features._tpZ = x,y,z end
+    end
+end
 
 --== PLAYER PAGE ==--
 do
@@ -602,7 +618,7 @@ do
     local sCross = newSection(pVisuals, "Crosshair")
     local sTheme = newSection(pVisuals, "Theme / Colors")
 
-    local crossToggle = Controls.Toggle(sCross, "Enable Crosshair", true, function(on)
+    Controls.Toggle(sCross, "Enable Crosshair", true, function(on)
         CrosshairCfg.Enabled = on; layoutCrosshair()
     end)
     Controls.Slider(sCross, "Gap", 0, 30, CrosshairCfg.Gap, "%d", function(v) CrosshairCfg.Gap = v; layoutCrosshair() end)
@@ -638,6 +654,13 @@ do
     scroll.ScrollBarThickness = 6
     local layout = Instance.new("UIListLayout", scroll)
     layout.Padding = UDim.new(0,6)
+
+    local function hookCanvas(sf, lo)
+        local function upd() sf.CanvasSize = UDim2.new(0,0,0, lo.AbsoluteContentSize.Y + 12) end
+        lo:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(upd)
+        upd()
+    end
+    hookCanvas(scroll, layout)
 
     local function add(name, fn) Controls.Toggle(scroll, name, false, function(on) pcall(fn, on) end) end
     add("Enable ESP",        features.ToggleESP)
@@ -679,7 +702,6 @@ do
     Controls.Toggle(g, "⚡ Always Behind Enemy",   false, function(on) pcall(features.ToggleAutoBehind, on) end)
     Controls.Toggle(g, "⚡ Auto Farm Enemy",       false, function(on) pcall(features.ToggleAutoTeleportToEnemy, on) end)
 
-    -- Offset slider’lar (TP kısmında)
     Controls.Slider(g, "X Offset", -50, 50, 0,  "%d", function(v) if features.SetTeleportOffset then pcall(features.SetTeleportOffset, v, features._tpY, features._tpZ) end end)
     Controls.Slider(g, "Y Offset", -50, 50, 0,  "%d", function(v) if features.SetTeleportOffset then pcall(features.SetTeleportOffset, features._tpX, v, features._tpZ) end end)
     Controls.Slider(g, "Z Offset",   1,100, 25, "%d", function(v) if features.SetTeleportOffset then pcall(features.SetTeleportOffset, features._tpX, features._tpY, v) end end)
@@ -760,7 +782,6 @@ do
         end
     end)
 
-    -- World/Character → Backpack (genel)
     Controls.Button(g,"Action","Backpack’e Ekle",function()
         if not selection then return end
         if selection.obj and selection.obj:IsA("Tool") then
@@ -770,18 +791,15 @@ do
         redraw()
     end)
 
-    -- İSTEDİĞİN: “Çantama Koy” (hangi parent olursa olsun Tool’u LocalPlayer.Backpack’e at)
+    -- İSTEK: “Çantama Koy” → her durumda LP.Backpack'e parentla
     Controls.Button(g,"Action","Çantama Koy",function()
         if not selection or not selection.obj then return end
         if selection.obj:IsA("Tool") then
             local ok,err = pcall(function()
                 selection.obj.Parent = LP.Backpack
             end)
-            if ok then
-                notify("Tool çantana eklendi: "..selection.obj.Name)
-            else
-                notify("Eklenemedi (server kısıtı): "..tostring(err))
-            end
+            if ok then notify("Tool çantana eklendi: "..selection.obj.Name)
+            else notify("Eklenemedi (server kısıtı): "..tostring(err)) end
         else
             notify("Seçim Tool değil.")
         end
@@ -946,8 +964,13 @@ do
     end)
 end
 
--- Start toast
+-- Başlangıç toast
 notify("MYLF Linoria+ yüklendi. Insert ile gizle/göster.", 3.2)
+
+-- Sayfa görünümünü garantiye al (features yüklemesinden sonra)
+task.defer(function()
+    showPage("Player")
+end)
 
 -- Safety: respawn sonrası görünürlük & HUD koruması
 LP.CharacterAdded:Connect(function()
