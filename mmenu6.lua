@@ -118,9 +118,9 @@ local CurrentTheme = Themes.Dark
 local State = {
     Visible = true,
     Dragging = false,
-    BindListening = nil, -- aktif bind dinleme
-    Binds = {},          -- [name] = Enum.KeyCode
-    GlobalToggleKey = Enum.KeyCode.Insert -- ✅ menüyü Insert ile aç/kapa
+    BindListening = nil,
+    Binds = {},
+    GlobalToggleKey = Enum.KeyCode.Insert
 }
 
 --// Root GUI
@@ -154,8 +154,7 @@ local function notify(text, dur)
     t.Parent = NotifLayer
     makeCorner(t, 6); makeStroke(t, 1, .1)
     local uisize = Instance.new("UISizeConstraint", t); uisize.MaxSize = Vector2.new(500, 40)
-    tween(t, .18, {Size = UDim2.new(0, math.clamp(t.TextBounds.X+22, 140, 460), 0, 28), BackgroundTransparency = 0})
-        :Play()
+    tween(t, .18, {Size = UDim2.new(0, math.clamp(t.TextBounds.X+22, 140, 460), 0, 28), BackgroundTransparency = 0}):Play()
     task.delay(dur, function()
         local tw = tween(t, .18, {Position = UDim2.new(1, -10, 0, -34), BackgroundTransparency = 1})
         tw.Completed:Connect(function() t:Destroy() end)
@@ -413,7 +412,7 @@ function Controls.Button(parent, label, text, callback)
     return btn
 end
 
---// Crosshair Overlay (GUI-based)
+--// HUD Overlay (mini FPS/Ping)
 local Overlay = Instance.new("ScreenGui")
 Overlay.Name = "MYLF_HUD"
 Overlay.IgnoreGuiInset = true
@@ -430,7 +429,6 @@ Crosshair.BackgroundTransparency = 1
 Crosshair.Visible = true
 Crosshair.Parent = Overlay
 
--- four arms
 local arms = {}
 for i=1,4 do
     local a = Instance.new("Frame")
@@ -441,29 +439,21 @@ for i=1,4 do
     arms[i] = a
 end
 
-local CrosshairCfg = {
-    Enabled = true,
-    Gap = 6,
-    Length = 8,
-    Thickness = 2,
-    Opacity = 1,
-    Color = CurrentTheme.Accent
-}
+local CrosshairCfg = { Enabled=true, Gap=6, Length=8, Thickness=2, Opacity=1, Color=CurrentTheme.Accent }
 local function layoutCrosshair()
     for _,a in ipairs(arms) do a.BackgroundTransparency = 1 - CrosshairCfg.Opacity; a.BackgroundColor3 = CrosshairCfg.Color end
-    arms[1].Size = UDim2.fromOffset(CrosshairCfg.Thickness, CrosshairCfg.Length)           -- up
+    arms[1].Size = UDim2.fromOffset(CrosshairCfg.Thickness, CrosshairCfg.Length)
     arms[1].Position = UDim2.fromOffset(-CrosshairCfg.Thickness/2, -(CrosshairCfg.Gap + CrosshairCfg.Length))
-    arms[2].Size = UDim2.fromOffset(CrosshairCfg.Thickness, CrosshairCfg.Length)           -- down
+    arms[2].Size = UDim2.fromOffset(CrosshairCfg.Thickness, CrosshairCfg.Length)
     arms[2].Position = UDim2.fromOffset(-CrosshairCfg.Thickness/2, CrosshairCfg.Gap)
-    arms[3].Size = UDim2.fromOffset(CrosshairCfg.Length, CrosshairCfg.Thickness)           -- left
+    arms[3].Size = UDim2.fromOffset(CrosshairCfg.Length, CrosshairCfg.Thickness)
     arms[3].Position = UDim2.fromOffset(-(CrosshairCfg.Gap + CrosshairCfg.Length), -CrosshairCfg.Thickness/2)
-    arms[4].Size = UDim2.fromOffset(CrosshairCfg.Length, CrosshairCfg.Thickness)           -- right
+    arms[4].Size = UDim2.fromOffset(CrosshairCfg.Length, CrosshairCfg.Thickness)
     arms[4].Position = UDim2.fromOffset(CrosshairCfg.Gap, -CrosshairCfg.Thickness/2)
     Crosshair.Visible = CrosshairCfg.Enabled
 end
 layoutCrosshair()
 
--- FPS / Ping HUD (mini)
 local HudTop = Instance.new("TextLabel")
 HudTop.Name = "Perf"
 HudTop.BackgroundTransparency = 1
@@ -472,7 +462,7 @@ HudTop.Font = Enum.Font.GothamSemibold
 HudTop.TextSize = 13
 HudTop.TextXAlignment = Enum.TextXAlignment.Left
 HudTop.Position = UDim2.new(0,10,0,8)
-HudTop.Size = UDim2.new(0,220,0,18)
+HudTop.Size = UDim2.new(0,240,0,18)
 HudTop.Parent = Overlay
 
 local fps, dtAccum, dtCount = 60, 0, 0
@@ -492,7 +482,7 @@ RunService.RenderStepped:Connect(function(dt)
     end
 end)
 
--- Waypoints (client-only Billboard)
+-- Waypoints
 local WayFolder = Instance.new("Folder"); WayFolder.Name = "MYLF_Waypoints_Local"; WayFolder.Parent = workspace
 local function createWaypoint(name, pos)
     local part = Instance.new("Part")
@@ -618,7 +608,7 @@ do
     local sCross = newSection(pVisuals, "Crosshair")
     local sTheme = newSection(pVisuals, "Theme / Colors")
 
-    Controls.Toggle(sCross, "Enable Crosshair", true, function(on)
+    local crossToggle = Controls.Toggle(sCross, "Enable Crosshair", true, function(on)
         CrosshairCfg.Enabled = on; layoutCrosshair()
     end)
     Controls.Slider(sCross, "Gap", 0, 30, CrosshairCfg.Gap, "%d", function(v) CrosshairCfg.Gap = v; layoutCrosshair() end)
@@ -637,12 +627,12 @@ end
 --== P-Aim ==--
 do
     local g = newSection(pAim, "Combat")
-    Controls.Toggle(g, "Enable Aimbot",          false, function(on) pcall(features.ToggleAimbot, on) end)
-    Controls.Toggle(g, "Silent Aim",             false, function(on) pcall(features.ToggleSilentAim, on) end)
-    Controls.Toggle(g, "Force Headshot",         false, function(on) pcall(features.ToggleHeadshotRedirect, on) end)
-    Controls.Toggle(g, "Hard Fire Rate",         false, function(on) pcall(features.ToggleFireRate, on) end)
-    Controls.Toggle(g, "Magic Bullet",           false, function(on) pcall(features.ToggleMagicBullet, on) end)
-    Controls.Toggle(g, "☠️ Kill Aura",           false, function(on) pcall(features.ToggleKillAura, on) end)
+    Controls.Toggle(g, "Enable Aimbot",  false, function(on) if features and features.ToggleAimbot then pcall(features.ToggleAimbot, on) end end)
+    Controls.Toggle(g, "Silent Aim",     false, function(on) if features and features.ToggleSilentAim then pcall(features.ToggleSilentAim, on) end end)
+    Controls.Toggle(g, "Force Headshot", false, function(on) if features and features.ToggleHeadshotRedirect then pcall(features.ToggleHeadshotRedirect, on) end end)
+    Controls.Toggle(g, "Hard Fire Rate", false, function(on) if features and features.ToggleFireRate then pcall(features.ToggleFireRate, on) end end)
+    Controls.Toggle(g, "Magic Bullet",   false, function(on) if features and features.ToggleMagicBullet then pcall(features.ToggleMagicBullet, on) end end)
+    Controls.Toggle(g, "☠️ Kill Aura",   false, function(on) if features and features.ToggleKillAura then pcall(features.ToggleKillAura, on) end end)
 end
 
 --== P-ESP (scrollable) ==--
@@ -662,7 +652,7 @@ do
     end
     hookCanvas(scroll, layout)
 
-    local function add(name, fn) Controls.Toggle(scroll, name, false, function(on) pcall(fn, on) end) end
+    local function add(name, fn) Controls.Toggle(scroll, name, false, function(on) if features and fn then pcall(fn, on) end end) end
     add("Enable ESP",        features.ToggleESP)
     add("Rainbow Name",      features.ToggleESPRainbow)
     add("Skeleton ESP",      features.ToggleESPSkeleton)
@@ -683,43 +673,55 @@ end
 --== P-Movement ==--
 do
     local g = newSection(pMove, "Movement")
-    Controls.Toggle(g, "Speed Boost (50)", false, function(on) pcall(features.ToggleSpeed, on) end)
-    Controls.Toggle(g, "Fly (LCtrl down)", false, function(on) pcall(features.ToggleFly, on) end)
-    Controls.Toggle(g, "Infinite Jump",    false, function(on) pcall(features.ToggleInfiniteJump, on) end)
-    Controls.Toggle(g, "NoClip",           false, function(on) pcall(features.ToggleNoclip, on) end)
+    Controls.Toggle(g, "Speed Boost (50)", false, function(on) if features and features.ToggleSpeed then pcall(features.ToggleSpeed, on) end end)
+    Controls.Toggle(g, "Fly (LCtrl down)", false, function(on) if features and features.ToggleFly then pcall(features.ToggleFly, on) end end)
+    Controls.Toggle(g, "Infinite Jump",    false, function(on) if features and features.ToggleInfiniteJump then pcall(features.ToggleInfiniteJump, on) end end)
+    Controls.Toggle(g, "NoClip",           false, function(on) if features and features.ToggleNoclip then pcall(features.ToggleNoclip, on) end end)
 
     local g2 = newSection(pMove, "States")
-    Controls.Toggle(g2, "💀 Godmode",        false, function(on) pcall(features.ToggleGodmode, on) end)
-    Controls.Toggle(g2, "👻 Hard Invisible", false, function(on) pcall(features.ToggleHardInvisible, on) end)
-    Controls.Toggle(g2, "Tiny Hitbox",       false, function(on) pcall(features.ToggleTinyHitbox, on) end)
-    Controls.Toggle(g2, "My Tiny Hitbox",    false, function(on) pcall(features.ToggleMyTinyHitbox, on) end)
+    Controls.Toggle(g2, "💀 Godmode",        false, function(on) if features and features.ToggleGodmode then pcall(features.ToggleGodmode, on) end end)
+    Controls.Toggle(g2, "👻 Hard Invisible", false, function(on) if features and features.ToggleHardInvisible then pcall(features.ToggleHardInvisible, on) end end)
+    Controls.Toggle(g2, "Tiny Hitbox",       false, function(on) if features and features.ToggleTinyHitbox then pcall(features.ToggleTinyHitbox, on) end end)
+    Controls.Toggle(g2, "My Tiny Hitbox",    false, function(on) if features and features.ToggleMyTinyHitbox then pcall(features.ToggleMyTinyHitbox, on) end end)
 end
 
 --== P-Teleport ==--
 do
     local g = newSection(pTP, "Teleport")
-    Controls.Toggle(g, "Teleport (T Key)",        false, function(on) pcall(features.ToggleTeleport, on) end)
-    Controls.Toggle(g, "⚡ Always Behind Enemy",   false, function(on) pcall(features.ToggleAutoBehind, on) end)
-    Controls.Toggle(g, "⚡ Auto Farm Enemy",       false, function(on) pcall(features.ToggleAutoTeleportToEnemy, on) end)
+    Controls.Toggle(g, "Teleport (T Key)",        false, function(on) if features and features.ToggleTeleport then pcall(features.ToggleTeleport, on) end end)
+    Controls.Toggle(g, "⚡ Always Behind Enemy",   false, function(on) if features and features.ToggleAutoBehind then pcall(features.ToggleAutoBehind, on) end end)
+    Controls.Toggle(g, "⚡ Auto Farm Enemy",       false, function(on) if features and features.ToggleAutoTeleportToEnemy then pcall(features.ToggleAutoTeleportToEnemy, on) end end)
 
-    Controls.Slider(g, "X Offset", -50, 50, 0,  "%d", function(v) if features.SetTeleportOffset then pcall(features.SetTeleportOffset, v, features._tpY, features._tpZ) end end)
-    Controls.Slider(g, "Y Offset", -50, 50, 0,  "%d", function(v) if features.SetTeleportOffset then pcall(features.SetTeleportOffset, features._tpX, v, features._tpZ) end end)
-    Controls.Slider(g, "Z Offset",   1,100, 25, "%d", function(v) if features.SetTeleportOffset then pcall(features.SetTeleportOffset, features._tpX, features._tpY, v) end end)
+    Controls.Slider(g, "X Offset", -50, 50, 0,  "%d", function(v) if features and features.SetTeleportOffset then pcall(features.SetTeleportOffset, v, features._tpY, features._tpZ) end end)
+    Controls.Slider(g, "Y Offset", -50, 50, 0,  "%d", function(v) if features and features.SetTeleportOffset then pcall(features.SetTeleportOffset, features._tpX, v, features._tpZ) end end)
+    Controls.Slider(g, "Z Offset",   1,100, 25, "%d", function(v) if features and features.SetTeleportOffset then pcall(features.SetTeleportOffset, features._tpX, features._tpY, v) end end)
 end
 
---== Scanner ==--
+--== Scanner (full: workspace + tüm oyuncular) ==--
 do
-    local g = newSection(pScan, "Tools / Backpack")
+    local g = newSection(pScan, "Tools / Backpack (Full Scan)")
 
     local listFrame = Instance.new("ScrollingFrame")
     listFrame.Name="ScanList"
     listFrame.Parent = pScan
     listFrame.BackgroundTransparency = 1
-    listFrame.Size = UDim2.new(1,-20,1,-120)
+    listFrame.Size = UDim2.new(1,-20,1,-140)
     listFrame.Position = UDim2.new(0,10,0,10)
     listFrame.CanvasSize = UDim2.new(0,0,0,0)
     listFrame.ScrollBarThickness = 6
     local ul = Instance.new("UIListLayout", listFrame); ul.Padding=UDim.new(0,6)
+
+    local searchRow = Instance.new("TextBox", pScan)
+    searchRow.PlaceholderText = "Ara (isim filtreler)..."
+    searchRow.Text = ""
+    searchRow.ClearTextOnFocus = false
+    searchRow.TextColor3 = CurrentTheme.Text
+    searchRow.BackgroundColor3 = CurrentTheme.Hover
+    searchRow.Font = Enum.Font.Gotham
+    searchRow.TextSize = 12
+    searchRow.Size = UDim2.new(1,-20,0,24)
+    searchRow.Position = UDim2.new(0,10,1,-124)
+    makeCorner(searchRow,6); makeStroke(searchRow,1,.15)
 
     local detailText = Instance.new("TextLabel", pScan)
     detailText.BackgroundTransparency = 1
@@ -730,50 +732,80 @@ do
     detailText.Font = Enum.Font.Code
     detailText.TextSize = 12
     detailText.TextColor3 = Color3.fromRGB(220,220,230)
-    detailText.Size = UDim2.new(1,-20,0,64)
-    detailText.Position = UDim2.new(0,10,1,-100)
+    detailText.Size = UDim2.new(1,-20,0,80)
+    detailText.Position = UDim2.new(0,10,1,-96)
 
     local selection=nil
+    local cachedItems={}
+
     local function collect()
         local items={}
-        local function pull(root,owner)
-            if not root then return end
-            for _,o in ipairs(root:GetDescendants())do
-                if o:IsA("Tool") then
-                    table.insert(items,{obj=o,name=o.Name,owner=owner,hasHandle=o:FindFirstChild("Handle")~=nil})
+        -- 1) Workspace geneli
+        for _,o in ipairs(workspace:GetDescendants()) do
+            if o:IsA("Tool") then
+                table.insert(items,{obj=o,name=o.Name,owner="workspace",hasHandle=o:FindFirstChild("Handle")~=nil})
+            end
+        end
+        -- 2) Tüm oyuncular (char + backpack)
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr.Character then
+                for _,o in ipairs(plr.Character:GetDescendants()) do
+                    if o:IsA("Tool") then
+                        table.insert(items,{obj=o,name=o.Name,owner=plr.Name.." (Char)",hasHandle=o:FindFirstChild("Handle")~=nil})
+                    end
+                end
+            end
+            if plr:FindFirstChild("Backpack") then
+                for _,o in ipairs(plr.Backpack:GetChildren()) do
+                    if o:IsA("Tool") then
+                        table.insert(items,{obj=o,name=o.Name,owner=plr.Name.." (Backpack)",hasHandle=o:FindFirstChild("Handle")~=nil})
+                    end
                 end
             end
         end
-        pull(workspace,"world")
-        pull(LP.Character,"character")
-        pull(LP.Backpack,"backpack")
         return items
     end
+
     local function redraw()
+        local q = string.lower(searchRow.Text or "")
         listFrame:ClearAllChildren()
         local total=0
-        for _,it in ipairs(collect())do
-            local row=Instance.new("TextButton")
-            row.BackgroundColor3=Color3.fromRGB(40,40,52)
-            row.TextColor3=Color3.fromRGB(235,235,245)
-            row.Font=Enum.Font.Gotham
-            row.TextSize=12
-            row.TextXAlignment=Enum.TextXAlignment.Left
-            row.Text=string.format("[%s] %s | owner=%s | handle=%s","Tool",it.name,it.owner,tostring(it.hasHandle))
-            row.Size=UDim2.new(1,-6,0,28)
-            row.Parent=listFrame
-            row.MouseButton1Click:Connect(function()
-                selection=it
-                local ok,path=pcall(function() return it.obj:GetFullName() end)
-                detailText.Text=string.format("Name: %s\nOwner: %s\nHandle: %s\nPath: %s",it.name,it.owner,tostring(it.hasHandle),ok and path or "?")
-            end)
-            total+=34
+        for _,it in ipairs(cachedItems) do
+            if q=="" or string.find(string.lower(it.name), q, 1, true) then
+                local row=Instance.new("TextButton")
+                row.BackgroundColor3=Color3.fromRGB(40,40,52)
+                row.TextColor3=Color3.fromRGB(235,235,245)
+                row.Font=Enum.Font.Gotham
+                row.TextSize=12
+                row.TextXAlignment=Enum.TextXAlignment.Left
+                row.AutoButtonColor=false
+                row.Text=string.format("[%s] %s | %s | handle=%s","Tool",it.name,it.owner,tostring(it.hasHandle))
+                row.Size=UDim2.new(1,-6,0,28)
+                row.Parent=listFrame
+                makeCorner(row,6); makeStroke(row,1,.15)
+                row.MouseEnter:Connect(function() tween(row,.08,{BackgroundColor3=CurrentTheme.AccentSoft}):Play() end)
+                row.MouseLeave:Connect(function() tween(row,.12,{BackgroundColor3=Color3.fromRGB(40,40,52)}):Play() end)
+                row.MouseButton1Click:Connect(function()
+                    selection=it
+                    local ok,path=pcall(function() return it.obj:GetFullName() end)
+                    detailText.Text=string.format("Name: %s\nOwner: %s\nHandle: %s\nPath: %s",it.name,it.owner,tostring(it.hasHandle),ok and path or "?")
+                end)
+                total+=34
+            end
         end
         listFrame.CanvasSize=UDim2.new(0,0,0,total)
         if not selection then detailText.Text="Detaylar..." end
     end
 
-    Controls.Button(g,"Refresh","Scan Now",redraw)
+    local function doScan()
+        cachedItems = collect()
+        redraw()
+        notify(("Scan tamam: %d tool bulundu."):format(#cachedItems))
+    end
+
+    Controls.Button(g,"Refresh","Scan Now",doScan)
+    searchRow:GetPropertyChangedSignal("Text"):Connect(redraw)
+
     Controls.Button(g,"Action","Equip",function()
         if not selection then return end
         local hum=LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
@@ -785,25 +817,22 @@ do
     Controls.Button(g,"Action","Backpack’e Ekle",function()
         if not selection then return end
         if selection.obj and selection.obj:IsA("Tool") then
-            pcall(function() selection.obj.Parent = LP.Backpack end)
-            notify("Backpack’e eklendi: "..selection.obj.Name)
+            local ok,err = pcall(function() selection.obj.Parent = LP.Backpack end)
+            if ok then notify("Backpack’e eklendi: "..selection.obj.Name) else notify("Eklenemedi: "..tostring(err)) end
         end
-        redraw()
+        doScan()
     end)
 
-    -- İSTEK: “Çantama Koy” → her durumda LP.Backpack'e parentla
+    -- İstek: "Çantama Koy" → hangi parent olursa olsun Tool’u kendi backpack’ine al
     Controls.Button(g,"Action","Çantama Koy",function()
         if not selection or not selection.obj then return end
         if selection.obj:IsA("Tool") then
-            local ok,err = pcall(function()
-                selection.obj.Parent = LP.Backpack
-            end)
-            if ok then notify("Tool çantana eklendi: "..selection.obj.Name)
-            else notify("Eklenemedi (server kısıtı): "..tostring(err)) end
+            local ok,err = pcall(function() selection.obj.Parent = LP.Backpack end)
+            if ok then notify("Tool çantana eklendi: "..selection.obj.Name) else notify("Eklenemedi: "..tostring(err)) end
         else
             notify("Seçim Tool değil.")
         end
-        redraw()
+        doScan()
     end)
 
     Controls.Button(g,"Camera","Kamerayı Odakla",function()
@@ -814,6 +843,9 @@ do
             cam.CFrame=CFrame.new(cam.CFrame.Position,target.Position)
         end
     end)
+
+    -- başlangıç
+    task.defer(doScan)
 end
 
 --== P-SETTINGS ==--
@@ -888,7 +920,7 @@ do
     end)
 end
 
---== HUD PAGE: Fotoğraftaki gibi Perf HUD (draggable + rainbow bar) ==--
+--== HUD PAGE: Draggable Perf HUD (rainbow bar) ==--
 do
     local g = newSection(pHUD, "Performance HUD")
     Controls.Toggle(g, "Enable HUD", false, function(on)
@@ -903,7 +935,6 @@ do
                 makeCorner(hud,10)
                 local stroke=makeStroke(hud,1.5,0); stroke.Color=Color3.fromRGB(124,77,255)
 
-                -- drag
                 local dragging=false; local dragStart; local startPos
                 hud.InputBegan:Connect(function(input)
                     if input.UserInputType==Enum.UserInputType.MouseButton1 then
@@ -967,12 +998,9 @@ end
 -- Başlangıç toast
 notify("MYLF Linoria+ yüklendi. Insert ile gizle/göster.", 3.2)
 
--- Sayfa görünümünü garantiye al (features yüklemesinden sonra)
-task.defer(function()
-    showPage("Player")
-end)
+-- Görünümü garantiye al
+task.defer(function() showPage("Player") end)
 
--- Safety: respawn sonrası görünürlük & HUD koruması
 LP.CharacterAdded:Connect(function()
     task.delay(1.0, function()
         layoutCrosshair()
