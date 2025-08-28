@@ -128,7 +128,7 @@ end
 -- ========= Independent Toggles / Loops =========
 
 -- 3D Box
-function features.ToggleBox(on)
+function qfeatures.ToggleBox(on)
   if on and not features._conns.box then
     features._conns.box = RunService.RenderStepped:Connect(function()
       for model,o in pairs(features._targets) do
@@ -154,7 +154,7 @@ function features.ToggleBox(on)
 end
 
 -- Rainbow Highlight (Glow)
-function features.ToggleGlow(on)
+function qfeatures.ToggleGlow(on)
   if on and not features._conns.glow then
     features._conns.glow = RunService.RenderStepped:Connect(function(dt)
       features._t = (features._t or 0) + dt
@@ -184,7 +184,7 @@ function features.ToggleGlow(on)
 end
 
 -- Rainbow Name Label
-function features.ToggleRainbowName(on)
+function qfeatures.ToggleRainbowName(on)
   if on and not features._conns.rname then
     features._conns.rname = RunService.RenderStepped:Connect(function(dt)
       features._t = (features._t or 0) + dt
@@ -221,7 +221,7 @@ function features.ToggleRainbowName(on)
 end
 
 -- Tracers (from bottom-center)
-function features.ToggleTracers(on)
+function qfeatures.ToggleTracers(on)
   if on and not features._conns.tracers then
     features._conns.tracers = RunService.RenderStepped:Connect(function()
       local vp = Camera.ViewportSize
@@ -266,7 +266,7 @@ local function skeletonLinesFor(model, o)
   end
 end
 
-function features.ToggleSkeleton(on)
+function qfeatures.ToggleSkeleton(on)
   if on and not features._conns.skeleton then
     features._conns.skeleton = RunService.RenderStepped:Connect(function()
       for model,o in pairs(features._targets) do
