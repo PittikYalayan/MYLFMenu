@@ -47,7 +47,7 @@ end
 local URL = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
 local SRC = game:HttpGet(URL)                 -- doğrudan çek
 local fn  = loadstring(SRC)                   -- derle
-assert(type(fn) == "function", "features9.9.lua derlenemedi")
+
 
 -- Çalıştır → eğer return ediyorsa al, etmiyorsa globalden yakala
 local r1, r2 = fn()
