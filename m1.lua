@@ -42,68 +42,94 @@ local function findAnyBasePart(obj)
 end
 
 --== EXTERNAL FEATURES (direct load) ==--
---== EXTERNAL FEATURES (direct) ==--
---== EXTERNAL FEATURES (direct-clean) ==--
---== EXTERNAL FEATURES (fail-safe 9.9 loader) ==--
--- Menü kırılmasın diye önce stub fonksiyonları hazırla:
+--== EXTERNAL FEATURES (fail-safe + sanitize 9.9) ==--
+-- 0) Stub: menü asla düşmesin
 local REQUIRED = {
-  -- AIM
   "ToggleAimbot","ToggleSilentAim","ToggleMagicBullet","ToggleHeadshotRedirect",
   "ToggleFireRate","ToggleKillAura",
-  -- ESP
   "ToggleESP","ToggleEnemyBigHitbox",
-  -- PLAYER / MOVEMENT
   "ToggleSpeed","ToggleFly","ToggleInfiniteJump","ToggleGodmode",
   "ToggleHardInvisible","ToggleNoclip","ToggleTeleport",
   "ToggleAutoBehind","ToggleAutoTeleportToEnemy",
-  -- PARAMS
   "SetAimFOV","SetTeleportOffset",
 }
 local function noopSwitch(_) return function(_) end end
 local function noopSetter(_) return function(...) end end
-
-local features = { _aimFOV = 60, _tpX=0, _tpY=0, _tpZ=25 }
+local features = { _aimFOV=60, _tpX=0, _tpY=0, _tpZ=25 }
 for _,fname in ipairs(REQUIRED) do
   features[fname] = (fname:sub(1,3)=="Set") and noopSetter(fname) or noopSwitch(fname)
 end
 
--- 9.9'u dene; hata MENÜYÜ DÜŞÜRMEZ (sadece warn)
-do
-  local URL = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
+-- 1) Yardımcılar
+local function sanitize(src)
+  if not src or type(src)~="string" then return nil end
+  if src:sub(1,3) == string.char(0xEF,0xBB,0xBF) then src = src:sub(4) end -- UTF-8 BOM
+  src = src:gsub("\r\n", "\n")       -- CRLF -> LF
+  src = src:gsub("\239\187\191","")  -- tekrar BOM
+  src = src:gsub("\226\128\139","")  -- ZWNBSP
+  src = src:gsub("\194\160"," ")     -- NBSP -> space
+  return src
+end
 
-  -- 1) İndir
-  local okGet, SRC = pcall(function() return game:HttpGet(URL) end)
-  if not okGet or type(SRC)~="string" or #SRC==0 then
-    warn("[MYLF] features9.9.lua indirilemedi; stub ile devam.")
+local function try_url(url)
+  local ok1, raw = pcall(function() return game:HttpGet(url) end)
+  if not ok1 or type(raw)~="string" or #raw==0 then return nil, "fetch" end
+  raw = sanitize(raw)
+  if not raw then return nil, "sanitize" end
+  if raw:find("<!DOCTYPE") or raw:find("<html") then return nil, "html" end
+
+  local ok2, fn = pcall(loadstring, raw)
+  if not ok2 or type(fn)~="function" then
+    -- export ekleyip tekrar dene (dosya return etmiyorsa)
+    local wrapped = raw .. "\nreturn (M or features or _G.MYLF_features or (getgenv and getgenv().MYLF_features))"
+    ok2, fn = pcall(loadstring, wrapped)
+    if not ok2 then return nil, "compile" end
+    local ok3, ret = pcall(fn)
+    if not ok3 then return nil, "run" end
+    if type(ret)=="table" then return ret end
+    return nil, "export"
   else
-    -- 2) Derle
-    local okLoad, fn = pcall(loadstring, SRC)
-    if not okLoad or type(fn)~="function" then
-      warn("[MYLF] features9.9.lua derleme hatası; stub ile devam.")
+    local ok3, r1, r2 = pcall(fn)
+    if not ok3 then return nil, "run" end
+    local mod = r1 or r2
+      or rawget(_G, "MYLF_features")
+      or rawget(_G, "features")
+      or rawget(_G, "M")
+      or (getgenv and getgenv().MYLF_features)
+    if type(mod)=="table" then return mod end
+    -- son çare: wrap ile tekrar dene
+    local wrapped = raw .. "\nreturn (M or features or _G.MYLF_features or (getgenv and getgenv().MYLF_features))"
+    local okw, fnw = pcall(loadstring, wrapped)
+    if okw then
+      local okr, mod2 = pcall(fnw)
+      if okr and type(mod2)=="table" then return mod2 end
+    end
+    return nil, "export"
+  end
+end
+
+-- 2) Çoklu URL dene + cache-bust
+do
+  local base = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
+  local urls = {
+    base,
+    base .. "?cb=" .. tostring(os.clock()),
+    "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/refs/heads/main/features9.9.lua",
+  }
+  for _,u in ipairs(urls) do
+    local mod, why = try_url(u)
+    if mod then
+      for k,v in pairs(mod) do features[k]=v end
+      _G.MYLF_features = features
+      break
     else
-      -- 3) Çalıştır (return ederse al; etmezse globalden dene)
-      local okRun, r1, r2 = pcall(fn)
-      if not okRun then
-        warn("[MYLF] features9.9.lua çalıştırma hatası; stub ile devam.")
-      else
-        local mod = r1 or r2
-                    or rawget(_G,"MYLF_features")
-                    or rawget(_G,"features")
-                    or rawget(_G,"M")
-                    or (getgenv and getgenv().MYLF_features)
-        if type(mod)=="table" then
-          -- mod’daki fonksiyon/alanlarla stub’ı override et
-          for k,v in pairs(mod) do features[k]=v end
-        else
-          warn("[MYLF] 9.9 yüklendi ama tablo export etmedi; stub ile devam.")
-        end
-      end
+      warn("[MYLF] 9.9 yüklenemedi ("..tostring(why)..") -> "..u)
     end
   end
 end
 
-_G.MYLF_features = features -- opsiyonel cache
--- (Bu bloktan sonra kodun her yerindeki 'features.ToggleX' çağrıları KESİNLİKLE bir fonksiyon bulur.)
+_G.MYLF_features = features
+-- (Bitti: 'features.ToggleX' kesin fonksiyon; 9.9 düzgünse override edilir, değilse menü açılmaya devam.)
 
 
 
