@@ -449,12 +449,7 @@ do
     local gRight = makeGroup(right)
 
     -- Bağlantılar
-    bindToggle(g, "aimbot",   "Enable Aimbot",           features.ToggleAimbot)
-    bindToggle(g, "silent",   "Silent Aim",              features.ToggleSilentAim)
-    bindToggle(g, "magic",    "Magic Bullet (Fallback)", features.ToggleMagicBullet)
-    bindToggle(g, "headshotRedirect", "Force Headshot",  features.ToggleHeadshotRedirect)
-    bindToggle(g, "fireRate", "Hard Fire Rate",          features.ToggleFireRate)
-    bindToggle(g, "killAura", "☠️ Kill Aura",            features.ToggleKillAura)
+ 
 
     -- Parametreler
     features._aimFOV = tonumber(features._aimFOV) or 60
@@ -507,8 +502,7 @@ do
     local g      = makeGroup(left)
     local gRight = makeGroup(right)
 
-    bindToggle(g,     "esp",        "Enable ESP",            features.ToggleESP)
-    bindToggle(gRight,"enemyBigHB", "🎯 Enemy Big Hitbox",   features.ToggleEnemyBigHitbox)
+
 
     -- (İlerde: TeamCheck, Distance, Tracer, Healthbar vs fonksiyonların varsa buraya aynı pattern ile bağla)
 Controls.Toggle(left, "Enable ESP", false, function(on)
@@ -528,15 +522,7 @@ do
 
     -- Player hareket ve utility (özellikler direkt bağlandı)
     local g = makeGroup(left)
-    bindToggle(g, "speed",     "Speed Boost (50)",     features.ToggleSpeed)
-    bindToggle(g, "fly",       "Fly (LCtrl down)",     features.ToggleFly)
-    bindToggle(g, "infjump",   "Infinite Jump",        features.ToggleInfiniteJump)
-    bindToggle(g, "godmode",   "💀 Godmode",           features.ToggleGodmode)
-    bindToggle(g, "hardInvis", "👻 Hard Invisible",    features.ToggleHardInvisible)
-    bindToggle(g, "noclip",    "NoClip",               features.ToggleNoclip)
-    bindToggle(g, "tpkey",     "Teleport (T Key)",     features.ToggleTeleport)
-    bindToggle(g, "autoBehind","⚡ Always Behind Enemy", features.ToggleAutoBehind)
-    bindToggle(g, "autoTP",    "⚡ Auto Farm Enemy",     features.ToggleAutoTeleportToEnemy)
+    
 
     -- Kamera/FOV bu sayfadan da erişilebilir istersen (Visuals'ta da var)
 Controls.Toggle(left, "⚡ Speed Boost (50)", false, function(on)
