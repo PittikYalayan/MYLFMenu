@@ -42,107 +42,78 @@ local function findAnyBasePart(obj)
 end
 
 --== EXTERNAL FEATURES (direct load) ==--
-do
-  -- 0) Menü düşmesin diye default stub’lar:
-  local REQUIRED = {
-    "ToggleAimbot","ToggleSilentAim","ToggleMagicBullet","ToggleHeadshotRedirect",
-    "ToggleFireRate","ToggleKillAura",
-    "ToggleESP","ToggleEnemyBigHitbox",
-    "ToggleSpeed","ToggleFly","ToggleInfiniteJump","ToggleGodmode",
-    "ToggleHardInvisible","ToggleNoclip","ToggleTeleport",
-    "ToggleAutoBehind","ToggleAutoTeleportToEnemy",
-    "SetAimFOV","SetTeleportOffset",
-  }
-  local function noopSwitch(_) return function(_) end end
-  local function noopSetter(_) return function(...) end end
+local ok, mod = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua"))()
+end)
 
-  local F = { _aimFOV=60, _tpX=0, _tpY=0, _tpZ=25 }
-  for _,k in ipairs(REQUIRED) do
-    F[k] = (k:sub(1,3)=="Set") and noopSetter(k) or noopSwitch(k)
-  end
+local features
+if ok and type(mod) == "table" then
+    -- ✅ dış dosya düzgün yüklendi
+    features = mod
+else
+    warn("[MYLF] features1.1.1.lua yüklenemedi, stub ile devam ediliyor.")
 
-  -- 1) 1.1.1'i yüklemeyi dene (derleme/çalıştırma hatası menüyü DÜŞÜRMEZ)
-  local function sanitize(src)
-    if not src or type(src)~="string" then return nil end
-    if src:sub(1,3) == string.char(0xEF,0xBB,0xBF) then src = src:sub(4) end -- BOM
-    src = src:gsub("\r\n","\n")                      -- CRLF->LF
-    if src:find("<!DOCTYPE") or src:find("<html") then return nil end -- yanlışlıkla HTML geldiyse
-    return src
-  end
-  local function tryLoad(url)
-    local ok, raw = pcall(function() return game:HttpGet(url) end)
-    if not ok then return nil,"fetch" end
-    raw = sanitize(raw)
-    if not raw then return nil,"sanitize/html" end
-    local okC, fn = pcall(loadstring, raw)
-    if not okC or type(fn)~="function" then return nil,"compile" end
-    local okR, r1, r2 = pcall(fn)
-    if not okR then return nil,"run" end
-    local mod = r1 or r2
-              or rawget(_G,"MYLF_features")
-              or rawget(_G,"features")
-              or rawget(_G,"M")
-              or (getgenv and getgenv().MYLF_features)
-    if type(mod) ~= "table" then return nil,"export" end
-    return mod
-  end
-
-  local urls = {
-    "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua",
-    "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/refs/heads/main/features1.1.1.lua",
-  }
-  local mod
-  for _,u in ipairs(urls) do
-    local m, why = tryLoad(u)
-    if m then mod=m break else warn("[MYLF] 1.1.1 yüklenemedi ("..tostring(why)..") -> "..u) end
-  end
-
-  -- 2) Mod geldiyse bağla + alias (fonksiyon adları farklıysa yakala)
-  if mod then
-    local alias = {
-      ToggleAimbot={"ToggleAimbot","Aimbot","EnableAimbot"},
-      ToggleSilentAim={"ToggleSilentAim","SilentAim","EnableSilent"},
-      ToggleMagicBullet={"ToggleMagicBullet","MagicBullet","EnableMagicBullet"},
-      ToggleHeadshotRedirect={"ToggleHeadshotRedirect","HeadshotRedirect","ForceHeadshot"},
-      ToggleFireRate={"ToggleFireRate","HardFireRate","RapidFire"},
-      ToggleKillAura={"ToggleKillAura","KillAura"},
-      ToggleESP={"ToggleESP","ESP","EnableESP"},
-      ToggleEnemyBigHitbox={"ToggleEnemyBigHitbox","EnemyBigHB","BigHitbox","BigHB"},
-      ToggleSpeed={"ToggleSpeed","Speed"},
-      ToggleFly={"ToggleFly","Fly"},
-      ToggleInfiniteJump={"ToggleInfiniteJump","InfJump"},
-      ToggleGodmode={"ToggleGodmode","Godmode"},
-      ToggleHardInvisible={"ToggleHardInvisible","HardInvisible","Invisible"},
-      ToggleNoclip={"ToggleNoclip","Noclip"},
-      ToggleTeleport={"ToggleTeleport","TeleportKey","TPKey"},
-      ToggleAutoBehind={"ToggleAutoBehind","AutoBehind"},
-      ToggleAutoTeleportToEnemy={"ToggleAutoTeleportToEnemy","AutoTP","AutoTeleportEnemy"},
-      SetAimFOV={"SetAimFOV","SetFOV","AimFOV"},
-      SetTeleportOffset={"SetTeleportOffset","SetTP","TeleportOffset"},
+    -- ❌ dosya yok / return etmiyor → fallback tablo
+    features = {
+        _aimFOV = 60,
+        _tpX = 0, _tpY = 0, _tpZ = 25,
+        __state = {}
     }
-    for want, keys in pairs(alias) do
-      for _,k in ipairs(keys) do
-        if type(mod[k])=="function" then F[want]=mod[k]; break end
-      end
-    end
-    for k,v in pairs(mod) do if F[k]==nil then F[k]=v end end
-  end
 
-  -- 3) Global expose — menünün geri kalanı NEREDE OLURSA olsun görsün:
-  _G.MYLF_features = F
-  _G.features = F
-  features = F
+local function onoff(v) return v and "ON ✅" or "OFF ❌" end
+local function setState(name, v)
+  features.__state[name] = v and true or false
+  print(("[MYLF] %s -> %s"):format(name, onoff(v)))
+end
+local function logSet(name, ...)
+  local args = {...}
+  for i,x in ipairs(args) do args[i] = tostring(x) end
+  print(("[MYLF] %s => %s"):format(name, table.concat(args, ", ")))
 end
 
--- (opsiyonel) hızlı self-check logu
-do
-  local miss={}
-  for _,k in ipairs({"ToggleAimbot","ToggleSilentAim","ToggleESP"}) do
-    if type(features[k])~="function" then table.insert(miss,k) end
-  end
-  if #miss>0 then warn("[MYLF] stub kalanlar: "..table.concat(miss,", ")) end
+-- === AIM ===
+function features.ToggleAimbot(on)                setState("Aimbot", on) end
+function features.ToggleSilentAim(on)             setState("SilentAim", on) end
+function features.ToggleMagicBullet(on)           setState("MagicBullet", on) end
+function features.ToggleHeadshotRedirect(on)      setState("HeadshotRedirect", on) end
+function features.ToggleFireRate(on)              setState("FireRate", on) end
+function features.ToggleKillAura(on)              setState("KillAura", on) end
+
+-- === ESP ===
+function features.ToggleESP(on)                   setState("ESP", on) end
+function features.ToggleEnemyBigHitbox(on)        setState("EnemyBigHitbox", on) end
+
+-- === PLAYER / MOVEMENT (menünde geçiyordu, hepsini stub’luyoruz) ===
+function features.ToggleSpeed(on)                 setState("Speed", on) end
+function features.ToggleFly(on)                   setState("Fly", on) end
+function features.ToggleInfiniteJump(on)          setState("InfiniteJump", on) end
+function features.ToggleGodmode(on)               setState("Godmode", on) end
+function features.ToggleHardInvisible(on)         setState("HardInvisible", on) end
+function features.ToggleNoclip(on)                setState("Noclip", on) end
+function features.ToggleTeleport(on)              setState("TeleportKey", on) end
+function features.ToggleAutoBehind(on)            setState("AutoBehind", on) end
+function features.ToggleAutoTeleportToEnemy(on)   setState("AutoTeleportToEnemy", on) end
+
+-- === PARAMETRELER ===
+function features.SetAimFOV(v)
+  local nv = tonumber(v) or features._aimFOV
+  features._aimFOV = nv
+  logSet("SetAimFOV", nv)
 end
 
+function features.SetTeleportOffset(x, y, z)
+  features._tpX = tonumber(x) or 0
+  features._tpY = tonumber(y) or 0
+  features._tpZ = tonumber(z) or 25
+  logSet("SetTeleportOffset", features._tpX, features._tpY, features._tpZ)
+end
+
+-- (İstersen başka harmless ayarlar ekleyebilirsin: crosshair rengi, HUD görünürlük vs.)
+
+-- Global cache (opsiyonel)
+_G.MYLF_features = features
+-- Bu dosyada features ismine doğrudan erişiliyor:
+features = features
 
 
 --// Theme Engine (aynen korundu)
