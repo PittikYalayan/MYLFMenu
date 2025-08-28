@@ -81,397 +81,6 @@ end
 -- =====================================
 -- MYLF ESP SYSTEM (features1.1.7.lua)
 -- =====================================
--- Helper: Adornee bul
-local function getAdornee(target)
-    return target:FindFirstChild("Head")
-    or target:FindFirstChild("UpperTorso")
-    or target:FindFirstChild("Torso")
-    or target:FindFirstChild("HumanoidRootPart")
-    or target.PrimaryPart
-end
-
--- Skeleton ekleme
-local function skeletonJointsFor(model)
-    local hum = model:FindFirstChildOfClass("Humanoid")
-    if hum and hum.RigType == Enum.HumanoidRigType.R6 then
-        return {
-            {"Head","Torso"},
-            {"Torso","Left Arm"},{"Torso","Right Arm"},
-            {"Torso","Left Leg"},{"Torso","Right Leg"},
-        }
-    else
-        return {
-            {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-            {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-            {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-            {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-            {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-        }
-    end
-end
-
--- Drawing safe
-local function tryDrawing(kind)
-    local ok,obj = pcall(function() return Drawing.new(kind) end)
-    if ok then return obj end
-    return nil
-end
-
--- RGB renk
-local function rainbowColor(t)
-    local r = math.floor(math.sin(t*2) * 127 + 128)
-    local g = math.floor(math.sin(t*2+2) * 127 + 128)
-    local b = math.floor(math.sin(t*2+4) * 127 + 128)
-    return Color3.fromRGB(r,g,b)
-end
-
--- ========== Skeleton ==========
-function features.ToggleSkeleton(on)
-    if on and not features._conns.skeleton then
-        features._conns.skeleton = RunService.RenderStepped:Connect(function()
-            for obj,o in pairs(features._espObjects) do
-                if not o.skeleton then
-                    o.skeleton = {}
-                    for _,link in pairs(skeletonJointsFor(obj)) do
-                        local line = tryDrawing("Line")
-                        if line then
-                            line.Thickness = 2
-                            line.Color = Color3.fromRGB(255,255,255)
-                            line.Visible = true
-                            table.insert(o.skeleton,{parts=link,line=line})
-                        end
-                    end
-                end
-                for _,s in pairs(o.skeleton) do
-                    local p1 = obj:FindFirstChild(s.parts[1], true)
-                    local p2 = obj:FindFirstChild(s.parts[2], true)
-                    if p1 and p2 then
-                        local v1,on1 = Camera:WorldToViewportPoint(p1.Position)
-                        local v2,on2 = Camera:WorldToViewportPoint(p2.Position)
-                        if on1 and on2 then
-                            s.line.From = Vector2.new(v1.X,v1.Y)
-                            s.line.To   = Vector2.new(v2.X,v2.Y)
-                            s.line.Color = Color3.fromRGB(255,255,255)
-                            s.line.Visible = true
-                        else
-                            s.line.Visible = false
-                        end
-                    else
-                        s.line.Visible = false
-                    end
-                end
-            end
-        end)
-    elseif not on and features._conns.skeleton then
-        features._conns.skeleton:Disconnect()
-        features._conns.skeleton = nil
-        for _,o in pairs(features._espObjects) do
-            if o.skeleton then
-                for _,s in pairs(o.skeleton) do
-                    if s.line then s.line.Visible=false end
-                end
-            end
-        end
-    end
-end
-
--- ========== Box ==========
-function features.ToggleBox(on)
-    if on and not features._conns.box then
-        features._conns.box = RunService.RenderStepped:Connect(function()
-            for obj,o in pairs(features._espObjects) do
-                if not o.selectionBox then
-                    local adornee = getAdornee(obj)
-                    if adornee then
-                        local sb = Instance.new("SelectionBox")
-                        sb.LineThickness = 0.04
-                        sb.SurfaceTransparency = 0.85
-                        sb.Color3 = Color3.fromRGB(0,255,0)
-                        sb.Adornee = adornee
-                        sb.Parent = adornee
-                        o.selectionBox = sb
-                    end
-                end
-                if o.selectionBox then o.selectionBox.Visible = true end
-            end
-        end)
-    elseif not on and features._conns.box then
-        features._conns.box:Disconnect()
-        features._conns.box=nil
-        for _,o in pairs(features._espObjects) do
-            if o.selectionBox then o.selectionBox.Visible=false end
-        end
-    end
-end
-
--- ========== Tracers ==========
-function features.ToggleTracers(on)
-    if on and not features._conns.tracers then
-        features._conns.tracers = RunService.RenderStepped:Connect(function()
-            local vp = Camera.ViewportSize
-            local center = Vector2.new(vp.X/2, vp.Y)
-            for obj,o in pairs(features._espObjects) do
-                if not o.tracer then
-                    o.tracer = tryDrawing("Line")
-                    if o.tracer then
-                        o.tracer.Thickness = 2
-                        o.tracer.Color = Color3.fromRGB(255,255,255)
-                    end
-                end
-                local hrp = obj:FindFirstChild("HumanoidRootPart")
-                if hrp and o.tracer then
-                    local v,onScr = Camera:WorldToViewportPoint(hrp.Position)
-                    if onScr and v.Z>0 then
-                        o.tracer.Visible = true
-                        o.tracer.From = center
-                        o.tracer.To   = Vector2.new(v.X,v.Y)
-                        o.tracer.Color = Color3.fromRGB(255,255,255)
-                    else
-                        o.tracer.Visible=false
-                    end
-                end
-            end
-        end)
-    elseif not on and features._conns.tracers then
-        features._conns.tracers:Disconnect()
-        features._conns.tracers=nil
-        for _,o in pairs(features._espObjects) do
-            if o.tracer then o.tracer.Visible=false end
-        end
-    end
-end
-
--- ========== Glow ==========
-function features.ToggleGlow(on)
-    if on and not features._conns.glow then
-        features._conns.glow = RunService.RenderStepped:Connect(function()
-            for obj,o in pairs(features._espObjects) do
-                if not o.highlight then
-                    local adornee = getAdornee(obj)
-                    if adornee then
-                        local hl = Instance.new("Highlight")
-                        hl.FillTransparency = 0.5
-                        hl.OutlineColor = Color3.fromRGB(255,255,255)
-                        hl.Parent = adornee
-                        o.highlight = hl
-                    end
-                end
-                if o.highlight then
-                    o.highlight.Enabled = true
-                    o.highlight.FillColor = Color3.fromRGB(0,200,255)
-                    o.highlight.OutlineColor = Color3.fromRGB(0,200,255)
-                end
-            end
-        end)
-    elseif not on and features._conns.glow then
-        features._conns.glow:Disconnect()
-        features._conns.glow=nil
-        for _,o in pairs(features._espObjects) do
-            if o.highlight then o.highlight.Enabled=false end
-        end
-    end
-end
-
--- ========== Rainbow Name ==========
-function features.ToggleRainbowName(on)
-    if on and not features._conns.rainbow then
-        local t=0
-        features._conns.rainbow = RunService.RenderStepped:Connect(function(dt)
-            t=t+dt
-            for obj,o in pairs(features._espObjects) do
-                if not o.label then
-                    local adornee = getAdornee(obj)
-                    if adornee then
-                        local bb = Instance.new("BillboardGui")
-                        bb.Size = UDim2.new(0,100,0,20)
-                        bb.Adornee = adornee
-                        bb.AlwaysOnTop = true
-                        local txt = Instance.new("TextLabel",bb)
-                        txt.Size = UDim2.new(1,0,1,0)
-                        txt.BackgroundTransparency = 1
-                        txt.Text = obj.Name
-                        txt.TextStrokeTransparency = 0
-                        txt.TextColor3 = Color3.fromRGB(255,255,255)
-                        txt.Font = Enum.Font.SourceSansBold
-                        txt.TextScaled = true
-                        bb.Parent = adornee
-                        o.billboard = bb
-                        o.label = txt
-                    end
-                end
-                if o.label then
-                    o.label.TextColor3 = rainbowColor(t)
-                end
-            end
-        end)
-    elseif not on and features._conns.rainbow then
-        features._conns.rainbow:Disconnect()
-        features._conns.rainbow=nil
-        for _,o in pairs(features._espObjects) do
-            if o.label then o.label.TextColor3=Color3.fromRGB(255,255,255) end
-        end
-    end
-end
-
--- ========== Health Bar ==========
-function features.ToggleHealthBar(on)
-    if on and not features._conns.healthbar then
-        features._conns.healthbar = RunService.RenderStepped:Connect(function()
-            for obj,o in pairs(features._espObjects) do
-                if not o.hpGui then
-                    local adornee = getAdornee(obj)
-                    if adornee then
-                        local bb = Instance.new("BillboardGui")
-                        bb.Size = UDim2.new(0,60,0,8)
-                        bb.StudsOffset = Vector3.new(0,-3,0)
-                        bb.Adornee = adornee
-                        bb.AlwaysOnTop = true
-                        local back = Instance.new("Frame",bb)
-                        back.Size = UDim2.new(1,0,1,0)
-                        back.BackgroundColor3 = Color3.fromRGB(30,30,30)
-                        back.BorderSizePixel = 0
-                        local fill = Instance.new("Frame",back)
-                        fill.Size = UDim2.new(1,0,1,0)
-                        fill.BackgroundColor3 = Color3.fromRGB(0,255,0)
-                        fill.BorderSizePixel = 0
-                        o.hpGui = {bb=bb,fill=fill}
-                        bb.Parent = adornee
-                    end
-                end
-                if o.hpGui then
-                    local hum = obj:FindFirstChildOfClass("Humanoid")
-                    if hum then
-                        local ratio = math.clamp(hum.Health/hum.MaxHealth,0,1)
-                        o.hpGui.fill.Size = UDim2.new(ratio,0,1,0)
-                        o.hpGui.fill.BackgroundColor3 = Color3.fromRGB(255*(1-ratio),255*ratio,40)
-                    end
-                end
-            end
-        end)
-    elseif not on and features._conns.healthbar then
-        features._conns.healthbar:Disconnect()
-        features._conns.healthbar=nil
-        for _,o in pairs(features._espObjects) do
-            if o.hpGui then o.hpGui.bb.Parent=nil end
-        end
-    end
-end
-
--- ====== Corner Box (Selected) ======
-function features.ToggleCornerOnSelected(on)
-    if on and not features._conns.cornerSel then
-        features._cornerLines = features._cornerLines or {}
-        features._conns.cornerSel = RunService.RenderStepped:Connect(function()
-            local obj = features._selected
-            if not (obj and obj.Parent) then
-                for _,ln in ipairs(features._cornerLines) do if ln then ln.Visible=false end end
-                return
-            end
-            if #features._cornerLines == 0 then
-                for i=1,8 do
-                    local ln = tryDrawing("Line")
-                    if ln then ln.Thickness=2 end
-                    features._cornerLines[i] = ln
-                end
-            end
-            local ok, cf, size = pcall(function() return obj:GetBoundingBox() end)
-            if not ok then return end
-            local minX, minY, maxX, maxY = 1e9,1e9,-1e9,-1e9
-            for dx=-0.5,0.5,1 do
-                for dy=-0.5,0.5,1 do
-                    for dz=-0.5,0.5,1 do
-                        local world = (cf * CFrame.new(size.X*dx, size.Y*dy, size.Z*dz)).Position
-                        local v,on = Camera:WorldToViewportPoint(world)
-                        if on then
-                            if v.X < minX then minX=v.X end
-                            if v.Y < minY then minY=v.Y end
-                            if v.X > maxX then maxX=v.X end
-                            if v.Y > maxY then maxY=v.Y end
-                        end
-                    end
-                end
-            end
-            if maxX <= minX or maxY <= minY then return end
-            local minV, maxV = Vector2.new(minX,minY), Vector2.new(maxX,maxY)
-            local w = maxV.X - minV.X
-            local h = maxV.Y - minV.Y
-            local len = math.max(6, math.min(16, math.floor(math.min(w,h)/4)))
-            local tl = Vector2.new(minV.X, minV.Y)
-            local tr = Vector2.new(maxV.X, minV.Y)
-            local bl = Vector2.new(minV.X, maxV.Y)
-            local br = Vector2.new(maxV.X, maxV.Y)
-            local col = Color3.fromRGB(0,255,255)
-            local L = features._cornerLines
-            local function seg(i,a,b)
-                if L[i] then L[i].From=a; L[i].To=b; L[i].Color=col; L[i].Visible=true end
-            end
-            seg(1, tl, tl + Vector2.new(len,0))
-            seg(2, tl, tl + Vector2.new(0,len))
-            seg(3, tr, tr + Vector2.new(-len,0))
-            seg(4, tr, tr + Vector2.new(0,len))
-            seg(5, bl, bl + Vector2.new(len,0))
-            seg(6, bl, bl + Vector2.new(0,-len))
-            seg(7, br, br + Vector2.new(-len,0))
-            seg(8, br, br + Vector2.new(0,-len))
-        end)
-    elseif not on and features._conns.cornerSel then
-        features._conns.cornerSel:Disconnect()
-        features._conns.cornerSel = nil
-        for _,ln in ipairs(features._cornerLines or {}) do if ln then ln.Visible=false end end
-    end
-end
-
--- ====== Stripes (Selected) ======
-function features.ToggleStripesOnSelected(on)
-    if on and not features._conns.stripesSel then
-        features._stripe = features._stripe or { atts={}, beams={} }
-        features._conns.stripesSel = RunService.RenderStepped:Connect(function()
-            local obj = features._selected
-            if not (obj and obj.Parent) then
-                for _,b in pairs(features._stripe.beams) do if b then b.Enabled=false end end
-                return
-            end
-            local hrp = (obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart")) or (obj:IsA("BasePart") and obj) or nil
-            if not hrp then return end
-            local ok, size = pcall(function() local _, s = obj:GetBoundingBox(); return s end)
-            if not ok then return end
-            local A = features._stripe.atts
-            local B = features._stripe.beams
-            local function needAtt(n) if not A[n] then A[n]=Instance.new("Attachment"); A[n].Name="MYLF_"..n; A[n].Parent=hrp end return A[n] end
-            local top    = needAtt("Top");    top.CFrame    = CFrame.new(0,  size.Y/2, 0)
-            local bottom = needAtt("Bottom"); bottom.CFrame = CFrame.new(0, -size.Y/2, 0)
-            local left   = needAtt("Left");   left.CFrame   = CFrame.new(-size.X/2, 0, 0)
-            local right  = needAtt("Right");  right.CFrame  = CFrame.new( size.X/2, 0, 0)
-            local front  = needAtt("Front");  front.CFrame  = CFrame.new(0, 0, -size.Z/2)
-            local back   = needAtt("Back");   back.CFrame   = CFrame.new(0, 0,  size.Z/2)
-            local function needBeam(i,a0,a1)
-                if not B[i] then
-                    local beam = Instance.new("Beam")
-                    beam.Width0 = 0.14; beam.Width1 = 0.14
-                    beam.LightEmission = 1
-                    beam.FaceCamera = false
-                    beam.Parent = hrp
-                    B[i] = beam
-                end
-                B[i].Attachment0 = a0
-                B[i].Attachment1 = a1
-                B[i].Enabled = true
-                return B[i]
-            end
-            local t = tick()
-            local col = rainbowColor(t)
-            needBeam(1, top, bottom).Color  = ColorSequence.new(col)
-            needBeam(2, left, right).Color  = ColorSequence.new(col)
-            needBeam(3, front, back).Color  = ColorSequence.new(col)
-        end)
-    elseif not on and features._conns.stripesSel then
-        features._conns.stripesSel:Disconnect()
-        features._conns.stripesSel = nil
-        if features._stripe then
-            for _,b in pairs(features._stripe.beams or {}) do if b then b.Enabled=false end end
-        end
-    end
-end
 
 
 ----------------------------------------------------------------
@@ -964,120 +573,7 @@ end
 ----------------------------------------------------------------
 -- ESP (join/leave/respawn canlı + NPC + cleanup)
 ----------------------------------------------------------------
-features._espMap   = {}   -- [char] = {hl, bb, lbl, conns={}}
-features._espOn    = false
-features._espConns = {}
 
-local function _espCleanupChar(char)
-    local o = features._espMap[char]
-    if not o then return end
-    if o.conns then for _,c in ipairs(o.conns) do pcall(function() c:Disconnect() end) end end
-    if o.hl then pcall(function() o.hl:Destroy() end) end
-    if o.bb then pcall(function() o.bb:Destroy() end) end
-    features._espMap[char] = nil
-end
-
-local function _espAddForChar(char, isNPC)
-    if not char or not char.Parent then return end
-    local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-    if not head then return end
-
-    local o = features._espMap[char]
-    if not o then o = { conns = {} }; features._espMap[char] = o end
-
-    if not o.hl or not o.hl.Parent then
-        local hl = Instance.new("Highlight")
-        hl.FillTransparency = 0.5
-        hl.OutlineColor = Color3.fromRGB(255,255,255)
-        hl.Parent = char
-        o.hl = hl
-    end
-
-    if not o.bb or not o.bb.Parent then
-        local bb = Instance.new("BillboardGui")
-        bb.Size = UDim2.fromOffset(120, 20)
-        bb.AlwaysOnTop = true
-        bb.Adornee = head
-        bb.Parent = head
-
-        local tl = Instance.new("TextLabel")
-        tl.Size = UDim2.fromScale(1,1)
-        tl.BackgroundTransparency = 1
-        tl.TextScaled = true
-        tl.Font = Enum.Font.SourceSansBold
-        tl.TextStrokeTransparency = 0.3
-        local pl = Players:GetPlayerFromCharacter(char)
-        tl.Text = pl and pl.Name or (isNPC and "NPC" or "Enemy")
-        tl.Parent = bb
-
-        o.bb, o.lbl = bb, tl
-    end
-
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then table.insert(o.conns, hum.Died:Connect(function() _espCleanupChar(char) end)) end
-    table.insert(o.conns, char.AncestryChanged:Connect(function(_, parent)
-        if not parent then _espCleanupChar(char) end
-    end))
-end
-
-local function _espAttachPlayer(plr)
-    if plr.Character then _espAddForChar(plr.Character, false) end
-    table.insert(features._espConns, plr.CharacterAdded:Connect(function(c)
-        task.wait(0.2); if features._espOn then _espAddForChar(c, false) end
-    end))
-end
-
-function features.ToggleESP(on)
-    if on then
-        if features._espOn then return end
-        features._espOn = true
-
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr ~= Player then _espAttachPlayer(plr) end
-        end
-
-        table.insert(features._espConns, Players.PlayerAdded:Connect(function(plr)
-            if not features._espOn then return end
-            _espAttachPlayer(plr)
-        end))
-        table.insert(features._espConns, Players.PlayerRemoving:Connect(function(plr)
-            if plr.Character then _espCleanupChar(plr.Character) end
-        end))
-
-        table.insert(features._espConns, workspace.ChildAdded:Connect(function(obj)
-            if not features._espOn then return end
-            if obj:FindFirstChildOfClass("Humanoid") and not Players:GetPlayerFromCharacter(obj) then
-                task.wait(0.2); _espAddForChar(obj, true)
-            end
-        end))
-
-        if features._espTick then features._espTick:Disconnect() end
-        local t = 0
-        features._espTick = RunService.RenderStepped:Connect(function(dt)
-            t += dt
-            for char, o in pairs(features._espMap) do
-                if not char or not char.Parent then _espCleanupChar(char) else
-                    if o.lbl then o.lbl.TextColor3 = Color3.fromHSV((t%1),1,1) end
-                    if o.hl then
-                        local pl = Players:GetPlayerFromCharacter(char)
-                        if pl and Player.Team then
-                            o.hl.FillColor = (pl.Team == Player.Team) and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
-                        else
-                            o.hl.FillColor = Color3.fromRGB(160,60,200) -- NPC
-                        end
-                    end
-                end
-            end
-        end)
-    else
-        features._espOn = false
-        if features._espTick then features._espTick:Disconnect(); features._espTick=nil end
-        for _,c in ipairs(features._espConns) do pcall(function() c:Disconnect() end) end
-        features._espConns = {}
-        for char,_ in pairs(features._espMap) do _espCleanupChar(char) end
-        features._espMap = {}
-    end
-end
 
 ----------------------------------------------------------------
 -- NoClip (restore’lu)
@@ -1569,6 +1065,170 @@ function features.ToggleMyTinyHitbox(on)
 end
 
     
+---------------------------------------------------
+--ESP---------------------------------------------
+-- Rainbow renk döngüsü
+local function rainbowColor(t)
+    local r = math.floor(math.sin(t*2)   *127+128)
+    local g = math.floor(math.sin(t*2+2) *127+128)
+    local b = math.floor(math.sin(t*2+4) *127+128)
+    return Color3.fromRGB(r,g,b)
+end
+function features.ToggleSkeleton(on)
+    if on and not features._conns.skeleton then
+        features._conns.skeleton = RunService.RenderStepped:Connect(function(dt)
+            features._t = (features._t or 0) + dt
+            local col = rainbowColor(features._t)
+            for model,o in pairs(features._targets) do
+                if not o.skeleton then
+                    o.skeleton = {}
+                    for _,link in ipairs({{"Head","Torso"},{"Torso","Left Arm"},{"Torso","Right Arm"},{"Torso","Left Leg"},{"Torso","Right Leg"}}) do
+                        local ln = Drawing.new("Line")
+                        ln.Thickness = 2
+                        ln.Color = col
+                        table.insert(o.skeleton, {parts=link,line=ln})
+                    end
+                end
+                for _,seg in ipairs(o.skeleton) do
+                    local p1 = model:FindFirstChild(seg.parts[1], true)
+                    local p2 = model:FindFirstChild(seg.parts[2], true)
+                    if p1 and p2 then
+                        local v1,on1 = Camera:WorldToViewportPoint(p1.Position)
+                        local v2,on2 = Camera:WorldToViewportPoint(p2.Position)
+                        if on1 and on2 then
+                            seg.line.Visible = true
+                            seg.line.From = Vector2.new(v1.X,v1.Y)
+                            seg.line.To   = Vector2.new(v2.X,v2.Y)
+                            seg.line.Color= col
+                        else seg.line.Visible=false end
+                    end
+                end
+            end
+        end)
+    elseif not on and features._conns.skeleton then
+        features._conns.skeleton:Disconnect()
+        features._conns.skeleton=nil
+        for _,o in pairs(features._targets) do if o.skeleton then for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end end end
+    end
+end
+function features.ToggleBox(on)
+    if on and not features._conns.box then
+        features._conns.box = RunService.RenderStepped:Connect(function()
+            for model,o in pairs(features._targets) do
+                if not o.selectionBox then
+                    local ad = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+                    if ad then
+                        local sb = Instance.new("SelectionBox")
+                        sb.LineThickness = 0.04
+                        sb.SurfaceTransparency = 0.85
+                        sb.Color3 = rainbowColor(tick())
+                        sb.Adornee = ad
+                        sb.Parent = ad
+                        o.selectionBox = sb
+                    end
+                else
+                    o.selectionBox.Color3 = rainbowColor(tick())
+                end
+            end
+        end)
+    elseif not on and features._conns.box then
+        features._conns.box:Disconnect()
+        features._conns.box=nil
+        for _,o in pairs(features._targets) do if o.selectionBox then o.selectionBox.Visible=false end end
+    end
+end
+function features.ToggleRainbowName(on)
+    if on and not features._conns.rname then
+        features._conns.rname = RunService.RenderStepped:Connect(function(dt)
+            features._t = (features._t or 0) + dt
+            local col = rainbowColor(features._t)
+            for model,o in pairs(features._targets) do
+                if not o.billboard then
+                    local ad = model:FindFirstChild("Head") or model.PrimaryPart
+                    if ad then
+                        local bb = Instance.new("BillboardGui")
+                        bb.Size = UDim2.new(0,120,0,20)
+                        bb.Adornee = ad
+                        bb.AlwaysOnTop = true
+                        local txt = Instance.new("TextLabel",bb)
+                        txt.Size = UDim2.new(1,0,1,0)
+                        txt.BackgroundTransparency=1
+                        txt.TextStrokeTransparency=0
+                        txt.Text = model.Name
+                        txt.Font = Enum.Font.SourceSansBold
+                        txt.TextScaled = true
+                        bb.Parent = ad
+                        o.billboard=bb
+                        o.label=txt
+                    end
+                end
+                if o.label then o.label.TextColor3 = col end
+            end
+        end)
+    elseif not on and features._conns.rname then
+        features._conns.rname:Disconnect()
+        features._conns.rname=nil
+        for _,o in pairs(features._targets) do if o.label then o.label.TextColor3=Color3.fromRGB(255,255,255) end end
+    end
+end
+function features.ToggleGlow(on)
+    if on and not features._conns.glow then
+        features._conns.glow = RunService.RenderStepped:Connect(function(dt)
+            features._t = (features._t or 0)+dt
+            local col = rainbowColor(features._t)
+            for model,o in pairs(features._targets) do
+                if not o.highlight then
+                    local ad = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
+                    if ad then
+                        local hl = Instance.new("Highlight")
+                        hl.FillTransparency=0.5
+                        hl.OutlineColor=Color3.fromRGB(255,255,255)
+                        hl.Parent=ad
+                        o.highlight=hl
+                    end
+                end
+                if o.highlight then
+                    o.highlight.FillColor=col
+                    o.highlight.OutlineColor=col
+                end
+            end
+        end)
+    elseif not on and features._conns.glow then
+        features._conns.glow:Disconnect()
+        features._conns.glow=nil
+        for _,o in pairs(features._targets) do if o.highlight then o.highlight.Enabled=false end end
+    end
+end
+function features.ToggleTracers(on)
+    if on and not features._conns.tracers then
+        features._conns.tracers = RunService.RenderStepped:Connect(function(dt)
+            features._t = (features._t or 0)+dt
+            local col = rainbowColor(features._t)
+            local vp = Camera.ViewportSize
+            local origin = Vector2.new(vp.X/2,vp.Y)
+            for model,o in pairs(features._targets) do
+                if not o.tracer then
+                    o.tracer = Drawing.new("Line")
+                    o.tracer.Thickness=2
+                end
+                local hrp = model:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local v,on = Camera:WorldToViewportPoint(hrp.Position)
+                    if on and v.Z>0 then
+                        o.tracer.Visible=true
+                        o.tracer.From=origin
+                        o.tracer.To=Vector2.new(v.X,v.Y)
+                        o.tracer.Color=col
+                    else o.tracer.Visible=false end
+                end
+            end
+        end)
+    elseif not on and features._conns.tracers then
+        features._conns.tracers:Disconnect()
+        features._conns.tracers=nil
+        for _,o in pairs(features._targets) do if o.tracer then o.tracer.Visible=false end end
+    end
+end
 
 
 
