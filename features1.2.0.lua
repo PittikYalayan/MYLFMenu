@@ -1027,7 +1027,7 @@ local function _espAttachPlayer(plr)
     end))
 end
 
-function features.ToggleESP1(on)
+function features.ToggleESP(on)
     if on then
         if features._espOn then return end
         features._espOn = true
