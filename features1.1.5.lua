@@ -31,7 +31,6 @@ features._aura = 100
 features.DamageAmount = 900
 local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
 
-features._aura = nil
 
 local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
 
