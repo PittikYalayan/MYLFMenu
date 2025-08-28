@@ -1,26 +1,16 @@
--- ⚡ MYLF | Hub ⚡ — mmenu9 test loader (features yok, dummy fonksiyonlar var)
+-- ⚡ MYLF | Hub ⚡ — mmenu9.lua tablı menü (dummy features, sadece görmek için)
 
 local Library, ThemeManager, SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/mmenu9.lua"))()
 
--- Dummy features (şimdilik sadece print)
+-- Dummy features (şimdilik sadece print atar)
 local features = setmetatable({}, {
     __index = function(_, k)
-        return function(v) print("[Feature Call]", k, v) end
+        return function(v) print("[Feature]", k, v) end
     end
 })
 
 -- Window
-local Window = Library:CreateWindow({ Title = "⚡ MYLF | Hub ⚡", Center = true, AutoShow = false })
-
--- Menü toggle
-local UIS = game:GetService("UserInputService")
-local MENU_KEY = Enum.KeyCode.LeftControl
-Library.ToggleKeybind = MENU_KEY
-UIS.InputBegan:Connect(function(inp, gp)
-    if not gp and inp.KeyCode == MENU_KEY then
-        if Library.Toggle then Library:Toggle() end
-    end
-end)
+local Window = Library:CreateWindow({ Title = "⚡ MYLF | Hub ⚡", Center = true, AutoShow = true })
 
 -- Tabs
 local Tabs = {
@@ -34,11 +24,8 @@ local Tabs = {
 
 -- Helper
 local function bindToggle(group, flag, text, fn)
-    group:AddToggle(flag, {
-        Text = text,
-        Default = false,
-        Callback = function(v) if type(fn)=="function" then fn(v) end end
-    })
+    group:AddToggle(flag, { Text = text, Default = false })
+        :OnChanged(function(v) if type(fn)=="function" then fn(v) end end)
 end
 
 -- Rage
@@ -46,12 +33,14 @@ do
     local g = Tabs.Rage:AddLeftGroupbox("Rage")
     bindToggle(g, "aimbot", "Enable Aimbot", features.ToggleAimbot)
     bindToggle(g, "silent", "Silent Aim", features.ToggleSilentAim)
+    bindToggle(g, "magic", "Magic Bullet", features.ToggleMagicBullet)
 end
 
 -- Visuals
 do
     local g = Tabs.Visuals:AddLeftGroupbox("Visuals")
     bindToggle(g, "esp", "Enable ESP", features.ToggleESP)
+    bindToggle(g, "enemyBigHB", "Enemy Big Hitbox", features.ToggleEnemyBigHitbox)
 end
 
 -- Player
@@ -65,19 +54,19 @@ end
 do
     local g = Tabs.Teleport:AddLeftGroupbox("Teleport")
     bindToggle(g, "tpkey", "Teleport (T)", features.ToggleTeleport)
-
-    g:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=1, Callback=function(val)
-        print("tpX changed to", val)
-    end})
+    g:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default=0, Rounding=1})
+    g:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default=0, Rounding=1})
+    g:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default=25, Rounding=1})
 end
 
 -- World
 do
     local g = Tabs.World:AddLeftGroupbox("World")
     bindToggle(g, "tinyHitbox", "Tiny Hitbox", features.ToggleTinyHitbox)
+    bindToggle(g, "multiHook", "MultiHook", features.ToggleMultiHook)
 end
 
--- Settings
+-- Settings / Tema
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:BuildConfigSection(Tabs.Settings)
