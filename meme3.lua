@@ -62,10 +62,11 @@ else
 
     -- ❌ dosya yok / return etmiyor → fallback tablo
     features = {
-        _aimFOV = 60,
-        _tpX = 0, _tpY = 0, _tpZ = 25,
-        __state = {}
-    }
+   _aimFOV = 60,
+   _tpX = 0,
+   _tpY = 0,
+   _tpZ = 25,
+}
 
     local function onoff(v) return v and "ON ✅" or "OFF ❌" end
     local function setState(name, v)
