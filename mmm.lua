@@ -42,10 +42,106 @@ local function findAnyBasePart(obj)
 end
 
 --== EXTERNAL FEATURES (direct load) ==--
---== EXTERNAL FEATURES (fail-safe + sanitize 9.9) ==--
-local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua"))() return
-assert(type(features)=="table","features1.1.1.lua tablo döndürmedi; sonda `return M` ekleyin.")
+do
+  -- 0) Menü düşmesin diye default stub’lar:
+  local REQUIRED = {
+    "ToggleAimbot","ToggleSilentAim","ToggleMagicBullet","ToggleHeadshotRedirect",
+    "ToggleFireRate","ToggleKillAura",
+    "ToggleESP","ToggleEnemyBigHitbox",
+    "ToggleSpeed","ToggleFly","ToggleInfiniteJump","ToggleGodmode",
+    "ToggleHardInvisible","ToggleNoclip","ToggleTeleport",
+    "ToggleAutoBehind","ToggleAutoTeleportToEnemy",
+    "SetAimFOV","SetTeleportOffset",
+  }
+  local function noopSwitch(_) return function(_) end end
+  local function noopSetter(_) return function(...) end end
 
+  local F = { _aimFOV=60, _tpX=0, _tpY=0, _tpZ=25 }
+  for _,k in ipairs(REQUIRED) do
+    F[k] = (k:sub(1,3)=="Set") and noopSetter(k) or noopSwitch(k)
+  end
+
+  -- 1) 1.1.1'i yüklemeyi dene (derleme/çalıştırma hatası menüyü DÜŞÜRMEZ)
+  local function sanitize(src)
+    if not src or type(src)~="string" then return nil end
+    if src:sub(1,3) == string.char(0xEF,0xBB,0xBF) then src = src:sub(4) end -- BOM
+    src = src:gsub("\r\n","\n")                      -- CRLF->LF
+    if src:find("<!DOCTYPE") or src:find("<html") then return nil end -- yanlışlıkla HTML geldiyse
+    return src
+  end
+  local function tryLoad(url)
+    local ok, raw = pcall(function() return game:HttpGet(url) end)
+    if not ok then return nil,"fetch" end
+    raw = sanitize(raw)
+    if not raw then return nil,"sanitize/html" end
+    local okC, fn = pcall(loadstring, raw)
+    if not okC or type(fn)~="function" then return nil,"compile" end
+    local okR, r1, r2 = pcall(fn)
+    if not okR then return nil,"run" end
+    local mod = r1 or r2
+              or rawget(_G,"MYLF_features")
+              or rawget(_G,"features")
+              or rawget(_G,"M")
+              or (getgenv and getgenv().MYLF_features)
+    if type(mod) ~= "table" then return nil,"export" end
+    return mod
+  end
+
+  local urls = {
+    "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua",
+    "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/refs/heads/main/features1.1.1.lua",
+  }
+  local mod
+  for _,u in ipairs(urls) do
+    local m, why = tryLoad(u)
+    if m then mod=m break else warn("[MYLF] 1.1.1 yüklenemedi ("..tostring(why)..") -> "..u) end
+  end
+
+  -- 2) Mod geldiyse bağla + alias (fonksiyon adları farklıysa yakala)
+  if mod then
+    local alias = {
+      ToggleAimbot={"ToggleAimbot","Aimbot","EnableAimbot"},
+      ToggleSilentAim={"ToggleSilentAim","SilentAim","EnableSilent"},
+      ToggleMagicBullet={"ToggleMagicBullet","MagicBullet","EnableMagicBullet"},
+      ToggleHeadshotRedirect={"ToggleHeadshotRedirect","HeadshotRedirect","ForceHeadshot"},
+      ToggleFireRate={"ToggleFireRate","HardFireRate","RapidFire"},
+      ToggleKillAura={"ToggleKillAura","KillAura"},
+      ToggleESP={"ToggleESP","ESP","EnableESP"},
+      ToggleEnemyBigHitbox={"ToggleEnemyBigHitbox","EnemyBigHB","BigHitbox","BigHB"},
+      ToggleSpeed={"ToggleSpeed","Speed"},
+      ToggleFly={"ToggleFly","Fly"},
+      ToggleInfiniteJump={"ToggleInfiniteJump","InfJump"},
+      ToggleGodmode={"ToggleGodmode","Godmode"},
+      ToggleHardInvisible={"ToggleHardInvisible","HardInvisible","Invisible"},
+      ToggleNoclip={"ToggleNoclip","Noclip"},
+      ToggleTeleport={"ToggleTeleport","TeleportKey","TPKey"},
+      ToggleAutoBehind={"ToggleAutoBehind","AutoBehind"},
+      ToggleAutoTeleportToEnemy={"ToggleAutoTeleportToEnemy","AutoTP","AutoTeleportEnemy"},
+      SetAimFOV={"SetAimFOV","SetFOV","AimFOV"},
+      SetTeleportOffset={"SetTeleportOffset","SetTP","TeleportOffset"},
+    }
+    for want, keys in pairs(alias) do
+      for _,k in ipairs(keys) do
+        if type(mod[k])=="function" then F[want]=mod[k]; break end
+      end
+    end
+    for k,v in pairs(mod) do if F[k]==nil then F[k]=v end end
+  end
+
+  -- 3) Global expose — menünün geri kalanı NEREDE OLURSA olsun görsün:
+  _G.MYLF_features = F
+  _G.features = F
+  features = F
+end
+
+-- (opsiyonel) hızlı self-check logu
+do
+  local miss={}
+  for _,k in ipairs({"ToggleAimbot","ToggleSilentAim","ToggleESP"}) do
+    if type(features[k])~="function" then table.insert(miss,k) end
+  end
+  if #miss>0 then warn("[MYLF] stub kalanlar: "..table.concat(miss,", ")) end
+end
 
 
 
