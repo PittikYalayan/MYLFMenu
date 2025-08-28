@@ -504,48 +504,26 @@ do
     local g      = makeGroup(left)
     local gRight = makeGroup(right)
 
+-- ESP Sekmesi içinde
+Controls.Toggle(left, "🦴 Skeleton", false, function(on)
+    if features.ToggleSkeleton then features.ToggleSkeleton(on) end
+end)
 
+Controls.Toggle(left, "📦 3D Box", false, function(on)
+    if features.ToggleBox then features.ToggleBox(on)  end
+end)
 
-    -- (İlerde: TeamCheck, Distance, Tracer, Healthbar vs fonksiyonların varsa buraya aynı pattern ile bağla)
-Controls.Toggle(left, "Enable ESP", false, function(on)
-        if  features.ToggleESP then features.ToggleESP(on) end
-    end)
+Controls.Toggle(left, "🌈 Rainbow Name", false, function(on)
+    if features.ToggleRainbowName then features.ToggleRainbowName(on) end
+end)
 
-    Controls.Toggle(left, "Name ESP", false, function(on)
-        if  features.ToggleNameESP then features.ToggleNameESP(on) end
-    end)
+Controls.Toggle(left, "✨ Rainbow Glow", false, function(on)
+    if features.ToggleGlow then features.ToggleGlow(on) end
+end)
 
-    Controls.Toggle(left, "Box ESP", false, function(on)
-        if  features.ToggleBoxESP then features.ToggleBoxESP(on) end
-    end)
-
-    Controls.Toggle(left, "Tracer ESP", false, function(on)
-        if  features.ToggleTracerESP then features.ToggleTracerESP(on) end
-    end)
-
-    Controls.Toggle(left, "Health Bar", false, function(on)
-        if  features.ToggleHealthESP then features.ToggleHealthESP(on) end
-    end)
-
-    Controls.Toggle(left, "Distance ESP", false, function(on)
-        if  features.ToggleDistanceESP then features.ToggleDistanceESP(on) end
-    end)
-
-    Controls.Toggle(right, "Skeleton ESP", false, function(on)
-        if  features.ToggleSkeletonESP then features.ToggleSkeletonESP(on) end
-    end)
-
-    Controls.Toggle(right, "Glow ESP", false, function(on)
-        if  features.ToggleGlowESP then features.ToggleGlowESP(on) end
-    end)
-
-    Controls.Toggle(right, "Corner Box", false, function(on)
-        if  features.ToggleCornerESP then features.ToggleCornerESP(on) end
-    end)
-
-    Controls.Toggle(right, "Offscreen Arrows", false, function(on)
-        if  features.ToggleOffscreenESP then features.ToggleOffscreenESP(on) end
-    end)
+Controls.Toggle(left, "〽 Tracers", false, function(on)
+    if features.ToggleTracers then features.ToggleTracers(on) end
+end)
 
     Controls.Toggle(right, "🎯 Enemy Big Hitbox", false, function(on)
         if features.ToggleEnemyBigHitbox then features.ToggleEnemyBigHitbox(on) end
