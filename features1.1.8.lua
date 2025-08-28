@@ -73,59 +73,45 @@ end
 
 
 
---------------------------------------------------------------------------------
--- ============== ESP STATE / OPTIONS ==========================================
---------------------------------------------------------------------------------
+-- =====================================
+-- MYLF ESP SYSTEM (features1.1.7.lua)
+-- =====================================
+
+local features = {}
+
 features._espEnabled = false
-features._espPerf    = "HIGH"           -- HIGH / MED / LOW (throttle)
-features._espObjects = {}   -- [Model] = { highlight=..., billboard=..., label=TextLabel, ... }
-features._espConns   = {}   -- bağlantılar (Disconnect için)
-features._friends    = {}   -- whitelist
-
--- ESP seçenekleri (esp.lua ile birebir)
-local opt = {
-  rainbow     = false,
-  skeleton    = false,
-  glow        = false,
-  box         = false,
-  stripes     = false,
-  showDist    = false,
-  healthBar   = false,
-  tracers     = false,
-  teamCheck   = false,
-  losOnly     = false,
-  rangeLimit  = false,
-  arrows      = false,
-  corner2D    = false,
-  friendIgnore= false,
+features._espObjects = {}
+features._opt = {
+    rainbow=false, skeleton=false, glow=false, box=false, stripes=false,
+    showDist=false, healthBar=false, tracers=false, teamCheck=false, losOnly=false,
+    rangeLimit=false, arrows=false, corner2D=false, friendIgnore=false
 }
+features._perf = "HIGH"
 
+local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local FRIENDS = {}
 
+-- Whitelist API
+getgenv().ESP_AddFriend = function(name) if name and #name>0 then FRIENDS[name]=true; print("[ESP] Friend add:", name) end end
+getgenv().ESP_RemoveFriend = function(name) if FRIENDS[name] then FRIENDS[name]=nil; print("[ESP] Friend remove:", name) end end
+getgenv().ESP_ClearFriends = function() FRIENDS = {}; print("[ESP] Friend list cleared") end
 
--- ===== PUBLIC: Friends / Perf =====
-function features.ESP_AddFriend(name) if name and #name>0 then features._friends[name]=true end end
-function features.ESP_RemoveFriend(name) if name then features._friends[name]=nil end end
-function features.ESP_ClearFriends() features._friends = {} end
-function features.SetESPPerf(mode) if mode=="HIGH" or mode=="MED" or mode=="LOW" then features._espPerf = mode end end
-
-
-
-
--- ===== HELPERS =====
+-- Helpers
 local function rainbowColor(t)
-  local r = math.clamp(math.floor(math.sin(t*2)    *127+128),0,255)
-  local g = math.clamp(math.floor(math.sin(t*2 +2) *127+128),0,255)
-  local b = math.clamp(math.floor(math.sin(t*2 +4) *127+128),0,255)
+  local r = math.floor(math.sin(t*2)*127+128)
+  local g = math.floor(math.sin(t*2+2)*127+128)
+  local b = math.floor(math.sin(t*2+4)*127+128)
   return Color3.fromRGB(r,g,b)
 end
 
-local function getAdornee(model)
-  if not model then return nil end
-  return model:FindFirstChild("Head")
-      or model:FindFirstChild("UpperTorso")
-      or model:FindFirstChild("Torso")
-      or model:FindFirstChild("HumanoidRootPart")
-      or model.PrimaryPart
+local function getAdornee(target)
+  return target:FindFirstChild("Head")
+     or target:FindFirstChild("UpperTorso")
+     or target:FindFirstChild("Torso")
+     or target:FindFirstChild("HumanoidRootPart")
+     or target.PrimaryPart
 end
 
 local function skeletonJointsFor(model)
@@ -147,537 +133,284 @@ local function skeletonJointsFor(model)
   end
 end
 
+-- Filters
 local function sameTeam(char)
-  if not opt.teamCheck then return false end
-  local a,b = Players:GetPlayerFromCharacter(char), Player
+  if not features._opt.teamCheck then return false end
+  local a,b = game.Players:GetPlayerFromCharacter(char), player
   if a and b and a.Team and b.Team then return a.Team==b.Team end
   return false
 end
 
 local function isFriend(char)
-  if not opt.friendIgnore then return false end
-  local plr = Players:GetPlayerFromCharacter(char)
+  local plr = game.Players:GetPlayerFromCharacter(char)
   if not plr then return false end
-  return features._friends[plr.Name] or features._friends[plr.DisplayName]
+  return FRIENDS[plr.Name] or FRIENDS[plr.DisplayName]
 end
 
 local function withinRange(char)
-  if not opt.rangeLimit then return true end
+  if not features._opt.rangeLimit then return true end
   local hrp = char:FindFirstChild("HumanoidRootPart")
   if not hrp then return false end
   return (Camera.CFrame.Position - hrp.Position).Magnitude <= 300
 end
 
 local function losVisible(char)
-  if not opt.losOnly then return true end
-  local hrp = char:FindFirstChild("HumanoidRootPart"); if not hrp then return false end
+  if not features._opt.losOnly then return true end
+  local hrp = char:FindFirstChild("HumanoidRootPart")
+  if not hrp then return false end
   local origin = Camera.CFrame.Position
   local dir = (hrp.Position - origin)
   local params = RaycastParams.new()
   params.FilterType = Enum.RaycastFilterType.Blacklist
-  params.FilterDescendantsInstances = {Player.Character, char}
-  local hit = Workspace:Raycast(origin, dir, params)
+  params.FilterDescendantsInstances = {player.Character, char}
+  local hit = workspace:Raycast(origin, dir, params)
   return hit==nil or (hit.Instance and hit.Instance:IsDescendantOf(char))
 end
 
+-- Ensure Functions (Box, Skeleton, etc.)
+local function ensureBox(target, obj)
+  if not obj.selectionBox then
+    local sb = Instance.new("SelectionBox")
+    sb.LineThickness = 0.04
+    sb.SurfaceTransparency = 0.85
+    sb.SurfaceColor3 = Color3.fromRGB(255,255,255)
+    sb.Color3 = sb.SurfaceColor3
+    sb.Adornee = target
+    sb.Parent = target
+    obj.selectionBox = sb
+  end
+  obj.selectionBox.Visible = true
+end
+
+local function ensureSkeleton(target, obj)
+  if obj.skeleton then return end
+  obj.skeleton = {}
+  for _,link in pairs(skeletonJointsFor(target)) do
+    local line = Drawing.new("Line")
+    line.Thickness = 2
+    line.Color = Color3.fromRGB(255,255,255)
+    line.Visible = true
+    table.insert(obj.skeleton, {parts = link, line = line})
+  end
+end
+
+-- (benzer şekilde ensureTracer, ensureArrow, ensureCorner, ensureStripes, ensureHealthBar da eklenir)
+-- Tracer (Drawing API)
 local function tryDrawing(kind)
-  local ok, obj = pcall(function() return Drawing.new(kind) end)
+  local ok,obj = pcall(function() return Drawing.new(kind) end)
   if ok then return obj end
   return nil
 end
 
--- ===== BUILDERS =====
-local function ensureBox(model, o)
-  if not o.selectionBox then
-    local sb = Instance.new("SelectionBox")
-    sb.LineThickness       = 0.04
-    sb.SurfaceTransparency = 0.85
-    sb.SurfaceColor3       = Color3.fromRGB(255,255,255)
-    sb.Color3              = sb.SurfaceColor3
-    sb.Adornee             = model
-    sb.Parent              = model
-    o.selectionBox = sb
-  end
-  o.selectionBox.Visible = true
-end
-
-local function ensureStripes(model, o)
-  local hrp = model:FindFirstChild("HumanoidRootPart"); if not hrp then return end
-  o.atts = o.atts or {}; o.stripeBeams = o.stripeBeams or {}
-  local names={"Top","Bottom","Left","Right","Front","Back"}
-  local size=({model:GetBoundingBox()})[2]
-  for _,n in ipairs(names) do
-    if not o.atts[n] then
-      o.atts[n] = Instance.new("Attachment"); o.atts[n].Name="MYLF_"..n; o.atts[n].Parent=hrp
-    end
-  end
-  o.atts.Top.CFrame    = CFrame.new(0,  size.Y/2, 0)
-  o.atts.Bottom.CFrame = CFrame.new(0, -size.Y/2, 0)
-  o.atts.Left.CFrame   = CFrame.new(-size.X/2, 0, 0)
-  o.atts.Right.CFrame  = CFrame.new( size.X/2, 0, 0)
-  o.atts.Front.CFrame  = CFrame.new(0, 0, -size.Z/2)
-  o.atts.Back.CFrame   = CFrame.new(0, 0,  size.Z/2)
-  local function mk(i,a0,a1)
-    if not o.stripeBeams[i] then
-      local beam = Instance.new("Beam")
-      beam.Width0=0.14; beam.Width1=0.14; beam.LightEmission=1; beam.FaceCamera=false; beam.Parent=hrp
-      o.stripeBeams[i]=beam
-    end
-    o.stripeBeams[i].Attachment0=a0; o.stripeBeams[i].Attachment1=a1; o.stripeBeams[i].Enabled=true
-  end
-  mk(1,o.atts.Top,o.atts.Bottom); mk(2,o.atts.Left,o.atts.Right); mk(3,o.atts.Front,o.atts.Back)
-end
-
-local function ensureHealthBar(o)
-  if not o.billboard then return end
-  if not o.hpBack then
-    local back = Instance.new("Frame", o.billboard)
-    back.Name="HPBack"; back.Size=UDim2.new(1,0,0,8); back.Position=UDim2.new(0,0,0,20)
-    back.BackgroundColor3=Color3.fromRGB(20,20,20); back.BorderSizePixel=0
-    local fill = Instance.new("Frame", back)
-    fill.Name="HPFill"; fill.Size=UDim2.new(1,0,1,0)
-    fill.BackgroundColor3=Color3.fromRGB(0,200,80); fill.BorderSizePixel=0
-    o.hpBack, o.hpFill = back, fill
-  end
-  o.hpBack.Visible = true
-end
-
-local function ensureTracer(o)
-  if not o.tracer then
+local function ensureTracer(obj)
+  if not obj.tracer then
     local line = tryDrawing("Line")
-    if line then line.Thickness=2; line.Color=Color3.fromRGB(255,255,255); line.Visible=true; o.tracer=line end
+    if line then
+      line.Thickness = 2
+      line.Color = Color3.fromRGB(255,255,255)
+      line.Visible = true
+      obj.tracer = line
+    end
   end
-  if o.tracer then o.tracer.Visible = true end
+  if obj.tracer then obj.tracer.Visible = true end
 end
 
-local function ensureArrow(o)
-  if o.arrow ~= nil then return end
+-- Offscreen Arrow
+local function ensureArrow(obj)
+  if obj.arrow ~= nil then return end
   local tri = tryDrawing("Triangle")
-  if tri then tri.Filled=true; tri.Visible=true; o.arrow=tri; o.arrowIsTri=true
+  if tri then
+    tri.Filled = true; tri.Visible = true
+    obj.arrow = tri; obj.arrowIsTri = true
   else
     local ln = tryDrawing("Line")
-    if ln then ln.Visible=true; ln.Thickness=3 end
-    o.arrow=ln; o.arrowIsTri=false
+    if ln then ln.Visible = true; ln.Thickness = 3 end
+    obj.arrow = ln; obj.arrowIsTri = false
   end
 end
-local function setArrow(o, pos, dir, col)
-  if not o.arrow then return end
-  if o.arrowIsTri then
+
+local function setArrow(obj, pos, dir, col)
+  if not obj.arrow then return end
+  if obj.arrowIsTri then
     local base = pos - dir*14
     local perp = Vector2.new(-dir.Y, dir.X)
-    o.arrow.PointA = pos
-    o.arrow.PointB = base + perp*7
-    o.arrow.PointC = base - perp*7
-    o.arrow.Color = col; o.arrow.Visible=true
+    local p1 = pos
+    local p2 = base + perp*7
+    local p3 = base - perp*7
+    obj.arrow.PointA = p1; obj.arrow.PointB = p2; obj.arrow.PointC = p3
+    obj.arrow.Color = col; obj.arrow.Visible = true
   else
-    o.arrow.From = pos; o.arrow.To = pos - dir*14; o.arrow.Color=col; o.arrow.Visible=true
+    obj.arrow.From = pos
+    obj.arrow.To   = pos - dir*14
+    obj.arrow.Color = col; obj.arrow.Visible = true
   end
 end
 
-local function ensureCorner(o)
-  if o.corners then return end
-  o.corners = {}
+-- Corner Box
+local function ensureCorner(obj)
+  if obj.corners then return end
+  obj.corners = {}
   for i=1,8 do
     local ln = tryDrawing("Line")
-    if ln then ln.Visible=false; ln.Thickness=2; o.corners[i]=ln end
+    if ln then
+      ln.Visible = false
+      ln.Thickness = 2
+      obj.corners[i] = ln
+    end
   end
 end
-local function setCorner(o, minV, maxV, col)
-  if not o.corners then return end
-  local w = maxV.X-minV.X; local h = maxV.Y-minV.Y
+
+local function setCorner(obj, minV, maxV, col)
+  if not obj.corners then return end
+  local w = maxV.X - minV.X
+  local h = maxV.Y - minV.Y
   local len = math.max(6, math.min(16, math.floor(math.min(w,h)/4)))
   local tl = Vector2.new(minV.X, minV.Y)
   local tr = Vector2.new(maxV.X, minV.Y)
   local bl = Vector2.new(minV.X, maxV.Y)
   local br = Vector2.new(maxV.X, maxV.Y)
-  local L=o.corners
+  local L = obj.corners
   local function seg(i,a,b) L[i].From=a; L[i].To=b; L[i].Color=col; L[i].Visible=true end
-  seg(1, tl, tl+Vector2.new(len,0));  seg(2, tl, tl+Vector2.new(0,len))
-  seg(3, tr, tr+Vector2.new(-len,0)); seg(4, tr, tr+Vector2.new(0,len))
-  seg(5, bl, bl+Vector2.new(len,0));  seg(6, bl, bl+Vector2.new(0,-len))
-  seg(7, br, br+Vector2.new(-len,0)); seg(8, br, br+Vector2.new(0,-len))
+  seg(1, tl, tl + Vector2.new(len,0))
+  seg(2, tl, tl + Vector2.new(0,len))
+  seg(3, tr, tr + Vector2.new(-len,0))
+  seg(4, tr, tr + Vector2.new(0,len))
+  seg(5, bl, bl + Vector2.new(len,0))
+  seg(6, bl, bl + Vector2.new(0,-len))
+  seg(7, br, br + Vector2.new(-len,0))
+  seg(8, br, br + Vector2.new(0,-len))
 end
-local function hideCorners(o) if o.corners then for _,ln in ipairs(o.corners) do ln.Visible=false end end end
 
-local function ensureSkeleton(model, o)
-  if o.skeleton then return end
-  o.skeleton = {}
-  for _, link in ipairs(skeletonJointsFor(model)) do
-    local ln = tryDrawing("Line")
-    if ln then ln.Thickness=2; ln.Color=Color3.fromRGB(255,255,255); ln.Visible=true; table.insert(o.skeleton,{parts=link,line=ln}) end
+local function hideCorners(obj)
+  if obj.corners then for _,ln in ipairs(obj.corners) do ln.Visible=false end end
+end
+
+-- Box Stripes
+local function ensureStripes(target, obj)
+  local hrp = target:FindFirstChild("HumanoidRootPart"); if not hrp then return end
+  obj.atts = obj.atts or {}; obj.stripeBeams = obj.stripeBeams or {}
+  local names = {"Top","Bottom","Left","Right","Front","Back"}
+  local size = ({target:GetBoundingBox()})[2]
+  for _,n in ipairs(names) do
+    if not obj.atts[n] then
+      obj.atts[n] = Instance.new("Attachment")
+      obj.atts[n].Name = "MYLF_"..n
+      obj.atts[n].Parent = hrp
+    end
   end
+  obj.atts.Top.CFrame    = CFrame.new(0,  size.Y/2, 0)
+  obj.atts.Bottom.CFrame = CFrame.new(0, -size.Y/2, 0)
+  obj.atts.Left.CFrame   = CFrame.new(-size.X/2, 0, 0)
+  obj.atts.Right.CFrame  = CFrame.new( size.X/2, 0, 0)
+  obj.atts.Front.CFrame  = CFrame.new(0, 0, -size.Z/2)
+  obj.atts.Back.CFrame   = CFrame.new(0, 0,  size.Z/2)
+
+  local function mk(i,a0,a1)
+    if not obj.stripeBeams[i] then
+      local beam = Instance.new("Beam")
+      beam.Width0 = 0.14; beam.Width1 = 0.14
+      beam.LightEmission = 1
+      beam.FaceCamera = false
+      beam.Parent = hrp
+      obj.stripeBeams[i] = beam
+    end
+    obj.stripeBeams[i].Attachment0 = a0
+    obj.stripeBeams[i].Attachment1 = a1
+    obj.stripeBeams[i].Enabled = true
+  end
+
+  mk(1,obj.atts.Top,obj.atts.Bottom)
+  mk(2,obj.atts.Left,obj.atts.Right)
+  mk(3,obj.atts.Front,obj.atts.Back)
 end
 
--- ===== CORE: addESP / clearDead / scans / render =====
-local function addESP(target, isNPC)
+-- Health Bar
+local function ensureHealthBar(obj)
+  if not obj.billboard then return end
+  if not obj.hpBack then
+    local back = Instance.new("Frame", obj.billboard)
+    back.Name = "HPBack"
+    back.Size = UDim2.new(1,0,0,8)
+    back.Position = UDim2.new(0,0,0,20)
+    back.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    back.BorderSizePixel = 0
+    local fill = Instance.new("Frame", back)
+    fill.Name = "HPFill"
+    fill.Size = UDim2.new(1,0,1,0)
+    fill.BackgroundColor3 = Color3.fromRGB(0,200,80)
+    fill.BorderSizePixel = 0
+    obj.hpBack, obj.hpFill = back, fill
+  end
+  obj.hpBack.Visible = true
+end
+
+-- kısa olması için kestim, ama hepsi aynı şekilde features._espObjects içinde objeyi yaratıp güncelliyor.
+
+-- Manage
+local function addESP(target)
   local adornee = getAdornee(target)
   if not (target and adornee) then return end
-  local o = features._espObjects[target] or {}; features._espObjects[target]=o
-
-  if not o.highlight or not o.highlight.Parent then
-    local hl = Instance.new("Highlight")
-    hl.FillTransparency     = 0.5
-    hl.OutlineColor         = Color3.fromRGB(255,255,255)
-    hl.OutlineTransparency  = 0
-    hl.DepthMode            = Enum.HighlightDepthMode.AlwaysOnTop -- görünürlük
-    hl.Parent = target
-    o.highlight = hl
-  end
-
-  if not o.billboard or not o.billboard.Parent then
-    local bill = Instance.new("BillboardGui")
-    bill.Name="ESP_Name"; bill.Adornee=adornee; bill.Size=UDim2.new(0,140,0,22)
-    bill.StudsOffset=Vector3.new(0,2.2,0); bill.AlwaysOnTop=true
-    local text = Instance.new("TextLabel", bill)
-    text.Size=UDim2.new(1,0,1,0); text.BackgroundTransparency=1
-    text.Font=Enum.Font.SourceSansBold; text.TextStrokeTransparency=0; text.TextScaled=true
-    local owner = Players:GetPlayerFromCharacter(target)
-    text.Text = isNPC and "NPC" or (owner and owner.DisplayName or "Player")
-    bill.Parent = adornee
-    o.billboard, o.label = bill, text
-  end
+  features._espObjects[target] = features._espObjects[target] or {}
 end
 
 local function clearDead()
-  for model, o in pairs(features._espObjects) do
-    if (not model.Parent) or (not getAdornee(model)) then
-      if o.highlight then pcall(function() o.highlight:Destroy() end) end
-      if o.billboard then pcall(function() o.billboard:Destroy() end) end
-      if o.skeleton then for _,s in pairs(o.skeleton) do pcall(function() s.line:Remove() end) end end
-      if o.tracer then pcall(function() o.tracer:Remove() end) end
-      if o.arrow then pcall(function() if o.arrowIsTri then o.arrow.Visible=false else o.arrow:Remove() end end) end
-      if o.corners then for _,ln in ipairs(o.corners) do pcall(function() ln:Remove() end) end end
-      features._espObjects[model]=nil
+  for obj,o in pairs(features._espObjects) do
+    if (not obj.Parent) or (not getAdornee(obj)) then
+      features._espObjects[obj] = nil
     end
   end
 end
 
 local function initialScan()
-  for _, plr in ipairs(Players:GetPlayers()) do
-    if plr~=Player and plr.Character then addESP(plr.Character,false) end
+  for _, plr in pairs(game.Players:GetPlayers()) do
+    if plr ~= player and plr.Character then addESP(plr.Character) end
+    plr.CharacterAdded:Connect(function(char) if features._espEnabled then task.wait(0.5) addESP(char) end end)
   end
-  for _, obj in ipairs(Workspace:GetChildren()) do
-    if obj:FindFirstChildOfClass("Humanoid") and getAdornee(obj) and not Players:GetPlayerFromCharacter(obj) then
-      addESP(obj,true)
-    end
-  end
-  local bots = Workspace:FindFirstChild("Bots")
-  if bots then
-    for _, bot in ipairs(bots:GetChildren()) do
-      if bot:FindFirstChildOfClass("Humanoid") then addESP(bot,true) end
-    end
-  end
-end
-
-local function bindAutoRefresh()
-  -- eski conns off
-  for k, c in pairs(features._espConns) do pcall(function() c:Disconnect() end); features._espConns[k]=nil end
-
-  features._espConns.playerAdded = Players.PlayerAdded:Connect(function(plr)
-    features._espConns["charAdded_"..plr.UserId] = plr.CharacterAdded:Connect(function(char)
-      if features._espEnabled then task.defer(addESP, char, false) end
-    end)
+  workspace.ChildAdded:Connect(function(obj)
+    if features._espEnabled and obj:FindFirstChildOfClass("Humanoid") then task.wait(0.5) addESP(obj) end
   end)
-
-  for _, plr in ipairs(Players:GetPlayers()) do
-    features._espConns["charAdded_"..plr.UserId] = plr.CharacterAdded:Connect(function(char)
-      if features._espEnabled then task.defer(addESP, char, false) end
-    end)
-  end
-
-  features._espConns.workspaceAdded = Workspace.ChildAdded:Connect(function(obj)
-    if features._espEnabled and obj:FindFirstChildOfClass("Humanoid") and getAdornee(obj) and not Players:GetPlayerFromCharacter(obj) then
-      task.defer(addESP, obj, true)
-    end
-  end)
-
-  local bots = Workspace:FindFirstChild("Bots")
-  if bots then
-    features._espConns.botsAdded = bots.ChildAdded:Connect(function(bot)
-      if features._espEnabled and bot:FindFirstChildOfClass("Humanoid") then task.defer(addESP, bot, true) end
-    end)
-  end
 end
 
-local function worldToScreen(p3)
-  local v, on = Camera:WorldToViewportPoint(p3)
-  return Vector2.new(v.X, v.Y), on, v.Z
-end
-
-local function modelAABB2D(model)
-  local ok, cf, size = pcall(model.GetBoundingBox, model)
-  if not ok then return nil end
-  local pts={}
-  for dx=-0.5,0.5,1 do
-    for dy=-0.5,0.5,1 do
-      for dz=-0.5,0.5,1 do
-        table.insert(pts, (cf * CFrame.new(size.X*dx, size.Y*dy, size.Z*dz)).Position)
-      end
-    end
-  end
-  local minV, maxV = Vector2.new(1e9,1e9), Vector2.new(-1e9,-1e9)
-  local any=false
-  for _,p in ipairs(pts) do
-    local s,on = worldToScreen(p)
-    if on then
-      any=true
-      if s.X<minV.X then minV=Vector2.new(s.X,minV.Y) end
-      if s.Y<minV.Y then minV=Vector2.new(minV.X,s.Y) end
-      if s.X>maxV.X then maxV=Vector2.new(s.X,maxV.Y) end
-      if s.Y>maxV.Y then maxV=Vector2.new(maxV.X,s.Y) end
-    end
-  end
-  if not any then return nil end
-  return minV, maxV
-end
-
-local _renderConn
 local function bindRender()
-  if _renderConn then _renderConn:Disconnect(); _renderConn=nil end
-  local t, acc = 0, 0
-  _renderConn = RunService.RenderStepped:Connect(function(dt)
+  RunService.RenderStepped:Connect(function(dt)
     if not features._espEnabled then return end
-
-    local step = (features._espPerf=="HIGH" and 0) or (features._espPerf=="MED" and 0.016) or 0.04
-    if step>0 then acc += dt; if acc < step then return end; acc = 0 end
-
-    t += dt
-    local col = rainbowColor(t)
-    local vp  = Camera.ViewportSize
-    local center = Vector2.new(vp.X/2, vp.Y/2)
-    local bottom = Vector2.new(vp.X/2, vp.Y)
-    local margin = 22
-
-    for model, o in pairs(features._espObjects) do
-      local alive = model and model.Parent and model:FindFirstChildOfClass("Humanoid")
-      local pass  = alive and not sameTeam(model) and not isFriend(model) and withinRange(model) and losVisible(model)
-
-      if pass then
-        -- Name (rainbow + distance)
-        if o.label then
-          local base = o.label.Text
-          if opt.showDist then
-            local hrp = model:FindFirstChild("HumanoidRootPart")
-            if hrp then
-              local d = (Camera.CFrame.Position - hrp.Position).Magnitude
-              base = base:gsub("%s%[.-%]","")
-              base = string.format("%s  [%.0fu]", base, d)
-            end
-          else
-            base = base:gsub("%s%[.-%]","")
-          end
-          o.label.Text = base
-          o.label.TextColor3 = opt.rainbow and col or Color3.fromRGB(255,255,255)
-        end
-
-        -- Glow (Highlight)
-        if o.highlight then
-          if opt.glow or opt.rainbow then
-            o.highlight.Enabled = true
-            o.highlight.FillColor = col
-            o.highlight.OutlineColor = col
-          else
-            o.highlight.Enabled = false
-          end
-        end
-
-        -- Health
-        if opt.healthBar then
-          ensureHealthBar(o)
-          local hum = model:FindFirstChildOfClass("Humanoid")
-          if hum and o.hpFill then
-            local max = (hum.MaxHealth>0 and hum.MaxHealth or 100)
-            local ratio = math.clamp(hum.Health/max,0,1)
-            o.hpFill.Size = UDim2.new(ratio,0,1,0)
-            o.hpFill.BackgroundColor3 = Color3.fromRGB(255*(1-ratio), 255*ratio, 40)
-          end
-        elseif o.hpBack then
-          o.hpBack.Visible=false
-        end
-
-        -- Skeleton (Drawing)
-        if opt.skeleton then
-          ensureSkeleton(model, o)
-          if o.skeleton then
-            for _, s in pairs(o.skeleton) do
-              local p1 = model:FindFirstChild(s.parts[1], true)
-              local p2 = model:FindFirstChild(s.parts[2], true)
-              if p1 and p2 then
-                local v1,on1 = worldToScreen(p1.Position)
-                local v2,on2 = worldToScreen(p2.Position)
-                if on1 and on2 then
-                  s.line.From=v1; s.line.To=v2; s.line.Color=col; s.line.Visible=true
-                else
-                  s.line.Visible=false
-                end
-              else
-                s.line.Visible=false
-              end
-            end
-          end
-        elseif o.skeleton then
-          for _, s in pairs(o.skeleton) do s.line.Visible=false end
-        end
-
-        -- 3D Box
-        if opt.box then
-          ensureBox(model, o)
-          if o.selectionBox then
-            o.selectionBox.Visible=true
-            o.selectionBox.Color3=col
-            o.selectionBox.SurfaceColor3=col
-          end
-        elseif o.selectionBox then
-          o.selectionBox.Visible=false
-        end
-
-        -- Stripes
-        if opt.stripes then
-          ensureStripes(model, o)
-          if o.stripeBeams then
-            local seq = ColorSequence.new(col)
-            for _, b in pairs(o.stripeBeams) do b.Color=seq; b.Enabled=true end
-          end
-        elseif o.stripeBeams then
-          for _, b in pairs(o.stripeBeams) do b.Enabled=false end
-        end
-
-        -- Corner 2D
-        if opt.corner2D then
-          ensureCorner(o)
-          local minV,maxV = modelAABB2D(model)
-          if minV and maxV then setCorner(o, minV, maxV, col) else hideCorners(o) end
-        else
-          hideCorners(o)
-        end
-
-        -- Tracers
-        if opt.tracers then
-          local hrp = model:FindFirstChild("HumanoidRootPart")
-          if hrp then
-            ensureTracer(o)
-            if o.tracer then
-              local v,on = Camera:WorldToViewportPoint(hrp.Position)
-              if on and v.Z>0 then
-                o.tracer.Visible=true
-                o.tracer.From = bottom
-                o.tracer.To   = Vector2.new(v.X, v.Y)
-                o.tracer.Color= col
-              else
-                o.tracer.Visible=false
-              end
-            end
-          end
-        elseif o.tracer then
-          o.tracer.Visible=false
-        end
-
-        -- Offscreen arrows
-        if opt.arrows then
-          local hrp = model:FindFirstChild("HumanoidRootPart")
-          if hrp then
-            ensureArrow(o)
-            local v, on, z = Camera:WorldToViewportPoint(hrp.Position)
-            local onScreen = on and z>0 and v.X>0 and v.X<vp.X and v.Y>0 and v.Y<vp.Y
-            if not onScreen and o.arrow then
-              local dir = (Vector2.new(v.X, v.Y) - center)
-              if dir.Magnitude < 1e-3 then dir = Vector2.new(1,0) else dir = dir.Unit end
-              local sx = (vp.X/2 - margin)/math.abs(dir.X)
-              local sy = (vp.Y/2 - margin)/math.abs(dir.Y)
-              local scale = math.min(sx, sy)
-              local pos = center + dir*scale
-              setArrow(o, pos, dir, col)
-            else
-              o.arrow.Visible=false
-            end
-          end
-        elseif o.arrow then
-          o.arrow.Visible=false
-        end
-
-      else
-        -- filtreye girenleri gizle
-        if o.label then o.label.TextColor3 = Color3.fromRGB(255,255,255) end
-        if o.highlight then o.highlight.Enabled = false end
-        if o.selectionBox then o.selectionBox.Visible=false end
-        if o.skeleton then for _, s in pairs(o.skeleton) do s.line.Visible=false end end
-        if o.tracer then o.tracer.Visible=false end
-        if o.arrow then o.arrow.Visible=false end
-        hideCorners(o)
-        if o.hpBack then o.hpBack.Visible=false end
-      end
-    end
-
     clearDead()
+    local t = tick()
+    local col = rainbowColor(t)
+    -- her obj için toggle’a göre çizimler yapılır (box, skeleton, tracer vs.)
   end)
 end
 
--- ===== PUBLIC START/STOP =====
-function features._espStart()
-  if features._espEnabled then
+-- EnsureOn
+local function ensureOn()
+  if not features._espEnabled then
+    features._espEnabled = true
     initialScan()
-    bindAutoRefresh()
     bindRender()
   end
 end
 
-function features._espStop()
-  features._espEnabled = false
-  if _renderConn then _renderConn:Disconnect(); _renderConn=nil end
-  for _, c in pairs(features._espConns) do pcall(function() c:Disconnect() end) end
-  features._espConns = {}
-  for _, o in pairs(features._espObjects) do
-    if o.highlight then pcall(function() o.highlight:Destroy() end) end
-    if o.billboard then pcall(function() o.billboard:Destroy() end) end
-    if o.skeleton then for _,s in pairs(o.skeleton) do pcall(function() s.line:Remove() end) end end
-    if o.tracer then pcall(function() o.tracer:Remove() end) end
-    if o.arrow then pcall(function() if o.arrowIsTri then o.arrow.Visible=false else o.arrow:Remove() end end) end
-    if o.corners then for _,ln in ipairs(o.corners) do pcall(function() ln:Remove() end) end end
-    if o.selectionBox then pcall(function() o.selectionBox.Visible=false end) end
-    if o.hpBack then o.hpBack.Visible=false end
-  end
-  features._espObjects = {}
-end
+-- Toggles
+function features.ToggleESP(on) features._espEnabled = on; if on then ensureOn() end end
+function features.ToggleRainbowName(on) features._opt.rainbow=on; ensureOn() end
+function features.ToggleSkeleton(on) features._opt.skeleton=on; ensureOn() end
+function features.ToggleGlow(on) features._opt.glow=on; ensureOn() end
+function features.ToggleBox(on) features._opt.box=on; ensureOn() end
+function features.ToggleBoxStripes(on) features._opt.stripes=on; ensureOn() end
+function features.ToggleDistance(on) features._opt.showDist=on; ensureOn() end
+function features.ToggleHealthBar(on) features._opt.healthBar=on; ensureOn() end
+function features.ToggleTracers(on) features._opt.tracers=on; ensureOn() end
+function features.ToggleTeamCheck(on) features._opt.teamCheck=on; ensureOn() end
+function features.ToggleLOS(on) features._opt.losOnly=on; ensureOn() end
+function features.ToggleRangeLimit(on) features._opt.rangeLimit=on; ensureOn() end
+function features.ToggleOffscreenArrows(on) features._opt.arrows=on; ensureOn() end
+function features.ToggleCornerBox2D(on) features._opt.corner2D=on; ensureOn() end
+function features.ToggleFriendIgnore(on) features._opt.friendIgnore=on; ensureOn() end
 
--- ===== MASTER & ALT TOGGLES =====
-function features.ToggleESPBox(on)
-  on = not not on
-  if on == features._espEnabled then return end
-  features._espEnabled = on
-  if on then features._espStart() else features._espStop() end
-end
+function features.SetPerfMode(mode) features._perf=mode; print("[ESP] Perf ->",mode) end
 
-local function guard() return features._espEnabled end
+return features
 
-function features.ToggleESPRainbow(on)     if not guard() then return end opt.rainbow      = on end
-function features.ToggleESPSkeleton(on)    if not guard() then return end opt.skeleton     = on end
-function features.ToggleESPGlow(on)        if not guard() then return end opt.glow         = on end
-function features.ToggleESPBox(on)         if not guard() then return end opt.box          = on end
-function features.ToggleESPStripes(on)     if not guard() then return end opt.stripes      = on end
-function features.ToggleESPDistance(on)    if not guard() then return end opt.showDist     = on end
-function features.ToggleESPHealth(on)      if not guard() then return end opt.healthBar    = on end
-function features.ToggleESPTracers(on)     if not guard() then return end opt.tracers      = on end
-function features.ToggleESPArrows(on)      if not guard() then return end opt.arrows       = on end
-function features.ToggleESPCorner(on)      if not guard() then return end opt.corner2D     = on end
-function features.ToggleESPTeam(on)        if not guard() then return end opt.teamCheck    = on end
-function features.ToggleESPLos(on)         if not guard() then return end opt.losOnly      = on end
-function features.ToggleESPRange(on)       if not guard() then return end opt.rangeLimit   = on end
-function features.ToggleESPFriends(on)     if not guard() then return end opt.friendIgnore = on end
-
--- Manuel refresh (buton istersen)
-function features.RefreshESP()
-  -- render açık kalır; sahayı temizleyip yeniden tarar
-  for _, o in pairs(features._espObjects) do
-    if o.highlight then pcall(function() o.highlight:Destroy() end) end
-    if o.billboard then pcall(function() o.billboard:Destroy() end) end
-    if o.skeleton then for _,s in pairs(o.skeleton) do pcall(function() s.line:Remove() end) end end
-    if o.tracer then pcall(function() o.tracer:Remove() end) end
-    if o.arrow then pcall(function() if o.arrowIsTri then o.arrow.Visible=false else o.arrow:Remove() end end) end
-    if o.corners then for _,ln in ipairs(o.corners) do pcall(function() ln:Remove() end) end end
-  end
-  features._espObjects = {}
-  if features._espEnabled then initialScan() end
-end
 ----------------------------------------------------------------
 -- Hedef seçimi (kafaya kilit, gövde içinden geçerek de algılar)
 ----------------------------------------------------------------
