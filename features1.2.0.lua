@@ -17,6 +17,11 @@ local features = {}
 ----------------------------------------------------------------
 -- AIMBOT CONFIG
 ----------------------------------------------------------------
+features._espObjects = {}
+features._conns = {}
+features._opt = {}
+features._waypoints = {}
+features._selected = nil
 features.TeamCheck       = true     -- aynı takım hedeflenmez
 features.Smoothness      = 1        -- 1 = anında bak; 3-6 = yumuşak
 features.AimRequireLOS   = false    -- true: duvar arkası görmez
@@ -76,9 +81,6 @@ end
 -- =====================================
 -- MYLF ESP SYSTEM (features1.1.7.lua)
 -- =====================================
-features._espObjects = {}
-features._conns = {}
-features._opt = {}
 -- Helper: Adornee bul
 local function getAdornee(target)
     return target:FindFirstChild("Head")
@@ -113,6 +115,14 @@ local function tryDrawing(kind)
     local ok,obj = pcall(function() return Drawing.new(kind) end)
     if ok then return obj end
     return nil
+end
+
+-- RGB renk
+local function rainbowColor(t)
+    local r = math.floor(math.sin(t*2) * 127 + 128)
+    local g = math.floor(math.sin(t*2+2) * 127 + 128)
+    local b = math.floor(math.sin(t*2+4) * 127 + 128)
+    return Color3.fromRGB(r,g,b)
 end
 
 -- ========== Skeleton ==========
@@ -165,7 +175,7 @@ function features.ToggleSkeleton(on)
     end
 end
 
--- ========== 3D Box ==========
+-- ========== Box ==========
 function features.ToggleBox(on)
     if on and not features._conns.box then
         features._conns.box = RunService.RenderStepped:Connect(function()
@@ -176,7 +186,7 @@ function features.ToggleBox(on)
                         local sb = Instance.new("SelectionBox")
                         sb.LineThickness = 0.04
                         sb.SurfaceTransparency = 0.85
-                        sb.Color3 = Color3.fromRGB(0,255,0) -- 🌈 RGB sabit bırakıldı
+                        sb.Color3 = Color3.fromRGB(0,255,0)
                         sb.Adornee = adornee
                         sb.Parent = adornee
                         o.selectionBox = sb
@@ -193,6 +203,7 @@ function features.ToggleBox(on)
         end
     end
 end
+
 -- ========== Tracers ==========
 function features.ToggleTracers(on)
     if on and not features._conns.tracers then
@@ -214,7 +225,7 @@ function features.ToggleTracers(on)
                         o.tracer.Visible = true
                         o.tracer.From = center
                         o.tracer.To   = Vector2.new(v.X,v.Y)
-                        o.tracer.Color = Color3.fromRGB(255,255,255) -- 🌈 RGB bırakıldı
+                        o.tracer.Color = Color3.fromRGB(255,255,255)
                     else
                         o.tracer.Visible=false
                     end
@@ -247,7 +258,7 @@ function features.ToggleGlow(on)
                 end
                 if o.highlight then
                     o.highlight.Enabled = true
-                    o.highlight.FillColor = Color3.fromRGB(0,200,255) -- 🌈
+                    o.highlight.FillColor = Color3.fromRGB(0,200,255)
                     o.highlight.OutlineColor = Color3.fromRGB(0,200,255)
                 end
             end
@@ -262,13 +273,6 @@ function features.ToggleGlow(on)
 end
 
 -- ========== Rainbow Name ==========
-local function rainbowColor(t)
-    local r = math.floor(math.sin(t*2) * 127 + 128)
-    local g = math.floor(math.sin(t*2+2) * 127 + 128)
-    local b = math.floor(math.sin(t*2+4) * 127 + 128)
-    return Color3.fromRGB(r,g,b)
-end
-
 function features.ToggleRainbowName(on)
     if on and not features._conns.rainbow then
         local t=0
@@ -348,148 +352,21 @@ function features.ToggleHealthBar(on)
         features._conns.healthbar:Disconnect()
         features._conns.healthbar=nil
         for _,o in pairs(features._espObjects) do
-            if o.hpGui then o.hpGui.bb.Enabled=false end
-        end
-    end
-end
--- ====== Waypoints (kullanıcı tanımlı hedefler) ======
-features._waypoints = {}          -- name -> {pos=Vector3, part=BasePart?}
-features._selected = nil          -- seçili obje (Model/BasePart)
-
-function features.AddWaypoint(name, target)
-    if typeof(target) == "Instance" and target:IsA("BasePart") then
-        features._waypoints[name] = { part = target }
-    elseif typeof(target) == "Vector3" then
-        features._waypoints[name] = { pos = target }
-    else
-        warn("[MYLF] AddWaypoint: target BasePart ya da Vector3 olmalı")
-    end
-end
-
-function features.RemoveWaypoint(name)
-    features._waypoints[name] = nil
-end
-
-function features.Select(obj)  -- Model ya da BasePart
-    features._selected = obj
-end
-
--- RGB (dokunma)
-local function rainbowColor(t)
-    local r = math.floor(math.sin(t*2)   *127+128)
-    local g = math.floor(math.sin(t*2+2) *127+128)
-    local b = math.floor(math.sin(t*2+4) *127+128)
-    return Color3.fromRGB(r,g,b)
-end
-
--- Drawing safe
-local function tryDrawing(kind)
-    local ok,obj = pcall(function() return Drawing.new(kind) end)
-    if ok then return obj end
-    return nil
-end
-
--- ====== Offscreen Arrows for Waypoints ======
-function features.ToggleArrowsWaypoints(on)
-    if on and not features._conns.wpArrows then
-        local t=0
-        features._arrowObjs = features._arrowObjs or {} -- name -> {tri/line}
-        features._conns.wpArrows = RunService.RenderStepped:Connect(function(dt)
-            t=t+dt
-            local col = rainbowColor(t)
-            local vp = Camera.ViewportSize
-            local center = Vector2.new(vp.X/2, vp.Y/2)
-            local margin = 22
-
-            for name,info in pairs(features._waypoints) do
-                -- world pos
-                local pos
-                if info.part and info.part.Parent then
-                    pos = info.part.Position
-                elseif info.pos then
-                    pos = info.pos
-                end
-                if not pos then
-                    if features._arrowObjs and features._arrowObjs[name] then
-                        local a = features._arrowObjs[name]
-                        if a.tri then a.tri.Visible=false end
-                        if a.line then a.line.Visible=false end
-                    end
-                    goto continue
-                end
-
-                local v, on, z = Camera:WorldToViewportPoint(pos)
-                local onScreen = on and z>0 and v.X>0 and v.X<vp.X and v.Y>0 and v.Y<vp.Y
-                local store = features._arrowObjs[name]
-                if not store then
-                    -- Triangle tercih; yoksa line
-                    local tri = tryDrawing("Triangle")
-                    if tri then
-                        tri.Filled = true
-                        store = { tri = tri, isTri = true }
-                    else
-                        local ln = tryDrawing("Line")
-                        if ln then ln.Thickness=3 end
-                        store = { line = ln, isTri = false }
-                    end
-                    features._arrowObjs[name] = store
-                end
-
-                if not onScreen then
-                    local dir = (Vector2.new(v.X, v.Y) - center)
-                    if dir.Magnitude < 1e-3 then dir = Vector2.new(1,0) else dir = dir.Unit end
-                    local sx = (vp.X/2 - margin)/math.abs(dir.X)
-                    local sy = (vp.Y/2 - margin)/math.abs(dir.Y)
-                    local scale = math.min(sx, sy)
-                    local pos2D = center + dir*scale
-
-                    if store.isTri and store.tri then
-                        local base = pos2D - dir*14
-                        local perp = Vector2.new(-dir.Y, dir.X)
-                        local p1 = pos2D
-                        local p2 = base + perp*7
-                        local p3 = base - perp*7
-                        store.tri.PointA = p1
-                        store.tri.PointB = p2
-                        store.tri.PointC = p3
-                        store.tri.Color = col
-                        store.tri.Visible = true
-                    elseif store.line then
-                        store.line.From = pos2D
-                        store.line.To   = pos2D - dir*14
-                        store.line.Color = col
-                        store.line.Visible = true
-                    end
-                else
-                    if store.isTri and store.tri then store.tri.Visible=false end
-                    if store.line then store.line.Visible=false end
-                end
-                ::continue::
-            end
-        end)
-    elseif not on and features._conns.wpArrows then
-        features._conns.wpArrows:Disconnect()
-        features._conns.wpArrows = nil
-        if features._arrowObjs then
-            for _,a in pairs(features._arrowObjs) do
-                if a.isTri and a.tri then a.tri.Visible=false end
-                if a.line then a.line.Visible=false end
-            end
+            if o.hpGui then o.hpGui.bb.Parent=nil end
         end
     end
 end
 
--- ====== Corner Box for Selected ======
+-- ====== Corner Box (Selected) ======
 function features.ToggleCornerOnSelected(on)
     if on and not features._conns.cornerSel then
-        features._cornerLines = features._cornerLines or {} -- 8 çizgi
+        features._cornerLines = features._cornerLines or {}
         features._conns.cornerSel = RunService.RenderStepped:Connect(function()
             local obj = features._selected
             if not (obj and obj.Parent) then
                 for _,ln in ipairs(features._cornerLines) do if ln then ln.Visible=false end end
                 return
             end
-            -- init lines
             if #features._cornerLines == 0 then
                 for i=1,8 do
                     local ln = tryDrawing("Line")
@@ -497,13 +374,8 @@ function features.ToggleCornerOnSelected(on)
                     features._cornerLines[i] = ln
                 end
             end
-            -- 2D AABB
             local ok, cf, size = pcall(function() return obj:GetBoundingBox() end)
-            if not ok then
-                for _,ln in ipairs(features._cornerLines) do if ln then ln.Visible=false end end
-                return
-            end
-            local minV, maxV
+            if not ok then return end
             local minX, minY, maxX, maxY = 1e9,1e9,-1e9,-1e9
             for dx=-0.5,0.5,1 do
                 for dy=-0.5,0.5,1 do
@@ -519,11 +391,8 @@ function features.ToggleCornerOnSelected(on)
                     end
                 end
             end
-            if maxX <= minX or maxY <= minY then
-                for _,ln in ipairs(features._cornerLines) do if ln then ln.Visible=false end end
-                return
-            end
-            minV, maxV = Vector2.new(minX,minY), Vector2.new(maxX,maxY)
+            if maxX <= minX or maxY <= minY then return end
+            local minV, maxV = Vector2.new(minX,minY), Vector2.new(maxX,maxY)
             local w = maxV.X - minV.X
             local h = maxV.Y - minV.Y
             local len = math.max(6, math.min(16, math.floor(math.min(w,h)/4)))
@@ -531,13 +400,10 @@ function features.ToggleCornerOnSelected(on)
             local tr = Vector2.new(maxV.X, minV.Y)
             local bl = Vector2.new(minV.X, maxV.Y)
             local br = Vector2.new(maxV.X, maxV.Y)
-            local col = Color3.fromRGB(0,255,255) -- 🌈 RGB sabit
-
+            local col = Color3.fromRGB(0,255,255)
             local L = features._cornerLines
             local function seg(i,a,b)
-                if L[i] then
-                    L[i].From=a; L[i].To=b; L[i].Color=col; L[i].Visible=true
-                end
+                if L[i] then L[i].From=a; L[i].To=b; L[i].Color=col; L[i].Visible=true end
             end
             seg(1, tl, tl + Vector2.new(len,0))
             seg(2, tl, tl + Vector2.new(0,len))
@@ -555,7 +421,7 @@ function features.ToggleCornerOnSelected(on)
     end
 end
 
--- ====== Stripes for Selected (RGB Beam) ======
+-- ====== Stripes (Selected) ======
 function features.ToggleStripesOnSelected(on)
     if on and not features._conns.stripesSel then
         features._stripe = features._stripe or { atts={}, beams={} }
@@ -566,16 +432,9 @@ function features.ToggleStripesOnSelected(on)
                 return
             end
             local hrp = (obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart")) or (obj:IsA("BasePart") and obj) or nil
-            if not hrp then
-                for _,b in pairs(features._stripe.beams) do if b then b.Enabled=false end end
-                return
-            end
-            local ok, size = pcall(function()
-                local _, s = obj:GetBoundingBox()
-                return s
-            end)
+            if not hrp then return end
+            local ok, size = pcall(function() local _, s = obj:GetBoundingBox(); return s end)
             if not ok then return end
-
             local A = features._stripe.atts
             local B = features._stripe.beams
             local function needAtt(n) if not A[n] then A[n]=Instance.new("Attachment"); A[n].Name="MYLF_"..n; A[n].Parent=hrp end return A[n] end
@@ -585,7 +444,6 @@ function features.ToggleStripesOnSelected(on)
             local right  = needAtt("Right");  right.CFrame  = CFrame.new( size.X/2, 0, 0)
             local front  = needAtt("Front");  front.CFrame  = CFrame.new(0, 0, -size.Z/2)
             local back   = needAtt("Back");   back.CFrame   = CFrame.new(0, 0,  size.Z/2)
-
             local function needBeam(i,a0,a1)
                 if not B[i] then
                     local beam = Instance.new("Beam")
@@ -600,7 +458,6 @@ function features.ToggleStripesOnSelected(on)
                 B[i].Enabled = true
                 return B[i]
             end
-
             local t = tick()
             local col = rainbowColor(t)
             needBeam(1, top, bottom).Color  = ColorSequence.new(col)
@@ -615,8 +472,6 @@ function features.ToggleStripesOnSelected(on)
         end
     end
 end
-
-
 
 
 ----------------------------------------------------------------
