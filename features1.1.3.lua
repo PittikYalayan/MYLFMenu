@@ -26,9 +26,9 @@ features.AimMaxAngleDeg  = 360      -- AimUseFOV=true iken
 features.AimMaxDistance  = 1800     -- ~500 metre (1 stud ≈ 0.28 m → 500m ≈ 1800 stud)
 
 features.TriggerOnAim    = false     -- hedefteyken otomatik ateş
-features.TriggerRate     = 0.12     -- tetikler arası min süre
-features._lastTrigger    = 0 
-features._aura = nil
+features.TriggerRate     = 1     -- tetikler arası min süre
+features._lastTrigger    = 1 
+features._aura = 100
 features.DamageAmount = 900
 local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
 
