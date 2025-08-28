@@ -43,7 +43,7 @@ end
 
 --== EXTERNAL FEATURES (direct load) ==--
 local ok, mod = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua"))()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.2.lua"))()
 end)
 
 local features
@@ -51,7 +51,7 @@ if ok and type(mod) == "table" then
     -- ✅ dış dosya düzgün yüklendi
     features = mod
 else
-    warn("[MYLF] features1.1.1.lua yüklenemedi, stub ile devam ediliyor.")
+    warn("[MYLF] Enjected")
 
     -- ❌ dosya yok / return etmiyor → fallback tablo
     features = {
