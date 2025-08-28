@@ -506,7 +506,7 @@ do
 
     -- (İlerde: TeamCheck, Distance, Tracer, Healthbar vs fonksiyonların varsa buraya aynı pattern ile bağla)
 Controls.Toggle(left, "Enable ESP", false, function(on)
-        if features.ToggleESP then features.ToggleESP(on) end
+        if features.ToggleESPBox then features.ToggleESPBox(on) end
     end)
 
     Controls.Toggle(right, "🎯 Enemy Big Hitbox", false, function(on)
