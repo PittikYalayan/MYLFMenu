@@ -44,9 +44,67 @@ end
 --== EXTERNAL FEATURES (direct load) ==--
 --== EXTERNAL FEATURES (direct) ==--
 --== EXTERNAL FEATURES (direct-clean) ==--
-local URL = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
-local SRC = game:HttpGet(URL)                 -- doğrudan çek
-local fn  = loadstring(SRC)                   -- derle
+--== EXTERNAL FEATURES (fail-safe 9.9 loader) ==--
+-- Menü kırılmasın diye önce stub fonksiyonları hazırla:
+local REQUIRED = {
+  -- AIM
+  "ToggleAimbot","ToggleSilentAim","ToggleMagicBullet","ToggleHeadshotRedirect",
+  "ToggleFireRate","ToggleKillAura",
+  -- ESP
+  "ToggleESP","ToggleEnemyBigHitbox",
+  -- PLAYER / MOVEMENT
+  "ToggleSpeed","ToggleFly","ToggleInfiniteJump","ToggleGodmode",
+  "ToggleHardInvisible","ToggleNoclip","ToggleTeleport",
+  "ToggleAutoBehind","ToggleAutoTeleportToEnemy",
+  -- PARAMS
+  "SetAimFOV","SetTeleportOffset",
+}
+local function noopSwitch(_) return function(_) end end
+local function noopSetter(_) return function(...) end end
+
+local features = { _aimFOV = 60, _tpX=0, _tpY=0, _tpZ=25 }
+for _,fname in ipairs(REQUIRED) do
+  features[fname] = (fname:sub(1,3)=="Set") and noopSetter(fname) or noopSwitch(fname)
+end
+
+-- 9.9'u dene; hata MENÜYÜ DÜŞÜRMEZ (sadece warn)
+do
+  local URL = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
+
+  -- 1) İndir
+  local okGet, SRC = pcall(function() return game:HttpGet(URL) end)
+  if not okGet or type(SRC)~="string" or #SRC==0 then
+    warn("[MYLF] features9.9.lua indirilemedi; stub ile devam.")
+  else
+    -- 2) Derle
+    local okLoad, fn = pcall(loadstring, SRC)
+    if not okLoad or type(fn)~="function" then
+      warn("[MYLF] features9.9.lua derleme hatası; stub ile devam.")
+    else
+      -- 3) Çalıştır (return ederse al; etmezse globalden dene)
+      local okRun, r1, r2 = pcall(fn)
+      if not okRun then
+        warn("[MYLF] features9.9.lua çalıştırma hatası; stub ile devam.")
+      else
+        local mod = r1 or r2
+                    or rawget(_G,"MYLF_features")
+                    or rawget(_G,"features")
+                    or rawget(_G,"M")
+                    or (getgenv and getgenv().MYLF_features)
+        if type(mod)=="table" then
+          -- mod’daki fonksiyon/alanlarla stub’ı override et
+          for k,v in pairs(mod) do features[k]=v end
+        else
+          warn("[MYLF] 9.9 yüklendi ama tablo export etmedi; stub ile devam.")
+        end
+      end
+    end
+  end
+end
+
+_G.MYLF_features = features -- opsiyonel cache
+-- (Bu bloktan sonra kodun her yerindeki 'features.ToggleX' çağrıları KESİNLİKLE bir fonksiyon bulur.)
+
 
 
 -- Çalıştır → eğer return ediyorsa al, etmiyorsa globalden yakala
