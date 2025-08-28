@@ -107,18 +107,6 @@ _G.MYLF_features = features -- opsiyonel cache
 
 
 
--- Çalıştır → eğer return ediyorsa al, etmiyorsa globalden yakala
-local r1, r2 = fn()
-local features = r1 or r2
-    or rawget(_G, "MYLF_features")
-    or rawget(_G, "features")
-    or rawget(_G, "M")
-    or (getgenv and getgenv().MYLF_features)
-
-assert(type(features) == "table",
-  "features9.9.lua tablo vermedi. Sonda `return M` ya da `_G.MYLF_features = {...}` olmalı.")
-
-_G.MYLF_features = features  -- opsiyonel: global cache
 
 
 --// Theme Engine (aynen korundu)
