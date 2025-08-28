@@ -1,7 +1,7 @@
 -- ⚡ MYLF | Hub ⚡ — FEATURES (Inspector YOK, Magic Bullet entegre, tek hook)
 -- Aimbot: açı tabanlı (mesafeden bağımsız hedef seçimi) + opsiyonel auto-fire
 -- ESP: join/leave/respawn canlı, NPC destekli
--- Noclip: restore’lu
+-- Noclip: restore’luTransparency
 -- Fly: LCtrl aşağı
 -- Magic Bullet (Fallback): Tool içi remotelere whitelist + tek __namecall hook
 -- Silent Aim ile çatışmaz: öncelik Silent Aim > Magic Bullet
@@ -13,8 +13,7 @@ local Camera    = Workspace.CurrentCamera
 local Players    = game:GetService("Players")
 local Player     = Players.LocalPlayer
 
-local features = {}
-
+local features = {
 ----------------------------------------------------------------
 -- AIMBOT CONFIG
 ----------------------------------------------------------------
@@ -1773,6 +1772,10 @@ function features.ToggleMyTinyHitbox(on)
         print("⚡ My Tiny Hitbox: Pasif")
     end
 end
+
+    
+}
+
 
 
 
