@@ -13,7 +13,7 @@ local Camera    = Workspace.CurrentCamera
 local Players    = game:GetService("Players")
 local Player     = Players.LocalPlayer
 
-local features = {
+local features = {}
 ----------------------------------------------------------------
 -- AIMBOT CONFIG
 ----------------------------------------------------------------
@@ -1773,7 +1773,7 @@ function features.ToggleMyTinyHitbox(on)
 end
 
     
-}
+
 
 
 
