@@ -506,7 +506,43 @@ do
 
     -- (İlerde: TeamCheck, Distance, Tracer, Healthbar vs fonksiyonların varsa buraya aynı pattern ile bağla)
 Controls.Toggle(left, "Enable ESP", false, function(on)
-        if features.ToggleESPBox then features.ToggleESPBox(on) end
+        if features.ToggleESP then features.ToggleESP(on) end
+    end)
+
+    Controls.Toggle(left, "Name ESP", false, function(on)
+        if features.ToggleNameESP then features.ToggleNameESP(on) end
+    end)
+
+    Controls.Toggle(left, "Box ESP", false, function(on)
+        if features.ToggleBoxESP then features.ToggleBoxESP(on) end
+    end)
+
+    Controls.Toggle(left, "Tracer ESP", false, function(on)
+        if features.ToggleTracerESP then features.ToggleTracerESP(on) end
+    end)
+
+    Controls.Toggle(left, "Health Bar", false, function(on)
+        if features.ToggleHealthESP then features.ToggleHealthESP(on) end
+    end)
+
+    Controls.Toggle(left, "Distance ESP", false, function(on)
+        if features.ToggleDistanceESP then features.ToggleDistanceESP(on) end
+    end)
+
+    Controls.Toggle(right, "Skeleton ESP", false, function(on)
+        if features.ToggleSkeletonESP then features.ToggleSkeletonESP(on) end
+    end)
+
+    Controls.Toggle(right, "Glow ESP", false, function(on)
+        if features.ToggleGlowESP then features.ToggleGlowESP(on) end
+    end)
+
+    Controls.Toggle(right, "Corner Box", false, function(on)
+        if features.ToggleCornerESP then features.ToggleCornerESP(on) end
+    end)
+
+    Controls.Toggle(right, "Offscreen Arrows", false, function(on)
+        if features.ToggleOffscreenESP then features.ToggleOffscreenESP(on) end
     end)
 
     Controls.Toggle(right, "🎯 Enemy Big Hitbox", false, function(on)
