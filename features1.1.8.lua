@@ -77,7 +77,6 @@ end
 -- MYLF ESP SYSTEM (features1.1.7.lua)
 -- =====================================
 
-local features = {}
 
 features._espEnabled = false
 features._espObjects = {}
@@ -409,7 +408,7 @@ function features.ToggleFriendIgnore(on) features._opt.friendIgnore=on; ensureOn
 
 function features.SetPerfMode(mode) features._perf=mode; print("[ESP] Perf ->",mode) end
 
-return features
+
 
 ----------------------------------------------------------------
 -- Hedef seçimi (kafaya kilit, gövde içinden geçerek de algılar)
