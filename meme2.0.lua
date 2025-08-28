@@ -50,8 +50,8 @@ end
 
 --== EXTERNAL FEATURES (direct load) ==--
 -- === FEATURES ===
-local features   = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.2.0.lua"))()
-local qfeatures   = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/ESP1.lua"))()
+local features   = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.2.1.lua"))()
+
 
 assert(type(features)=="table","[MYLF] features1.1.5.lua tablo döndürmedi, en sona 'return M' ekle!")
 
@@ -508,43 +508,43 @@ do
 
     -- (İlerde: TeamCheck, Distance, Tracer, Healthbar vs fonksiyonların varsa buraya aynı pattern ile bağla)
 Controls.Toggle(left, "Enable ESP", false, function(on)
-        if  qfeatures.ToggleESP then qfeatures.ToggleESP(on) end
+        if  features.ToggleESP then features.ToggleESP(on) end
     end)
 
     Controls.Toggle(left, "Name ESP", false, function(on)
-        if  qfeatures.ToggleNameESP then qfeatures.ToggleNameESP(on) end
+        if  features.ToggleNameESP then features.ToggleNameESP(on) end
     end)
 
     Controls.Toggle(left, "Box ESP", false, function(on)
-        if  qfeatures.ToggleBoxESP then qfeatures.ToggleBoxESP(on) end
+        if  features.ToggleBoxESP then features.ToggleBoxESP(on) end
     end)
 
     Controls.Toggle(left, "Tracer ESP", false, function(on)
-        if  qfeatures.ToggleTracerESP then qfeatures.ToggleTracerESP(on) end
+        if  features.ToggleTracerESP then features.ToggleTracerESP(on) end
     end)
 
     Controls.Toggle(left, "Health Bar", false, function(on)
-        if  qfeatures.ToggleHealthESP then qfeatures.ToggleHealthESP(on) end
+        if  features.ToggleHealthESP then features.ToggleHealthESP(on) end
     end)
 
     Controls.Toggle(left, "Distance ESP", false, function(on)
-        if  qfeatures.ToggleDistanceESP then qfeatures.ToggleDistanceESP(on) end
+        if  features.ToggleDistanceESP then features.ToggleDistanceESP(on) end
     end)
 
     Controls.Toggle(right, "Skeleton ESP", false, function(on)
-        if  qfeatures.ToggleSkeletonESP then qfeatures.ToggleSkeletonESP(on) end
+        if  features.ToggleSkeletonESP then features.ToggleSkeletonESP(on) end
     end)
 
     Controls.Toggle(right, "Glow ESP", false, function(on)
-        if  qfeatures.ToggleGlowESP then qfeatures.ToggleGlowESP(on) end
+        if  features.ToggleGlowESP then features.ToggleGlowESP(on) end
     end)
 
     Controls.Toggle(right, "Corner Box", false, function(on)
-        if  qfeatures.ToggleCornerESP then qfeatures.ToggleCornerESP(on) end
+        if  features.ToggleCornerESP then features.ToggleCornerESP(on) end
     end)
 
     Controls.Toggle(right, "Offscreen Arrows", false, function(on)
-        if  qfeatures.ToggleOffscreenESP then qfeatures.ToggleOffscreenESP(on) end
+        if  features.ToggleOffscreenESP then features.ToggleOffscreenESP(on) end
     end)
 
     Controls.Toggle(right, "🎯 Enemy Big Hitbox", false, function(on)
