@@ -110,11 +110,11 @@ end
 
 -- 2) Çoklu URL dene + cache-bust
 do
-  local base = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
+  local base = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua"
   local urls = {
     base,
     base .. "?cb=" .. tostring(os.clock()),
-    "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/refs/heads/main/features9.9.lua",
+    "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/refs/heads/main/features1.1.1.lua",
   }
   for _,u in ipairs(urls) do
     local mod, why = try_url(u)
