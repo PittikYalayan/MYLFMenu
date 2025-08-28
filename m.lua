@@ -43,7 +43,7 @@ end
 
 --== EXTERNAL FEATURES (direct load) ==--
 local ok, mod = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.2.lua"))()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.3.lua"))()
 end)
 
 local features
