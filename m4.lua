@@ -41,66 +41,8 @@ local function findAnyBasePart(obj)
     return nil
 end
 
---== EXTERNAL FEATURES (safe loader) ==--
-local features = nil
-local function try(fn, ...) if type(fn)=="function" then local ok,err=pcall(fn, ...); if not ok then warn("[features] "..tostring(err)) end end end
-do
-    local ok, mod = pcall(function()
-        return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"))()
-    end)
-    if ok and type(mod) == "table" then
-        features = mod
-        warn("[MYLF] features9.8.lua loaded.")
-    else
-        warn("[MYLF] features9.8.lua FAILED: "..tostring(mod))
-        -- Fallback: features stub (no-op) — toggle'ları bozmadan loglar
-features = {
-  _aimFOV = 60,
-  _tpX = 0, _tpY = 0, _tpZ = 25,
-}
-
-local function flip(name, on)
-  print(("[MYLF][stub] %s -> %s"):format(name, on and "ON" or "OFF"))
-  features["__" .. name] = on and true or false
-end
-
--- AIM
-function features.ToggleAimbot(on)           flip("Aimbot", on) end
-function features.ToggleSilentAim(on)        flip("SilentAim", on) end
-function features.ToggleMagicBullet(on)      flip("MagicBullet", on) end
-function features.ToggleHeadshotRedirect(on) flip("HeadshotRedirect", on) end
-function features.ToggleFireRate(on)         flip("FireRate", on) end
-function features.ToggleKillAura(on)         flip("KillAura", on) end
-
--- ESP
-function features.ToggleESP(on)              flip("ESP", on) end
-function features.ToggleEnemyBigHitbox(on)   flip("EnemyBigHitbox", on) end
-
--- PLAYER / MOVEMENT
-function features.ToggleSpeed(on)            flip("Speed", on) end
-function features.ToggleFly(on)              flip("Fly", on) end
-function features.ToggleInfiniteJump(on)     flip("InfiniteJump", on) end
-function features.ToggleGodmode(on)          flip("Godmode", on) end
-function features.ToggleHardInvisible(on)    flip("HardInvisible", on) end
-function features.ToggleNoclip(on)           flip("Noclip", on) end
-function features.ToggleTeleport(on)         flip("TeleportKey", on) end
-function features.ToggleAutoBehind(on)       flip("AutoBehind", on) end
-function features.ToggleAutoTeleportToEnemy(on) flip("AutoTeleportToEnemy", on) end
-
--- PARAMETRE SETTER’LARI (UI slider’ları buraya yazıyor)
-function features.SetAimFOV(v)
-  features._aimFOV = tonumber(v) or features._aimFOV
-  print("[MYLF][stub] AimFOV =>", features._aimFOV)
-end
-
-function features.SetTeleportOffset(x, y, z)
-  features._tpX, features._tpY, features._tpZ = tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 25
-  print(("[MYLF][stub] TP Offset => (%.1f, %.1f, %.1f)"):format(features._tpX, features._tpY, features._tpZ))
-end
- -- boş da olsa tablo
-    end
-end
-
+--== EXTERNAL FEATURES (direct load) ==--
+local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"))()
 --// Theme Engine (aynen korundu)
 local Themes = {
     Dark     ={Bg=Color3.fromRGB(20,20,26),   Panel=Color3.fromRGB(28,28,36),   Accent=Color3.fromRGB(120,115,245), AccentSoft=Color3.fromRGB(95,90,210),
