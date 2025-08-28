@@ -43,16 +43,25 @@ end
 
 --== EXTERNAL FEATURES (direct load) ==--
 --== EXTERNAL FEATURES (direct) ==--
-do
-  local URL = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
-  local SRC = game:HttpGet(URL)
-  -- force-return injection: orijinal dosya return etmese bile M/features/_G/getgenv üstünden tabloyu döndür.
-  local WRAPPED = SRC .. "\n;return (M or features or _G.MYLF_features or (getgenv and getgenv().MYLF_features))"
-  local LOADER = loadstring(WRAPPED)
-  features = LOADER()
-  assert(type(features) == "table", "features9.9.lua tablo döndürmedi (M/features/_G.MYLF_features bekleniyordu).")
-  _G.MYLF_features = features
-end
+--== EXTERNAL FEATURES (direct-clean) ==--
+local URL = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
+local SRC = game:HttpGet(URL)                 -- doğrudan çek
+local fn  = loadstring(SRC)                   -- derle
+assert(type(fn) == "function", "features9.9.lua derlenemedi")
+
+-- Çalıştır → eğer return ediyorsa al, etmiyorsa globalden yakala
+local r1, r2 = fn()
+local features = r1 or r2
+    or rawget(_G, "MYLF_features")
+    or rawget(_G, "features")
+    or rawget(_G, "M")
+    or (getgenv and getgenv().MYLF_features)
+
+assert(type(features) == "table",
+  "features9.9.lua tablo vermedi. Sonda `return M` ya da `_G.MYLF_features = {...}` olmalı.")
+
+_G.MYLF_features = features  -- opsiyonel: global cache
+
 
 --// Theme Engine (aynen korundu)
 local Themes = {
