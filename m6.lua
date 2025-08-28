@@ -42,9 +42,18 @@ local function findAnyBasePart(obj)
 end
 
 --== EXTERNAL FEATURES (direct load) ==--
-local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"))()
-features = features or M or _G.MYLF_features or getgenv().MYLF_features
-if type(features) ~= "table" then error("features9.9.lua tablo döndürmedi; son satıra `return M` ekle.") end
+--== EXTERNAL FEATURES (direct) ==--
+do
+  local URL = "https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features9.9.lua"
+  local SRC = game:HttpGet(URL)
+  -- force-return injection: orijinal dosya return etmese bile M/features/_G/getgenv üstünden tabloyu döndür.
+  local WRAPPED = SRC .. "\n;return (M or features or _G.MYLF_features or (getgenv and getgenv().MYLF_features))"
+  local LOADER = loadstring(WRAPPED)
+  features = LOADER()
+  assert(type(features) == "table", "features9.9.lua tablo döndürmedi (M/features/_G.MYLF_features bekleniyordu).")
+  _G.MYLF_features = features
+end
+
 --// Theme Engine (aynen korundu)
 local Themes = {
     Dark     ={Bg=Color3.fromRGB(20,20,26),   Panel=Color3.fromRGB(28,28,36),   Accent=Color3.fromRGB(120,115,245), AccentSoft=Color3.fromRGB(95,90,210),
