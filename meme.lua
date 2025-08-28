@@ -9,6 +9,13 @@
 ]]
 
 --// Services
+local RunService = game:GetService("RunService")
+local UIS        = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Camera    = Workspace.CurrentCamera
+local Players    = game:GetService("Players")
+local Player     = Players.LocalPlayer
+
 local Players            = game:GetService("Players")
 local RunService         = game:GetService("RunService")
 local UserInputService   = game:GetService("UserInputService")
