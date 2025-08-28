@@ -49,79 +49,25 @@ local function findAnyBasePart(obj)
 end
 
 --== EXTERNAL FEATURES (direct load) ==--
-local ok, mod = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.5.lua"))()
-end)
+-- === FEATURES ===
+local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.5.lua"))()
+assert(type(features)=="table","[MYLF] features1.1.5.lua tablo döndürmedi, en sona 'return M' ekle!")
 
-local features
-if ok and type(mod) == "table" then
-    -- ✅ dış dosya düzgün yüklendi
-    features = mod
-else
-    warn("[MYLF] Enjected")
+-- === Direct Feature Binder ===
+local function bindFeatureToggle(group, key, label, fnName)
+    local opt = group:AddToggle(key, { Text = label, Default = false })
+    opt:OnChanged(function(on)
+        local fn = features[fnName]
+        if type(fn) == "function" then
+            fn(on)  -- 🔥 direkt çağır
+            print("[MYLF] "..fnName.." çağırıldı -> "..tostring(on))
+        else
+            warn("[MYLF] "..fnName.." bulunamadı (toggle: "..label..")")
+        end
+    end)
+    return opt
+end
 
-    -- ❌ dosya yok / return etmiyor → fallback tablo
-    features = {
-   _aimFOV = 60,
-   _tpX = 0,
-   _tpY = 0,
-   _tpZ = 25,
-}
-
-    local function onoff(v) return v and "ON ✅" or "OFF ❌" end
-    local function setState(name, v)
-        features.__state[name] = v and true or false
-        print(("[MYLF] %s -> %s"):format(name, onoff(v)))
-    end
-    local function logSet(name, ...)
-        local args = {...}
-        for i,x in ipairs(args) do args[i] = tostring(x) end
-        print(("[MYLF] %s => %s"):format(name, table.concat(args, ", ")))
-    end
-
-    -- === AIM ===
-    function features.ToggleAimbot(on)                setState("Aimbot", on) end
-    function features.ToggleSilentAim(on)             setState("SilentAim", on) end
-    function features.ToggleMagicBullet(on)           setState("MagicBullet", on) end
-    function features.ToggleHeadshotRedirect(on)      setState("HeadshotRedirect", on) end
-    function features.ToggleFireRate(on)              setState("FireRate", on) end
-    function features.ToggleKillAura(on)              setState("KillAura", on) end
-
-    -- === ESP ===
-    function features.ToggleESP(on)                   setState("ESP", on) end
-    function features.ToggleEnemyBigHitbox(on)        setState("EnemyBigHitbox", on) end
-
-    -- === PLAYER / MOVEMENT ===
-    function features.ToggleSpeed(on)                 setState("Speed", on) end
-    function features.ToggleFly(on)                   setState("Fly", on) end
-    function features.ToggleInfiniteJump(on)          setState("InfiniteJump", on) end
-    function features.ToggleGodmode(on)               setState("Godmode", on) end
-    function features.ToggleHardInvisible(on)         setState("HardInvisible", on) end
-    function features.ToggleNoclip(on)                setState("Noclip", on) end
-    function features.ToggleTeleport(on)              setState("TeleportKey", on) end
-    function features.ToggleAutoBehind(on)            setState("AutoBehind", on) end
-    function features.ToggleAutoTeleportToEnemy(on)   setState("AutoTeleportToEnemy", on) end
-
-    -- === PARAMETRELER ===
-    function features.SetAimFOV(v)
-      local nv = tonumber(v) or features._aimFOV
-      features._aimFOV = nv
-      logSet("SetAimFOV", nv)
-    end
-
-    function features.SetTeleportOffset(x, y, z)
-      features._tpX = tonumber(x) or 0
-      features._tpY = tonumber(y) or 0
-      features._tpZ = tonumber(z) or 25
-      logSet("SetTeleportOffset", features._tpX, features._tpY, features._tpZ)
-    end
-end  
--- (İstersen başka harmless ayarlar ekleyebilirsin: crosshair rengi, HUD görünürlük vs.)
-
--- Global cache (opsiyonel)
-_G.MYLF_features = features
--- Bu dosyada features ismine doğrudan erişiliyor:
-features = features
 
 
 --// Theme Engine (aynen korundu)
