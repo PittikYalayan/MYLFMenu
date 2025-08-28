@@ -43,7 +43,7 @@ end
 
 --== EXTERNAL FEATURES (direct load) ==--
 --== EXTERNAL FEATURES (fail-safe + sanitize 9.9) ==--
-local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua"))()
+local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.1.1.lua"))() return
 assert(type(features)=="table","features1.1.1.lua tablo döndürmedi; sonda `return M` ekleyin.")
 
 
