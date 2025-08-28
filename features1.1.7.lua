@@ -25,9 +25,9 @@ features.AimMaxAngleDeg  = 360      -- AimUseFOV=true iken
 features.AimMaxDistance  = 1800     -- ~500 metre (1 stud ≈ 0.28 m → 500m ≈ 1800 stud)
 
 features.TriggerOnAim    = false     -- hedefteyken otomatik ateş
-features.TriggerRate     = 1     -- tetikler arası min süre
-features._lastTrigger    = 1 
-features._aura = 100
+features.TriggerRate     = 0     -- tetikler arası min süre
+features._lastTrigger    = 0 
+features._aura = 1000
 features.DamageAmount = 900
 local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
 
@@ -640,7 +640,7 @@ function features._espStop()
 end
 
 -- ===== MASTER & ALT TOGGLES =====
-function features.ToggleESP(on)
+function features.ToggleESPBox(on)
   on = not not on
   if on == features._espEnabled then return end
   features._espEnabled = on
