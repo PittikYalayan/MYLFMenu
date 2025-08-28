@@ -463,7 +463,29 @@ do
         features._aimFOV = v
         try(features.SetAimFOV, v)
     end)
+     Controls.Toggle(left, "Enable Aimbot", false, function(on)
+        if features.ToggleAimbot then features.ToggleAimbot(on) end
+    end)
 
+    Controls.Toggle(left, "Silent Aim", false, function(on)
+        if features.ToggleSilentAim then features.ToggleSilentAim(on) end
+    end)
+
+    Controls.Toggle(left, "Magic Bullet (Fallback)", false, function(on)
+        if features.ToggleMagicBullet then features.ToggleMagicBullet(on) end
+    end)
+
+    Controls.Toggle(left, "Force Headshot", false, function(on)
+        if features.ToggleHeadshotRedirect then features.ToggleHeadshotRedirect(on) end
+    end)
+
+    Controls.Toggle(left, "Hard Fire Rate", false, function(on)
+        if features.ToggleFireRate then features.ToggleFireRate(on) end
+    end)
+
+    Controls.Toggle(left, "☠️ Kill Aura", false, function(on)
+        if features.ToggleKillAura then features.ToggleKillAura(on) end
+    end)
     features._tpX = tonumber(features._tpX) or 0
     features._tpY = tonumber(features._tpY) or 0
     features._tpZ = tonumber(features._tpZ) or 25
@@ -489,6 +511,14 @@ do
     bindToggle(gRight,"enemyBigHB", "🎯 Enemy Big Hitbox",   features.ToggleEnemyBigHitbox)
 
     -- (İlerde: TeamCheck, Distance, Tracer, Healthbar vs fonksiyonların varsa buraya aynı pattern ile bağla)
+Controls.Toggle(left, "Enable ESP", false, function(on)
+        if features.ToggleESP then features.ToggleESP(on) end
+    end)
+
+    Controls.Toggle(right, "🎯 Enemy Big Hitbox", false, function(on)
+        if features.ToggleEnemyBigHitbox then features.ToggleEnemyBigHitbox(on) end
+    end)
+
 end
 
 --== PLAYER ==--
@@ -509,6 +539,41 @@ do
     bindToggle(g, "autoTP",    "⚡ Auto Farm Enemy",     features.ToggleAutoTeleportToEnemy)
 
     -- Kamera/FOV bu sayfadan da erişilebilir istersen (Visuals'ta da var)
+Controls.Toggle(left, "⚡ Speed Boost (50)", false, function(on)
+        if features.ToggleSpeed then features.ToggleSpeed(on) end
+    end)
+
+    Controls.Toggle(left, "🕊️ Fly (LCtrl down)", false, function(on)
+        if features.ToggleFly then features.ToggleFly(on) end
+    end)
+
+    Controls.Toggle(left, "Infinite Jump", false, function(on)
+        if features.ToggleInfiniteJump then features.ToggleInfiniteJump(on) end
+    end)
+
+    Controls.Toggle(left, "💀 Godmode", false, function(on)
+        if features.ToggleGodmode then features.ToggleGodmode(on) end
+    end)
+
+    Controls.Toggle(left, "👻 Hard Invisible", false, function(on)
+        if features.ToggleHardInvisible then features.ToggleHardInvisible(on) end
+    end)
+
+    Controls.Toggle(left, "NoClip", false, function(on)
+        if features.ToggleNoclip then features.ToggleNoclip(on) end
+    end)
+
+    Controls.Toggle(left, "Teleport (T Key)", false, function(on)
+        if features.ToggleTeleport then features.ToggleTeleport(on) end
+    end)
+
+    Controls.Toggle(left, "⚡ Always Behind Enemy", false, function(on)
+        if features.ToggleAutoBehind then features.ToggleAutoBehind(on) end
+    end)
+
+    Controls.Toggle(left, "⚡ Auto Farm Enemy", false, function(on)
+        if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end
+    end)
     -- Waypoints
     local WayFolder = Instance.new("Folder"); WayFolder.Name = "MYLF_Waypoints_Local"; WayFolder.Parent = workspace
     local function createWaypoint(name, pos)
