@@ -8,6 +8,8 @@
 
 local RunService = game:GetService("RunService")
 local UIS        = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Camera    = Workspace.CurrentCamera
 local Players    = game:GetService("Players")
 local Player     = Players.LocalPlayer
 
@@ -25,7 +27,50 @@ features.AimMaxDistance  = 1800     -- ~500 metre (1 stud ≈ 0.28 m → 500m �
 
 features.TriggerOnAim    = false     -- hedefteyken otomatik ateş
 features.TriggerRate     = 0.12     -- tetikler arası min süre
-features._lastTrigger    = 0
+features._lastTrigger    = 0features._aura = nil
+features.DamageAmount = 900
+local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
+
+features._aura = nil
+
+local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
+
+function features.ToggleKillAura(on)
+    if on then
+        if features._aura then features._aura:Disconnect() end
+        features._aura = RunService.Heartbeat:Connect(function()
+            local myChar = Player.Character
+            local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            local myHum  = myChar and myChar:FindFirstChildOfClass("Humanoid")
+            local tool   = myChar and myChar:FindFirstChildOfClass("Tool")
+            if not (myChar and myHRP and myHum and myHum.Health > 0) then return end
+
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= Player and plr.Character then
+                    local enemyChar = plr.Character
+                    local enemyHRP  = enemyChar:FindFirstChild("HumanoidRootPart")
+                    local enemyHum  = enemyChar:FindFirstChildOfClass("Humanoid")
+                    if enemyHRP and enemyHum and enemyHum.Health > 0 then
+                        local dist = (enemyHRP.Position - myHRP.Position).Magnitude
+                        if dist < 20 then
+                            if tool then pcall(function() tool:Activate() end) end
+                            if DamageRemote then
+                                pcall(function()
+                                    DamageRemote:FireServer({Target = enemyChar, Damage = features.DamageAmount})
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+        print("KillAura ON ✅")
+    else
+        if features._aura then features._aura:Disconnect(); features._aura=nil end
+        print("KillAura OFF ❌")
+    end
+end
+
 
 
 
@@ -1629,7 +1674,7 @@ function features.ToggleTinyHitbox(on)
                         local part = plr.Character:FindFirstChild(partName)
                         if part and part:IsA("BasePart") then
                             part.Size = tinySize
-                            part.Transparency = 0.95
+                            part.Transparency = 1
                             part.CanCollide = false
                         end
                     end
@@ -1667,7 +1712,7 @@ function features.ToggleEnemyBigHitbox(on)
                         if part and part:IsA("BasePart") then
                             part.Size = bigSize
                             part.CanCollide = false
-                            part.Transparency = 100
+                            part.Transparency = 1
                         end
                     end
                 end
@@ -1706,9 +1751,9 @@ end
 ----------------------------------------------------------------
 features._myTinyHB_on = false
 
+-- Toggle (sade ve düzgün kapanan sürüm)
 function features.ToggleMyTinyHitbox(on)
     features._myTinyHB_on = on
-
     local char = Player.Character
     if char and on then
         for _, partName in ipairs({
@@ -1717,53 +1762,17 @@ function features.ToggleMyTinyHitbox(on)
         }) do
             local part = char:FindFirstChild(partName)
             if part and part:IsA("BasePart") then
-                part.Size = Vector3.new(0.001,0.001,0.001) -- neredeyse yok
+                part.Size = Vector3.new(0.001,0.001,0.001)
                 part.CanCollide = false
                 part.Massless = true
-                part.Transparency = part.Transparency -- görünürlük korunur
             end
         end
-        print("⚡ My Tiny Hitbox: Aktif (sadece senin karakterin)")
-    elseif char and not on then
-        -- resetleme (istenirse eski boyutlar restore edilir)
+        print("⚡ My Tiny Hitbox: Aktif (sadece sen)")
+    else
         print("⚡ My Tiny Hitbox: Pasif")
     end
 end
 
-----------------------------------------------------------------
--- Hook: Anti-Cheat Hitbox Restore Patch (Sadece LocalPlayer)
-----------------------------------------------------------------
-if not features._myHBHooked then
-    local mt = getrawmetatable(game)
-    local oldNewIndex = mt.__newindex
-    setreadonly(mt,false)
-
-    mt.__newindex = newcclosure(function(self, key, val)
-        if features._myTinyHB_on and tostring(key):lower()=="size" and self:IsA("BasePart") then
-            local char = self.Parent
-            local plr  = Players:GetPlayerFromCharacter(char)
-            if plr and plr == Player then
-                -- Anti-cheat benim hitbox’u büyütmeye çalışırsa blockla
-                return
-            end
-        end
-        return oldNewIndex(self,key,val)
-    end)
-
-    setreadonly(mt,true)
-    features._myHBHooked = true
-end
-
-
-        print("⚡ My Tiny Hitbox: ON ✅")
-    else
-        if features._myTinyHBConn then 
-            features._myTinyHBConn:Disconnect()
-            features._myTinyHBConn=nil 
-        end
-        print("⚡ My Tiny Hitbox: OFF ❌")
-    end
-end
 
 
 
