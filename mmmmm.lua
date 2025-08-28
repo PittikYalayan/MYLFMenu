@@ -107,7 +107,7 @@ function features.SetTeleportOffset(x, y, z)
   features._tpZ = tonumber(z) or 25
   logSet("SetTeleportOffset", features._tpX, features._tpY, features._tpZ)
 end
-
+end
 -- (İstersen başka harmless ayarlar ekleyebilirsin: crosshair rengi, HUD görünürlük vs.)
 
 -- Global cache (opsiyonel)
