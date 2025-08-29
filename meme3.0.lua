@@ -569,18 +569,32 @@ Controls.Toggle(left, "⚡ Speed Boost (50)", false, function(on)
         if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end
     end)
 
+    features._flySpeed = features._flySpeed or 60
+    features._walkSpeed = features._walkSpeed or 16
     features._tpX = tonumber(features._tpX) or 0
     features._tpY = tonumber(features._tpY) or 0
     features._tpZ = tonumber(features._tpZ) or 25
     gRight:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX, Rounding=0})
     gRight:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY, Rounding=0})
     gRight:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ, Rounding=0})
+    gRight:AddSlider("flySpeed", { Text = "Fly Speed", Min = 20,  Max = 200,  Default = features._flySpeed, Rounding = 0})
+    gRight:AddSlider("walkSpeed", {Text = "Walk Speed", Min = 1,Max = 200,Default = features._walkSpeed,Rounding = 0})
     Options.tpX:OnChanged(function(val) features._tpX=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
     Options.tpY:OnChanged(function(val) features._tpY=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
     Options.tpZ:OnChanged(function(val) features._tpZ=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
-    Controls.Slider(right, "Speed Value", 1, 200, 50, function(val) if features.SetWalkSpeed then features.SetWalkSpeed(val) end end)
-    Controls.Slider(right, "Fly Speed", 1, 200, 60, function(val) if features.SetFlySpeed then features.SetFlySpeed(val) end end)
-    
+    Options.walkSpeed:OnChanged(function(val) features._walkSpeed = val if features.SetWalkSpeed then try(features.SetWalkSpeed, val) end end)
+    Options.flySpeed:OnChanged(function(val) features._flySpeed = val if features.SetFlySpeed then try(features.SetFlySpeed, val) end end)
+    -- Varsayılan
+
+
+
+
+
+
+
+   
+
+
     -- Waypoints
     local WayFolder = Instance.new("Folder"); WayFolder.Name = "MYLF_Waypoints_Local"; WayFolder.Parent = workspace
     local function createWaypoint(name, pos)
