@@ -652,58 +652,22 @@ end
 ----------------------------------------------------------------
 -- Hard Hook Invisible (Multi-Hook)
 ----------------------------------------------------------------
-features._invisHooked = false
-features.Invisible    = false
 
-local invisPatterns = { "invis", "vanish", "cloak", "hide" }
-
-local function InvisMatch(name)
-    name = tostring(name):lower()
-    for _, pat in ipairs(invisPatterns) do
-        if string.find(name, pat) then
-            return true
-        end
-    end
-    return false
-end
-
-local function EnsureInvisHook()
-    if features._invisHooked then return end
-    features._invisHooked = true
-
-    local old
-    old = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
-        local args   = { ... }
-
-        if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
-        and (method == "FireServer" or method == "InvokeServer") then
-            if features.Invisible and InvisMatch(self.Name) then
-                -- Burada server'a her zaman invis = true gönder
-                for i,v in ipairs(args) do
-                    if typeof(v) == "boolean" then
-                        args[i] = true
-                    elseif typeof(v) == "table" then
-                        for k,val in pairs(v) do
-                            if tostring(k):lower():find("invis") then
-                                v[k] = true
-                            end
-                        end
-                    end
-                end
-                return old(self, unpack(args))
-            end
-        end
-
-        return old(self, ...)
-    end)
-end
-
--- Toggle
 function features.ToggleHardInvisible(on)
-    features.Invisible = not not on
-    EnsureInvisHook()
-    print("Hard Invisible: " .. (on and "ON ✅" or "OFF ❌"))
+    if not InvisibleRemote then
+        warn("[MYLF] InvisibleRemote bulunamadı")
+        return
+    end
+
+    -- Server’a görünmezlik talebi gönder
+    InvisibleRemote:FireServer(on)
+
+    -- Debug
+    if on then
+        print("[MYLF] Hard Invisible: ON")
+    else
+        print("[MYLF] Hard Invisible: OFF")
+    end
 end
 
 
