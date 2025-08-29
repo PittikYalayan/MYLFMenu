@@ -1137,68 +1137,70 @@ function features.ToggleSkeleton(on)
         features._conns.skeleton = RunService.RenderStepped:Connect(function(dt)
             t+=dt
             local col = rainbowColor(t)
+
             for model,o in pairs(features._targets) do
                 local hum = model:FindFirstChildOfClass("Humanoid")
-                if hum and model.Parent then
-                    -- ilk defa skeleton yaratılıyorsa
-                    if not o.skeleton then
-                        o.skeleton = {}
-                        local joints
-                        if hum.RigType == Enum.HumanoidRigType.R6 then
-                            joints = {
-                                {"Head","Torso"},
-                                {"Torso","Left Arm"},{"Torso","Right Arm"},
-                                {"Torso","Left Leg"},{"Torso","Right Leg"},
-                            }
-                        else -- R15
-                            joints = {
-                                {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-                                {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-                                {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-                                {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-                                {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-                            }
-                        end
-                        for _,link in ipairs(joints) do
-                            local ln = tryDrawing("Line")
-                            if ln then
-                                ln.Thickness = 2
-                                ln.Visible = false
-                                table.insert(o.skeleton, {parts=link,line=ln})
-                            end
-                        end
+                if not hum then continue end
+
+                -- çizgiler yoksa oluştur
+                if not o.skeleton then
+                    o.skeleton = {}
+                    local joints
+                    if hum.RigType == Enum.HumanoidRigType.R6 then
+                        joints = {
+                            {"Head","Torso"},
+                            {"Torso","Left Arm"},{"Torso","Right Arm"},
+                            {"Torso","Left Leg"},{"Torso","Right Leg"},
+                        }
+                    else -- R15
+                        joints = {
+                            {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+                            {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+                            {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+                            {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+                            {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+                        }
                     end
-                    -- çizgileri güncelle
-                    for _,seg in ipairs(o.skeleton) do
-                        local p1 = model:FindFirstChild(seg.parts[1], true)
-                        local p2 = model:FindFirstChild(seg.parts[2], true)
-                        if p1 and p2 then
-                            local v1,on1 = Camera:WorldToViewportPoint(p1.Position)
-                            local v2,on2 = Camera:WorldToViewportPoint(p2.Position)
-                            if on1 and on2 then
-                                seg.line.Visible = true
-                                seg.line.From = Vector2.new(v1.X,v1.Y)
-                                seg.line.To   = Vector2.new(v2.X,v2.Y)
-                                seg.line.Color = col
-                            else
-                                seg.line.Visible=false
-                            end
+
+                    for _,link in ipairs(joints) do
+                        local ln = Drawing.new("Line")
+                        ln.Thickness = 2
+                        ln.Visible = false
+                        table.insert(o.skeleton, {parts=link, line=ln})
+                    end
+                end
+
+                -- update
+                for _,seg in ipairs(o.skeleton) do
+                    local p1 = model:FindFirstChild(seg.parts[1], true)
+                    local p2 = model:FindFirstChild(seg.parts[2], true)
+                    if p1 and p2 then
+                        local v1,on1 = Camera:WorldToViewportPoint(p1.Position)
+                        local v2,on2 = Camera:WorldToViewportPoint(p2.Position)
+                        if on1 and on2 then
+                            seg.line.Visible = true
+                            seg.line.From   = Vector2.new(v1.X,v1.Y)
+                            seg.line.To     = Vector2.new(v2.X,v2.Y)
+                            seg.line.Color  = col
                         else
-                            seg.line.Visible=false
+                            seg.line.Visible = false
                         end
+                    else
+                        seg.line.Visible = false
                     end
                 end
             end
         end)
     elseif not on and features._conns.skeleton then
         features._conns.skeleton:Disconnect()
-        features._conns.skeleton=nil
+        features._conns.skeleton = nil
         for _,o in pairs(features._targets) do
-            if o.skeleton then for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end end
+            if o.skeleton then
+                for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end
+            end
         end
     end
 end
-
 
 function features.ToggleBox(on)
     if on and not features._conns.box then
