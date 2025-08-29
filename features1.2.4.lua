@@ -1108,46 +1108,55 @@ function features.ToggleSkeleton(on)
             t += dt
             local col = rainbowColor(t)
             for model,o in pairs(features._targets) do
-                if not o.skeleton then
-                    o.skeleton = {}
-                    local hum = model:FindFirstChildOfClass("Humanoid")
-                    local joints
-                    if hum and hum.RigType == Enum.HumanoidRigType.R6 then
-                        joints = {
-                            {"Head","Torso"},
-                            {"Torso","Left Arm"},{"Torso","Right Arm"},
-                            {"Torso","Left Leg"},{"Torso","Right Leg"},
-                        }
-                    else
-                        joints = {
-                            {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-                            {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-                            {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-                            {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-                            {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-                        }
+                if model and model.Parent then
+                    -- ilk defa skeleton oluşturuluyorsa
+                    if not o.skeleton then
+                        o.skeleton = {}
+                        local hum = model:FindFirstChildOfClass("Humanoid")
+                        local joints
+                        if hum and hum.RigType == Enum.HumanoidRigType.R6 then
+                            joints = {
+                                {"Head","Torso"},
+                                {"Torso","Left Arm"},{"Torso","Right Arm"},
+                                {"Torso","Left Leg"},{"Torso","Right Leg"},
+                            }
+                        else
+                            joints = {
+                                {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+                                {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+                                {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+                                {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+                                {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+                            }
+                        end
+                        for _,link in ipairs(joints) do
+                            local ln = tryDrawing("Line")
+                            if ln then
+                                ln.Thickness = 2
+                                ln.Visible = false
+                                table.insert(o.skeleton,{parts=link,line=ln})
+                            end
+                        end
                     end
-                    for _,link in ipairs(joints) do
-                        local ln = tryDrawing("Line")
-                        ln.Thickness = 2
-                        ln.Color = col
-                        table.insert(o.skeleton,{parts=link,line=ln})
-                    end
-                end
-                for _,seg in ipairs(o.skeleton) do
-                    local p1 = model:FindFirstChild(seg.parts[1], true)
-                    local p2 = model:FindFirstChild(seg.parts[2], true)
-                    if p1 and p2 then
-                        local v1,on1 = Camera:WorldToViewportPoint(p1.Position)
-                        local v2,on2 = Camera:WorldToViewportPoint(p2.Position)
-                        if on1 and on2 then
-                            seg.line.Visible = true
-                            seg.line.From = Vector2.new(v1.X,v1.Y)
-                            seg.line.To   = Vector2.new(v2.X,v2.Y)
-                            seg.line.Color = col
-                        else seg.line.Visible=false end
-                    else
-                        seg.line.Visible=false
+
+                    -- çizgileri güncelle
+                    for _,seg in ipairs(o.skeleton) do
+                        local p1 = model:FindFirstChild(seg.parts[1], true)
+                        local p2 = model:FindFirstChild(seg.parts[2], true)
+                        if p1 and p2 then
+                            local v1,on1 = Camera:WorldToViewportPoint(p1.Position)
+                            local v2,on2 = Camera:WorldToViewportPoint(p2.Position)
+                            if on1 and on2 then
+                                seg.line.Visible = true
+                                seg.line.From = Vector2.new(v1.X,v1.Y)
+                                seg.line.To   = Vector2.new(v2.X,v2.Y)
+                                seg.line.Color = col
+                            else
+                                seg.line.Visible = false
+                            end
+                        else
+                            seg.line.Visible = false
+                        end
                     end
                 end
             end
@@ -1156,7 +1165,9 @@ function features.ToggleSkeleton(on)
         features._conns.skeleton:Disconnect()
         features._conns.skeleton=nil
         for _,o in pairs(features._targets) do
-            if o.skeleton then for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end end
+            if o.skeleton then
+                for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end
+            end
         end
     end
 end
@@ -1238,16 +1249,21 @@ function features.ToggleGlow(on)
             t+=dt
             local col = rainbowColor(t)
             for model,o in pairs(features._targets) do
-                if not o.hl then
-                    local hl = Instance.new("Highlight")
-                    hl.FillTransparency = 0.5
-                    hl.Parent = model
-                    o.hl = hl
-                end
-                if o.hl then
-                    o.hl.Enabled = true
-                    o.hl.FillColor = col
-                    o.hl.OutlineColor = col
+                -- ✅ Model kontrolü
+                if model and model.Parent then
+                    if not o.hl or not o.hl.Parent then
+                        -- highlight yoksa modeli direkt parent yap
+                        local hl = Instance.new("Highlight")
+                        hl.FillTransparency = 0.5
+                        hl.Parent = model
+                        o.hl = hl
+                    end
+                    -- ✅ renk güncelle
+                    if o.hl then
+                        o.hl.Enabled = true
+                        o.hl.FillColor = col
+                        o.hl.OutlineColor = col
+                    end
                 end
             end
         end)
