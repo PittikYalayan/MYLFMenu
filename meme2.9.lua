@@ -578,6 +578,8 @@ Controls.Toggle(left, "⚡ Speed Boost (50)", false, function(on)
     Options.tpX:OnChanged(function(val) features._tpX=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
     Options.tpY:OnChanged(function(val) features._tpY=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
     Options.tpZ:OnChanged(function(val) features._tpZ=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
+    Controls.Slider(right, "Speed Value", 1, 200, 50, function(val) if features.SetWalkSpeed then features.SetWalkSpeed(val) end end)
+    Controls.Slider(right, "Fly Speed", 1, 200, 60, function(val) if features.SetFlySpeed then features.SetFlySpeed(val) end end)
     
     -- Waypoints
     local WayFolder = Instance.new("Folder"); WayFolder.Name = "MYLF_Waypoints_Local"; WayFolder.Parent = workspace
