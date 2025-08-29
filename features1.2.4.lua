@@ -1140,7 +1140,17 @@ function features.ToggleSkeleton(on)
 
             for model,o in pairs(features._targets) do
                 local hum = model:FindFirstChildOfClass("Humanoid")
-                if not hum then continue end
+                if not hum then 
+                    -- temizle (ölmüş ya da silinmiş)
+                    if o.skeleton then
+                        for _,seg in ipairs(o.skeleton) do
+                            if seg.line then seg.line:Remove() end
+                        end
+                        o.skeleton = nil
+                    end
+                    features._targets[model] = nil
+                    continue 
+                end
 
                 -- çizgiler yoksa oluştur
                 if not o.skeleton then
@@ -1196,11 +1206,15 @@ function features.ToggleSkeleton(on)
         features._conns.skeleton = nil
         for _,o in pairs(features._targets) do
             if o.skeleton then
-                for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end
+                for _,seg in ipairs(o.skeleton) do
+                    if seg.line then seg.line:Remove() end
+                end
+                o.skeleton = nil
             end
         end
     end
 end
+
 
 function features.ToggleBox(on)
     if on and not features._conns.box then
@@ -1332,34 +1346,87 @@ end
 function features.ToggleTracers(on)
     if on and not features._conns.tracers then
         features._conns.tracers = RunService.RenderStepped:Connect(function(dt)
-            features._t = (features._t or 0)+dt
+            features._t = (features._t or 0) + dt
             local col = rainbowColor(features._t)
             local vp = Camera.ViewportSize
-            local origin = Vector2.new(vp.X/2,vp.Y)
-            for model,o in pairs(features._targets) do
+            local origin = Vector2.new(vp.X/2, vp.Y)
+
+            for model, o in pairs(features._targets) do
+                -- Eğer model silinmişse → tracer'ı yok et
+                if not model.Parent then
+                    if o.tracer then
+                        o.tracer:Remove()
+                        o.tracer = nil
+                    end
+                    features._targets[model] = nil
+                    continue
+                end
+
+                -- tracer çizgisi yoksa oluştur
                 if not o.tracer then
                     o.tracer = Drawing.new("Line")
-                    o.tracer.Thickness=2
+                    o.tracer.Thickness = 2
                 end
+
+                -- güncelle
                 local hrp = model:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    local v,on = Camera:WorldToViewportPoint(hrp.Position)
-                    if on and v.Z>0 then
-                        o.tracer.Visible=true
-                        o.tracer.From=origin
-                        o.tracer.To=Vector2.new(v.X,v.Y)
-                        o.tracer.Color=col
-                    else o.tracer.Visible=false end
+                    local v, onScr = Camera:WorldToViewportPoint(hrp.Position)
+                    if onScr and v.Z > 0 then
+                        o.tracer.Visible = true
+                        o.tracer.From    = origin
+                        o.tracer.To      = Vector2.new(v.X, v.Y)
+                        o.tracer.Color   = col
+                    else
+                        o.tracer.Visible = false
+                    end
+                else
+                    -- HRP yoksa tracer'i gizle
+                    if o.tracer then o.tracer.Visible = false end
                 end
             end
         end)
+
     elseif not on and features._conns.tracers then
         features._conns.tracers:Disconnect()
-        features._conns.tracers=nil
-        for _,o in pairs(features._targets) do if o.tracer then o.tracer.Visible=false end end
+        features._conns.tracers = nil
+
+        -- tüm kalan tracer'ları sil
+        for _, o in pairs(features._targets) do
+            if o.tracer then
+                o.tracer:Remove()
+                o.tracer = nil
+            end
+        end
     end
 end
 
+
+-- Temizlik: Skeleton + Tracers
+local function clearDeadSkeletonAndTracers()
+    for model, o in pairs(features._espObjects) do
+        if not model.Parent then
+            -- Skeleton çizgileri sil
+            if o.skeleton then
+                for _, seg in ipairs(o.skeleton) do
+                    if seg.line then
+                        seg.line:Remove() -- Drawing objesini RAM'den tamamen sil
+                    end
+                end
+                o.skeleton = nil
+            end
+
+            -- Tracers sil
+            if o.tracer then
+                o.tracer:Remove()
+                o.tracer = nil
+            end
+
+            -- Objeyi listeden temizle
+            features._espObjects[model] = nil
+        end
+    end
+end
 
 
 
