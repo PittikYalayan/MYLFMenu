@@ -1205,39 +1205,57 @@ function features.ToggleBox(on)
 end
 
 function features.ToggleRainbowName(on)
-    if on and not features._conns.rname then
-        features._conns.rname = RunService.RenderStepped:Connect(function(dt)
-            features._t = (features._t or 0) + dt
-            local col = rainbowColor(features._t)
+    if on and not features._conns.rainbow then
+        local t=0
+        features._conns.rainbow = RunService.RenderStepped:Connect(function(dt)
+            t+=dt
+            local col = rainbowColor(t)
+
             for model,o in pairs(features._targets) do
-                if not o.billboard then
-                    local ad = model:FindFirstChild("Head") or model.PrimaryPart
-                    if ad then
-                        local bb = Instance.new("BillboardGui")
-                        bb.Size = UDim2.new(0,120,0,20)
-                        bb.Adornee = ad
-                        bb.AlwaysOnTop = true
-                        local txt = Instance.new("TextLabel",bb)
-                        txt.Size = UDim2.new(1,0,1,0)
-                        txt.BackgroundTransparency=1
-                        txt.TextStrokeTransparency=0
-                        txt.Text = model.Name
-                        txt.Font = Enum.Font.SourceSansBold
-                        txt.TextScaled = true
-                        bb.Parent = ad
-                        o.billboard=bb
-                        o.label=txt
+                local hum = model:FindFirstChildOfClass("Humanoid")
+                if hum and model.Parent then
+                    -- Billboard yoksa yeniden ekle
+                    if not o.label or not o.label.Parent then
+                        local adornee = model:FindFirstChild("Head") or model:FindFirstChild("HumanoidRootPart")
+                        if adornee then
+                            local bb = Instance.new("BillboardGui")
+                            bb.Name = "MYLF_NameESP"
+                            bb.Size = UDim2.new(0,100,0,20)
+                            bb.StudsOffset = Vector3.new(0,2,0)
+                            bb.AlwaysOnTop = true
+                            bb.Adornee = adornee
+
+                            local txt = Instance.new("TextLabel")
+                            txt.Size = UDim2.new(1,0,1,0)
+                            txt.BackgroundTransparency = 1
+                            txt.Text = model.Name
+                            txt.TextScaled = true
+                            txt.Font = Enum.Font.SourceSansBold
+                            txt.TextStrokeTransparency = 0
+                            txt.TextColor3 = Color3.fromRGB(255,255,255)
+                            txt.Parent = bb
+
+                            bb.Parent = adornee
+                            o.billboard = bb
+                            o.label = txt
+                        end
+                    end
+                    -- Renk güncelle
+                    if o.label then
+                        o.label.TextColor3 = col
                     end
                 end
-                if o.label then o.label.TextColor3 = col end
             end
         end)
-    elseif not on and features._conns.rname then
-        features._conns.rname:Disconnect()
-        features._conns.rname=nil
-        for _,o in pairs(features._targets) do if o.label then o.label.TextColor3=Color3.fromRGB(255,255,255) end end
+    elseif not on and features._conns.rainbow then
+        features._conns.rainbow:Disconnect()
+        features._conns.rainbow=nil
+        for _,o in pairs(features._targets) do
+            if o.label then o.label.TextColor3=Color3.fromRGB(255,255,255) end
+        end
     end
 end
+
 
 function features.ToggleGlow(on)
     if on and not features._conns.glow then
