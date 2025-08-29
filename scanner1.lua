@@ -7,6 +7,8 @@ local CoreGui = game:GetService("CoreGui")
 -- GUI Setup
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MYLF_Scanner"
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global -- her şeyin üstünde
 ScreenGui.Parent = CoreGui
 
 local Frame = Instance.new("Frame")
@@ -14,6 +16,7 @@ Frame.Size = UDim2.new(0, 450, 0, 320)
 Frame.Position = UDim2.new(0.5, -225, 0.5, -160)
 Frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 Frame.Visible = false
+Frame.ZIndex = 1000 -- öne çıkart
 Frame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel", Frame)
@@ -23,12 +26,14 @@ Title.Text = "⚡ MYLF Scanner ⚡"
 Title.TextColor3 = Color3.fromRGB(255,255,255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
+Title.ZIndex = 1001
 
 local Scrolling = Instance.new("ScrollingFrame", Frame)
 Scrolling.Position = UDim2.new(0, 0, 0, 30)
 Scrolling.Size = UDim2.new(1, 0, 1, -70)
 Scrolling.CanvasSize = UDim2.new(0,0,0,0)
 Scrolling.BackgroundColor3 = Color3.fromRGB(30,30,30)
+Scrolling.ZIndex = 1000
 
 local Layout = Instance.new("UIListLayout", Scrolling)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -40,6 +45,7 @@ CopyBtn.Position = UDim2.new(0, 10, 1, -35)
 CopyBtn.Text = "📋 Copy All"
 CopyBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 CopyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+CopyBtn.ZIndex = 1001
 
 -- Toggle Button
 local ToggleBtn = Instance.new("TextButton")
@@ -48,6 +54,7 @@ ToggleBtn.Position = UDim2.new(0.5, -75, 0.9, 0)
 ToggleBtn.Text = "Open Scanner"
 ToggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+ToggleBtn.ZIndex = 1001
 ToggleBtn.Parent = ScreenGui
 
 -- Scanner Logic
@@ -89,6 +96,7 @@ local function Scan()
         lbl.Font = Enum.Font.Code
         lbl.TextSize = 13
         lbl.Text = line
+        lbl.ZIndex = 1001
     end
     Scrolling.CanvasSize = UDim2.new(0,0,0,#output*20)
 
@@ -96,8 +104,6 @@ local function Scan()
     if writefile then
         writefile("MYLF_Scanner.txt", table.concat(output, "\n"))
         print("[MYLF] Scanner output yazıldı: MYLF_Scanner.txt")
-    else
-        warn("[MYLF] writefile desteklenmiyor (Synapse, Script-Ware vb. gerekiyor)")
     end
 end
 
