@@ -1074,6 +1074,27 @@ local function rainbowColor(t)
     local b = math.floor(math.sin(t*2+4) *127+128)
     return Color3.fromRGB(r,g,b)
 end
+
+local function addTarget(char)
+    if not char:FindFirstChild("HumanoidRootPart") then return end
+    features._targets[char] = features._targets[char] or {}
+end
+
+for _,plr in ipairs(Players:GetPlayers()) do
+    if plr.Character then addTarget(plr.Character) end
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        addTarget(char)
+    end)
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function(char)
+        task.wait(0.5)
+        addTarget(char)
+    end)
+end)
+
 function features.ToggleSkeleton(on)
     if on and not features._conns.skeleton then
         features._conns.skeleton = RunService.RenderStepped:Connect(function(dt)
