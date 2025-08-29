@@ -663,14 +663,12 @@ local InvisibleRemote = RS:FindFirstChild("InvisibleRemote")
 -- Exploit Table
 local Exploit = {
     -- Placeholder örnekler (gerçek yerine -- koydum)
-    fireserver(Player),                          -- Örn: damageEvent:FireServer(LP,0)
-    fireeventPlayer) ,                          -- Örn: workspace.ExplodeEvent:Fire(LP)
-    invoke(Player) ,                             -- Örn: RS.GetStats:InvokeServer(LP)
+    damageEvent:FireServer(Player,0),                          -- Örn: damageEvent:FireServer(LP,0)
+    workspace.ExplodeEvent:Fire(Player),                          -- Örn: workspace.ExplodeEvent:Fire(LP)
+    RS.GetStats:InvokeServer(Player) ,                             -- Örn: RS.GetStats:InvokeServer(LP)
     InvisibleRemote:FireServer("on"),   -- Örn: InvisibleRemote:FireServer(on)
     workspace:FindFirstChild("HumanoidRootPart"), -- Örn: FindFirstChild("HumanoidRootPart")
-
-    -- Gerçek görünmezlik çağrısı (sen dolduracaksın)
-    InvisibleRemote:FireServer(on),
+    -- Gerçek görünmezlik çağrısı (sen dolduracaksı
 }
 
 function Exploit.Invisible(on)
