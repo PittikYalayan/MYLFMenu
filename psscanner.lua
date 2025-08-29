@@ -42,12 +42,35 @@ Layout.SortOrder = Enum.SortOrder.LayoutOrder
 -- Toggle Button
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 200, 0, 40)
-ToggleBtn.Position = UDim2.new(0.5, -100, 0.9, 0)
+ToggleBtn.Position = UDim2.new(0.5, -220, 0.9, 0)
 ToggleBtn.Text = "Open Deep Remote Scanner"
 ToggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 ToggleBtn.ZIndex = 1001
 ToggleBtn.Parent = ScreenGui
+
+-- Copy Button
+local CopyBtn = Instance.new("TextButton")
+CopyBtn.Size = UDim2.new(0, 100, 0, 30)
+CopyBtn.Position = UDim2.new(1, -110, 1, -40)
+CopyBtn.Text = "📋 Copy All"
+CopyBtn.TextColor3 = Color3.fromRGB(255,255,255)
+CopyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+CopyBtn.ZIndex = 1001
+CopyBtn.Parent = Frame
+
+-- Copied Label
+local CopiedLabel = Instance.new("TextLabel")
+CopiedLabel.Size = UDim2.new(0,100,0,20)
+CopiedLabel.Position = UDim2.new(1, -110, 1, -70)
+CopiedLabel.BackgroundTransparency = 1
+CopiedLabel.Text = "Copied!"
+CopiedLabel.TextColor3 = Color3.fromRGB(0,255,0)
+CopiedLabel.Font = Enum.Font.GothamBold
+CopiedLabel.TextSize = 14
+CopiedLabel.Visible = false
+CopiedLabel.ZIndex = 1002
+CopiedLabel.Parent = Frame
 
 -- Scanner Logic
 local output = {}
@@ -105,6 +128,18 @@ local function DeepScan()
         print("[MYLF] Deep Remote listesi kaydedildi: MYLF_DeepRemotes.txt")
     end
 end
+
+-- Copy All Action
+CopyBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(table.concat(output, "\n"))
+        CopiedLabel.Visible = true
+        task.delay(1.5, function() CopiedLabel.Visible = false end)
+        print("[MYLF] Remote listesi panoya kopyalandı.")
+    else
+        warn("[MYLF] setclipboard API yok, kopyalama başarısız.")
+    end
+end)
 
 -- Toggle Button Action
 local function ToggleScanner()
