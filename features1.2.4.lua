@@ -1245,15 +1245,21 @@ function features.ToggleGlow(on)
         features._conns.glow = RunService.RenderStepped:Connect(function(dt)
             t+=dt
             local col = rainbowColor(t)
+
             for model,o in pairs(features._targets) do
                 local hum = model:FindFirstChildOfClass("Humanoid")
                 if hum and model.Parent then
+                    -- Highlight yoksa ya da silindiyse yeniden ekle
                     if not o.hl or not o.hl.Parent then
                         local hl = Instance.new("Highlight")
                         hl.FillTransparency = 0.5
-                        hl.Parent = model  -- ✅ direkt modelin içine koy
+                        hl.OutlineTransparency = 0 -- dış çizgi de net olsun
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        hl.Parent = model      -- ✅ direkt modelin içine
                         o.hl = hl
                     end
+
+                    -- renk güncelle
                     if o.hl then
                         o.hl.Enabled = true
                         o.hl.FillColor = col
