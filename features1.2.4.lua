@@ -653,67 +653,26 @@ end
 ----------------------------------------------------------------
 -- Hard Hook Invisible (Multi-Hook)
 ----------------------------------------------------------------
-
---== Invisible Exploit Skeleton ==--
-
-
 -- Invisible Remote (dummy)
-local InvisibleRemote = RS:FindFirstChild("InvisibleRemote")
-
-local Exploit = {}
-
--- Örnek fonksiyonlar (dummy)
-function Exploit.Damage()
-   damageEvent:FireServer(Player, 0)
-    print("[MYLF] Damage exploit çalıştırıldı (dummy)")
-end
-
-function Exploit.Explode()
-    workspace.ExplodeEvent:Fire(Player)
-    print("[MYLF] Explode exploit çalıştırıldı (dummy)")
-end
-
-function Exploit.GetStats()
-    RS.GetStats:InvokeServer(Player)
-    print("[MYLF] GetStats exploit çalıştırıldı (dummy)")
-end
-
-function Exploit.InvisibleRemoteCall()
-    InvisibleRemote:FireServer("on")
-    if InvisibleRemote then
-        InvisibleRemote:FireServer(true)
-        print("[MYLF] InvisibleRemote çağrısı gönderildi")
-    else
-        warn("[MYLF] InvisibleRemote bulunamadı")
-    end
-end
-
-function Exploit.FindHRP()
-    local hrp = workspace:FindFirstChild("HumanoidRootPart")
-    print("[MYLF] HRP bulundu:", hrp)
-    return hrp
-end
-
--- Invisible wrapper
-function Exploit.Invisible(on)
-    if not InvisibleRemote then
-        warn("[MYLF] InvisibleRemote bulunamadı")
-        return
-    end
-
-    InvisibleRemote:FireServer(on)
-end
-
--- Features Table
-
-
--- Toggle Fonksiyon
 function features.ToggleHardInvisible(on)
-    -- true = aç, false = kapa
-    Exploit.Invisible(on)
-    print("[MYLF] Invisible toggle çalıştırıldı! ("..tostring(on)..")")
-end
+    local player = game.Players.LocalPlayer
+    if not player.Character then return end
 
+    for _, part in ipairs(player.Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = on and 1 or 0
+            part.CanCollide = not on
+        elseif part:IsA("Decal") then
+            part.Transparency = on and 1 or 0
+        end
+    end
+
+    if on then
+        print("[MYLF] "..player.Name.." görünmez oldu (herkes için).")
+    else
+        print("[MYLF] "..player.Name.." tekrar görünüyor.")
+    end
+end
 ----------------------------------------------------------------
 -- AutoTeleportToEnemy (Her zaman düşmanın arkasına)
 ----------------------------------------------------------------
