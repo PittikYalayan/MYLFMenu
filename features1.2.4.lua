@@ -660,53 +660,59 @@ end
 -- Invisible Remote (dummy)
 local InvisibleRemote = RS:FindFirstChild("InvisibleRemote")
 
--- Exploit Table
-local Exploit = {
-    -- Placeholder örnekler (gerçek yerine -- koydum)
-    damageEvent:FireServer(Player,0),                          -- Örn: damageEvent:FireServer(LP,0)
-    workspace.ExplodeEvent:Fire(Player),                          -- Örn: workspace.ExplodeEvent:Fire(LP)
-    RS.GetStats:InvokeServer(Player) ,                             -- Örn: RS.GetStats:InvokeServer(LP)
-    InvisibleRemote:FireServer("on"),   -- Örn: InvisibleRemote:FireServer(on)
-    workspace:FindFirstChild("HumanoidRootPart"), -- Örn: FindFirstChild("HumanoidRootPart")
-    -- Gerçek görünmezlik çağrısı (sen dolduracaksı
-}
+local Exploit = {}
 
+-- Örnek fonksiyonlar (dummy)
+function Exploit.Damage()
+   damageEvent:FireServer(Player, 0)
+    print("[MYLF] Damage exploit çalıştırıldı (dummy)")
+end
+
+function Exploit.Explode()
+    workspace.ExplodeEvent:Fire(Player)
+    print("[MYLF] Explode exploit çalıştırıldı (dummy)")
+end
+
+function Exploit.GetStats()
+    RS.GetStats:InvokeServer(Player)
+    print("[MYLF] GetStats exploit çalıştırıldı (dummy)")
+end
+
+function Exploit.InvisibleRemoteCall()
+    InvisibleRemote:FireServer("on")
+    if InvisibleRemote then
+        InvisibleRemote:FireServer(true)
+        print("[MYLF] InvisibleRemote çağrısı gönderildi")
+    else
+        warn("[MYLF] InvisibleRemote bulunamadı")
+    end
+end
+
+function Exploit.FindHRP()
+    local hrp = workspace:FindFirstChild("HumanoidRootPart")
+    print("[MYLF] HRP bulundu:", hrp)
+    return hrp
+end
+
+-- Invisible wrapper
 function Exploit.Invisible(on)
     if not InvisibleRemote then
         warn("[MYLF] InvisibleRemote bulunamadı")
         return
     end
 
+    InvisibleRemote:FireServer(on)
 end
+
+-- Features Table
+
 
 -- Toggle Fonksiyon
 function features.ToggleHardInvisible(on)
     -- true = aç, false = kapa
-    Exploit.Invisible(true)
-    print("[MYLF] Invisible toggle çalıştırıldı!")
+    Exploit.Invisible(on)
+    print("[MYLF] Invisible toggle çalıştırıldı! ("..tostring(on)..")")
 end
-
--- Keybind (I tuşu)
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.I then
-        features.ToggleHardInvisible(on)
-    end
-end)
-
--- GUI Butonu
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "Invisible_UI"
-
-local Button = Instance.new("TextButton", ScreenGui)
-Button.Text = "Invisible"
-Button.Size = UDim2.new(0,100,0,40)
-Button.Position = UDim2.new(0.5,-50,0.9,0)
-Button.MouseButton1Click:Connect(function()
-    features.ToggleHardInvisible(on)
-end)
-
-
 
 ----------------------------------------------------------------
 -- AutoTeleportToEnemy (Her zaman düşmanın arkasına)
