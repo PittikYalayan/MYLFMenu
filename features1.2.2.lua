@@ -29,6 +29,12 @@ features.AimUseFOV       = false    -- true: FOV (açı) sınırı uygular
 features.AimMaxAngleDeg  = 360      -- AimUseFOV=true iken
 features.AimMaxDistance  = 1800     -- ~500 metre (1 stud ≈ 0.28 m → 500m ≈ 1800 stud)
 
+features = features or {}        -- güvenlik için
+features._espObjects = features._espObjects or {}
+features._targets = features._targets or {}
+features._conns = features._conns or {}
+features._t = features._t or 0
+
 features.TriggerOnAim    = false     -- hedefteyken otomatik ateş
 features.TriggerRate     = 0     -- tetikler arası min süre
 features._lastTrigger    = 0 
