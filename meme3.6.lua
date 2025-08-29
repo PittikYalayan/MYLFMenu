@@ -530,6 +530,7 @@ do
 
     -- Player hareket ve utility (özellikler direkt bağlandı)
     local g = makeGroup(left)
+    local gright = makeGroup(right)
     
 
     -- Kamera/FOV bu sayfadan da erişilebilir istersen (Visuals'ta da var)
@@ -576,18 +577,18 @@ Controls.Toggle(left, "⚡ Speed Boost (50)", false, function(on)
     features._tpY = tonumber(features._tpY) or 0
     features._tpZ = tonumber(features._tpZ) or 25
     
-    right:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX, Rounding=0})
-    right:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY, Rounding=0})
-    right:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ, Rounding=0})
+    gright:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX, Rounding=0})
+    gright:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY, Rounding=0})
+    gright:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ, Rounding=0})
    
     Options.tpX:OnChanged(function(val) features._tpX=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
     Options.tpY:OnChanged(function(val) features._tpY=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
     Options.tpZ:OnChanged(function(val) features._tpZ=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
 
-    right:AddSlider("walkSpeed", {Text="Walk Speed", Min=1, Max=200, Default=features._walkSpeed, Rounding=0})
+    gright:AddSlider("walkSpeed", {Text="Walk Speed", Min=1, Max=200, Default=features._walkSpeed, Rounding=0})
     Options.walkSpeed:OnChanged(function(val) features.SetWalkSpeed(val) end)
 
-    right:AddSlider("flySpeed", {Text="Fly Speed", Min=1, Max=200, Default=features._flySpeed, Rounding=0})
+    gright:AddSlider("flySpeed", {Text="Fly Speed", Min=1, Max=200, Default=features._flySpeed, Rounding=0})
     Options.flySpeed:OnChanged(function(val) features.SetFlySpeed(val) end)
 
 
