@@ -1,8 +1,9 @@
---== ⚡ MYLF Scanner (Remote Finder Ekli) ⚡ ==--
+--== ⚡ MYLF Scanner (Remote Finder + Keybind) ⚡ ==--
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
+local UIS = game:GetService("UserInputService")
 
 -- GUI Setup
 local ScreenGui = Instance.new("ScreenGui")
@@ -47,7 +48,7 @@ CopyBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
 CopyBtn.TextColor3 = Color3.fromRGB(255,255,255)
 CopyBtn.ZIndex = 1001
 
--- Toggle Button
+-- Toggle Button (GUI)
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 150, 0, 40)
 ToggleBtn.Position = UDim2.new(0.5, -75, 0.9, 0)
@@ -59,6 +60,7 @@ ToggleBtn.Parent = ScreenGui
 
 -- Scanner Logic
 local output = {}
+local open = false
 
 local function Traverse(obj, indent)
     indent = indent or ""
@@ -127,8 +129,7 @@ CopyBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Toggle Button Action
-local open = false
-ToggleBtn.MouseButton1Click:Connect(function()
+local function ToggleScanner()
     open = not open
     Frame.Visible = open
     if open then
@@ -136,5 +137,15 @@ ToggleBtn.MouseButton1Click:Connect(function()
         Scan()
     else
         ToggleBtn.Text = "Open Scanner"
+    end
+end
+
+ToggleBtn.MouseButton1Click:Connect(ToggleScanner)
+
+-- Keybind (C tuşu)
+UIS.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.C then
+        ToggleScanner()
     end
 end)
