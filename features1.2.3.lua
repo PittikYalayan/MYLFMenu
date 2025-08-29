@@ -1103,17 +1103,35 @@ end)
 
 function features.ToggleSkeleton(on)
     if on and not features._conns.skeleton then
+        local t = 0
         features._conns.skeleton = RunService.RenderStepped:Connect(function(dt)
-            features._t = (features._t or 0) + dt
-            local col = rainbowColor(features._t)
+            t += dt
+            local col = rainbowColor(t)
             for model,o in pairs(features._targets) do
                 if not o.skeleton then
                     o.skeleton = {}
-                    for _,link in ipairs({{"Head","Torso"},{"Torso","Left Arm"},{"Torso","Right Arm"},{"Torso","Left Leg"},{"Torso","Right Leg"}}) do
-                        local ln = Drawing.new("Line")
+                    local hum = model:FindFirstChildOfClass("Humanoid")
+                    local joints
+                    if hum and hum.RigType == Enum.HumanoidRigType.R6 then
+                        joints = {
+                            {"Head","Torso"},
+                            {"Torso","Left Arm"},{"Torso","Right Arm"},
+                            {"Torso","Left Leg"},{"Torso","Right Leg"},
+                        }
+                    else
+                        joints = {
+                            {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+                            {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+                            {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+                            {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+                            {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+                        }
+                    end
+                    for _,link in ipairs(joints) do
+                        local ln = tryDrawing("Line")
                         ln.Thickness = 2
                         ln.Color = col
-                        table.insert(o.skeleton, {parts=link,line=ln})
+                        table.insert(o.skeleton,{parts=link,line=ln})
                     end
                 end
                 for _,seg in ipairs(o.skeleton) do
@@ -1126,8 +1144,10 @@ function features.ToggleSkeleton(on)
                             seg.line.Visible = true
                             seg.line.From = Vector2.new(v1.X,v1.Y)
                             seg.line.To   = Vector2.new(v2.X,v2.Y)
-                            seg.line.Color= col
+                            seg.line.Color = col
                         else seg.line.Visible=false end
+                    else
+                        seg.line.Visible=false
                     end
                 end
             end
@@ -1135,35 +1155,47 @@ function features.ToggleSkeleton(on)
     elseif not on and features._conns.skeleton then
         features._conns.skeleton:Disconnect()
         features._conns.skeleton=nil
-        for _,o in pairs(features._targets) do if o.skeleton then for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end end end
+        for _,o in pairs(features._targets) do
+            if o.skeleton then for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end end
+        end
     end
 end
+
+
 function features.ToggleBox(on)
     if on and not features._conns.box then
-        features._conns.box = RunService.RenderStepped:Connect(function()
+        local t = 0
+        features._conns.box = RunService.RenderStepped:Connect(function(dt)
+            t += dt
+            local col = rainbowColor(t)
             for model,o in pairs(features._targets) do
-                if not o.selectionBox then
+                if not o.box then
                     local ad = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
                     if ad then
                         local sb = Instance.new("SelectionBox")
-                        sb.LineThickness = 0.04
-                        sb.SurfaceTransparency = 0.85
-                        sb.Color3 = rainbowColor(tick())
-                        sb.Adornee = ad
+                        sb.LineThickness = 0.06
+                        sb.SurfaceTransparency = 0.8
+                        sb.Adornee = model
                         sb.Parent = ad
-                        o.selectionBox = sb
+                        o.box = sb
                     end
-                else
-                    o.selectionBox.Color3 = rainbowColor(tick())
+                end
+                if o.box then
+                    o.box.Visible = true
+                    o.box.Color3 = col
+                    o.box.SurfaceColor3 = col
                 end
             end
         end)
     elseif not on and features._conns.box then
         features._conns.box:Disconnect()
         features._conns.box=nil
-        for _,o in pairs(features._targets) do if o.selectionBox then o.selectionBox.Visible=false end end
+        for _,o in pairs(features._targets) do
+            if o.box then o.box.Visible=false end
+        end
     end
 end
+
 function features.ToggleRainbowName(on)
     if on and not features._conns.rname then
         features._conns.rname = RunService.RenderStepped:Connect(function(dt)
@@ -1198,34 +1230,35 @@ function features.ToggleRainbowName(on)
         for _,o in pairs(features._targets) do if o.label then o.label.TextColor3=Color3.fromRGB(255,255,255) end end
     end
 end
+
 function features.ToggleGlow(on)
     if on and not features._conns.glow then
+        local t=0
         features._conns.glow = RunService.RenderStepped:Connect(function(dt)
-            features._t = (features._t or 0)+dt
-            local col = rainbowColor(features._t)
+            t+=dt
+            local col = rainbowColor(t)
             for model,o in pairs(features._targets) do
-                if not o.highlight then
-                    local ad = model:FindFirstChild("HumanoidRootPart") or model.PrimaryPart
-                    if ad then
-                        local hl = Instance.new("Highlight")
-                        hl.FillTransparency=0.5
-                        hl.OutlineColor=Color3.fromRGB(255,255,255)
-                        hl.Parent=ad
-                        o.highlight=hl
-                    end
+                if not o.hl then
+                    local hl = Instance.new("Highlight")
+                    hl.FillTransparency = 0.5
+                    hl.Parent = model
+                    o.hl = hl
                 end
-                if o.highlight then
-                    o.highlight.FillColor=col
-                    o.highlight.OutlineColor=col
+                if o.hl then
+                    o.hl.Enabled = true
+                    o.hl.FillColor = col
+                    o.hl.OutlineColor = col
                 end
             end
         end)
     elseif not on and features._conns.glow then
         features._conns.glow:Disconnect()
         features._conns.glow=nil
-        for _,o in pairs(features._targets) do if o.highlight then o.highlight.Enabled=false end end
+        for _,o in pairs(features._targets) do if o.hl then o.hl.Enabled=false end end
     end
 end
+
+
 function features.ToggleTracers(on)
     if on and not features._conns.tracers then
         features._conns.tracers = RunService.RenderStepped:Connect(function(dt)
