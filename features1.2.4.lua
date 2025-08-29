@@ -289,7 +289,9 @@ end
 ----------------------------------------------------------------
 -- Ultra Fly (Server correction bypass + Camera yönlü)
 ----------------------------------------------------------------
+-- Varsayılan değer
 features._flySpeed = 60
+
 function features.ToggleFly(on)
     local function ensureBV()
         local ch = Player.Character
@@ -303,11 +305,13 @@ function features.ToggleFly(on)
         end
         return bv, hrp
     end
+
     if on then
         if features._fly then features._fly:Disconnect() end
         features._fly = RunService.RenderStepped:Connect(function()
             local bv = ensureBV()
             if not bv then return end
+
             local dir = Vector3.zero
             local cf  = workspace.CurrentCamera.CFrame
             if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cf.LookVector end
@@ -316,15 +320,29 @@ function features.ToggleFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cf.RightVector end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+
             bv.Velocity = dir * (features._flySpeed or 60)
         end)
-        Player.CharacterAdded:Connect(function() task.wait(0.5); if on then features.ToggleFly(true) end end)
+
+        Player.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            if on then features.ToggleFly(true) end
+        end)
     else
         local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then local bv = hrp:FindFirstChildOfClass("BodyVelocity"); if bv then bv:Destroy() end end
+        if hrp then
+            local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+            if bv then bv:Destroy() end
+        end
         if features._fly then features._fly:Disconnect() end
     end
 end
+
+function features.SetFlySpeed(val)
+    features._flySpeed = tonumber(val) or 60
+    print("[MYLF] FlySpeed set to", features._flySpeed)
+end
+
 
 
 ----------------------------------------------------------------
