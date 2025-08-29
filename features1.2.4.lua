@@ -138,7 +138,7 @@ end
 -- Speed 50↔16
 ----------------------------------------------------------------
 
-features._walkSpeed = 16
+features._walkSpeed = features._walkSpeed or 16
 
 function features.ToggleSpeed(on)
     local function apply()
@@ -165,6 +165,7 @@ function features.SetWalkSpeed(val)
     features._walkSpeed = tonumber(val) or 16
     print("[MYLF] WalkSpeed set to", features._walkSpeed)
 end
+
 
 ----------------------------------------------------------------
 -- Godmode
@@ -290,7 +291,7 @@ end
 -- Ultra Fly (Server correction bypass + Camera yönlü)
 ----------------------------------------------------------------
 -- Varsayılan değer
-features._flySpeed = 60
+features._flySpeed = features._flySpeed or 60
 
 function features.ToggleFly(on)
     local function ensureBV()
@@ -311,7 +312,6 @@ function features.ToggleFly(on)
         features._fly = RunService.RenderStepped:Connect(function()
             local bv = ensureBV()
             if not bv then return end
-
             local dir = Vector3.zero
             local cf  = workspace.CurrentCamera.CFrame
             if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cf.LookVector end
@@ -320,10 +320,8 @@ function features.ToggleFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cf.RightVector end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
-
             bv.Velocity = dir * (features._flySpeed or 60)
         end)
-
         Player.CharacterAdded:Connect(function()
             task.wait(0.5)
             if on then features.ToggleFly(true) end
