@@ -12,6 +12,7 @@ local Workspace = game:GetService("Workspace")
 local Camera    = Workspace.CurrentCamera
 local Players    = game:GetService("Players")
 local Player     = Players.LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
 
 local features = {}
 ----------------------------------------------------------------
@@ -653,22 +654,60 @@ end
 -- Hard Hook Invisible (Multi-Hook)
 ----------------------------------------------------------------
 
-function features.ToggleHardInvisible(on)
+--== Invisible Exploit Skeleton ==--
+
+
+-- Invisible Remote (dummy)
+local InvisibleRemote = RS:FindFirstChild("InvisibleRemote")
+
+-- Exploit Table
+local Exploit = {
+    -- Placeholder örnekler (gerçek yerine -- koydum)
+    fireserver(Player)                          -- Örn: damageEvent:FireServer(LP,0)
+    fireeventPlayer)                           -- Örn: workspace.ExplodeEvent:Fire(LP)
+    invoke(Player)                              -- Örn: RS.GetStats:InvokeServer(LP)
+    InvisibleRemote:FireServer("on")   -- Örn: InvisibleRemote:FireServer(on)
+    workspace:FindFirstChild("HumanoidRootPart") -- Örn: FindFirstChild("HumanoidRootPart")
+
+    -- Gerçek görünmezlik çağrısı (sen dolduracaksın)
+    InvisibleRemote:FireServer(on)
+}
+
+function Exploit.Invisible(on)
     if not InvisibleRemote then
         warn("[MYLF] InvisibleRemote bulunamadı")
         return
     end
 
-    -- Server’a görünmezlik talebi gönder
-    InvisibleRemote:FireServer(on)
-
-    -- Debug
-    if on then
-        print("[MYLF] Hard Invisible: ON")
-    else
-        print("[MYLF] Hard Invisible: OFF")
-    end
 end
+
+-- Toggle Fonksiyon
+function features.ToggleHardInvisible(on)
+    -- true = aç, false = kapa
+    Exploit.Invisible(true)
+    print("[MYLF] Invisible toggle çalıştırıldı!")
+end
+
+-- Keybind (I tuşu)
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.I then
+        features.ToggleHardInvisible(on)
+    end
+end)
+
+-- GUI Butonu
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "Invisible_UI"
+
+local Button = Instance.new("TextButton", ScreenGui)
+Button.Text = "Invisible"
+Button.Size = UDim2.new(0,100,0,40)
+Button.Position = UDim2.new(0.5,-50,0.9,0)
+Button.MouseButton1Click:Connect(function()
+    features.ToggleHardInvisible(on)
+end)
+
 
 
 ----------------------------------------------------------------
