@@ -137,19 +137,33 @@ end
 ----------------------------------------------------------------
 -- Speed 50↔16
 ----------------------------------------------------------------
+
+features._walkSpeed = 16
+
 function features.ToggleSpeed(on)
     local function apply()
         local h = Player.Character and Player.Character:FindFirstChild("Humanoid")
-        if h then h.WalkSpeed = on and 50 or 16 end
+        if h then
+            h.WalkSpeed = on and features._walkSpeed or 16
+        end
     end
+
     if on then
         if features._spd then features._spd:Disconnect() end
         features._spd = RunService.Heartbeat:Connect(apply)
-        Player.CharacterAdded:Connect(function() task.wait(0.5); apply() end)
+        Player.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            apply()
+        end)
     else
         if features._spd then features._spd:Disconnect() end
         apply()
     end
+end
+
+function features.SetWalkSpeed(val)
+    features._walkSpeed = tonumber(val) or 16
+    print("[MYLF] WalkSpeed set to", features._walkSpeed)
 end
 
 ----------------------------------------------------------------
