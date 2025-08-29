@@ -1,4 +1,4 @@
---== ⚡ MYLF Scanner ⚡ ==--
+--== ⚡ MYLF Scanner (Remote Finder Ekli) ⚡ ==--
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -12,17 +12,17 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global -- her şeyin üstünde
 ScreenGui.Parent = CoreGui
 
 local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 450, 0, 320)
-Frame.Position = UDim2.new(0.5, -225, 0.5, -160)
+Frame.Size = UDim2.new(0, 500, 0, 350)
+Frame.Position = UDim2.new(0.5, -250, 0.5, -175)
 Frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 Frame.Visible = false
-Frame.ZIndex = 1000 -- öne çıkart
+Frame.ZIndex = 1000
 Frame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundColor3 = Color3.fromRGB(40,40,40)
-Title.Text = "⚡ MYLF Scanner ⚡"
+Title.Text = "⚡ MYLF Scanner (Remotes Included) ⚡"
 Title.TextColor3 = Color3.fromRGB(255,255,255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -64,8 +64,17 @@ local function Traverse(obj, indent)
     indent = indent or ""
     table.insert(output, indent..obj.Name.." ["..obj.ClassName.."]")
 
+    -- RemoteEvent / RemoteFunction yakala
+    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+        table.insert(output, indent.."   ⚡ REMOTE FOUND: "..obj.Name.." ("..obj.ClassName..")")
+    end
+
     for _,child in ipairs(obj:GetChildren()) do
         table.insert(output, indent.."  - "..child.Name.." ["..child.ClassName.."]")
+
+        if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+            table.insert(output, indent.."     ⚡ REMOTE FOUND: "..child.Name.." ("..child.ClassName..")")
+        end
 
         if child:IsA("StringValue") or child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("BoolValue") then
             table.insert(output, indent.."     > Value = "..tostring(child.Value))
