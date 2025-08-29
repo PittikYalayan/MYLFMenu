@@ -1103,24 +1103,24 @@ end)
 
 function features.ToggleSkeleton(on)
     if on and not features._conns.skeleton then
-        local t = 0
+        local t=0
         features._conns.skeleton = RunService.RenderStepped:Connect(function(dt)
-            t += dt
+            t+=dt
             local col = rainbowColor(t)
             for model,o in pairs(features._targets) do
-                if model and model.Parent then
-                    -- ilk defa skeleton oluşturuluyorsa
+                local hum = model:FindFirstChildOfClass("Humanoid")
+                if hum and model.Parent then
+                    -- ilk defa skeleton yaratılıyorsa
                     if not o.skeleton then
                         o.skeleton = {}
-                        local hum = model:FindFirstChildOfClass("Humanoid")
                         local joints
-                        if hum and hum.RigType == Enum.HumanoidRigType.R6 then
+                        if hum.RigType == Enum.HumanoidRigType.R6 then
                             joints = {
                                 {"Head","Torso"},
                                 {"Torso","Left Arm"},{"Torso","Right Arm"},
                                 {"Torso","Left Leg"},{"Torso","Right Leg"},
                             }
-                        else
+                        else -- R15
                             joints = {
                                 {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
                                 {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
@@ -1134,11 +1134,10 @@ function features.ToggleSkeleton(on)
                             if ln then
                                 ln.Thickness = 2
                                 ln.Visible = false
-                                table.insert(o.skeleton,{parts=link,line=ln})
+                                table.insert(o.skeleton, {parts=link,line=ln})
                             end
                         end
                     end
-
                     -- çizgileri güncelle
                     for _,seg in ipairs(o.skeleton) do
                         local p1 = model:FindFirstChild(seg.parts[1], true)
@@ -1152,10 +1151,10 @@ function features.ToggleSkeleton(on)
                                 seg.line.To   = Vector2.new(v2.X,v2.Y)
                                 seg.line.Color = col
                             else
-                                seg.line.Visible = false
+                                seg.line.Visible=false
                             end
                         else
-                            seg.line.Visible = false
+                            seg.line.Visible=false
                         end
                     end
                 end
@@ -1165,9 +1164,7 @@ function features.ToggleSkeleton(on)
         features._conns.skeleton:Disconnect()
         features._conns.skeleton=nil
         for _,o in pairs(features._targets) do
-            if o.skeleton then
-                for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end
-            end
+            if o.skeleton then for _,seg in ipairs(o.skeleton) do seg.line.Visible=false end end
         end
     end
 end
@@ -1249,16 +1246,14 @@ function features.ToggleGlow(on)
             t+=dt
             local col = rainbowColor(t)
             for model,o in pairs(features._targets) do
-                -- ✅ Model kontrolü
-                if model and model.Parent then
+                local hum = model:FindFirstChildOfClass("Humanoid")
+                if hum and model.Parent then
                     if not o.hl or not o.hl.Parent then
-                        -- highlight yoksa modeli direkt parent yap
                         local hl = Instance.new("Highlight")
                         hl.FillTransparency = 0.5
-                        hl.Parent = model
+                        hl.Parent = model  -- ✅ direkt modelin içine koy
                         o.hl = hl
                     end
-                    -- ✅ renk güncelle
                     if o.hl then
                         o.hl.Enabled = true
                         o.hl.FillColor = col
@@ -1270,9 +1265,12 @@ function features.ToggleGlow(on)
     elseif not on and features._conns.glow then
         features._conns.glow:Disconnect()
         features._conns.glow=nil
-        for _,o in pairs(features._targets) do if o.hl then o.hl.Enabled=false end end
+        for _,o in pairs(features._targets) do
+            if o.hl then o.hl.Enabled=false end
+        end
     end
 end
+
 
 
 function features.ToggleTracers(on)
