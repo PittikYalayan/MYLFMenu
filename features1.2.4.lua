@@ -655,22 +655,12 @@ end
 ----------------------------------------------------------------
 -- Invisible Remote (dummy)
 function features.ToggleHardInvisible(on)
-    local player = game.Players.LocalPlayer
-    if not player.Character then return end
-
-    for _, part in ipairs(player.Character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Transparency = on and 1 or 0
-            part.CanCollide = not on
-        elseif part:IsA("Decal") then
-            part.Transparency = on and 1 or 0
-        end
-    end
+    InvisibleRemote:FireServer(on) -- server'a isteği gönder
 
     if on then
-        print("[MYLF] "..player.Name.." görünmez oldu (herkes için).")
+        print("[MYLF] Hard Invisible: ON (herkes seni göremeyecek)")
     else
-        print("[MYLF] "..player.Name.." tekrar görünüyor.")
+        print("[MYLF] Hard Invisible: OFF (geri görünürsün)")
     end
 end
 ----------------------------------------------------------------
