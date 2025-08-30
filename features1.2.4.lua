@@ -1392,16 +1392,25 @@ end
 
 ------------------
 ------------------------
+-- defaults
+features._tpBehindDist = features._tpBehindDist or 3
+features._tpX = features._tpX or 0
+features._tpY = features._tpY or 0
+features._tpZ = features._tpZ or 0
+features._tpTargetId  = features._tpTargetId or nil
+features._tpTargetMap = features._tpTargetMap or {}
+
 local function _label(plr)
     return ("%s (@%s)"):format(plr.DisplayName, plr.Name)
 end
 
+-- Dropdown listesi üretir (DisplayName @Name)
 function features.BuildTeleportTargetList()
     local labels, map = {}, {}
     for _,plr in ipairs(Players:GetPlayers()) do
         if plr ~= Player then
             local L = _label(plr)
-            table.insert(labels,L)
+            table.insert(labels, L)
             map[L] = plr.UserId
         end
     end
@@ -1410,26 +1419,90 @@ function features.BuildTeleportTargetList()
 end
 
 function features.SelectTeleportTargetByLabel(label)
-    features._tpTargetId = features._tpTargetMap[label]
+    features._tpTargetId = features._tpTargetMap and features._tpTargetMap[label] or nil
+    print("[MYLF] TP target =", label or "—")
 end
 
 function features.SetTeleportBehindDistance(v)
-    features._tpBehindDist = math.clamp(tonumber(v) or 3,1,20)
+    features._tpBehindDist = math.clamp(tonumber(v) or 3, 1, 20)
 end
 
+function features.SetTeleportOffset(x, y, z)
+    features._tpX = tonumber(x) or features._tpX
+    features._tpY = tonumber(y) or features._tpY
+    features._tpZ = tonumber(z) or features._tpZ
+    print(("[MYLF] TP Offset => X:%s Y:%s Z:%s"):format(features._tpX, features._tpY, features._tpZ))
+end
+
+local function _getHRPByUserId(id)
+    if not id then return end
+    local plr = Players:GetPlayerByUserId(id)
+    local char = plr and plr.Character
+    return char and char:FindFirstChild("HumanoidRootPart"), char
+end
+
+local function _nearestEnemyHRP()
+    local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
+    local best, bestD, bestChar
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player and plr.Character then
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - myHRP.Position).Magnitude
+                if not best or d < bestD then
+                    best, bestD, bestChar = hrp, d, plr.Character
+                end
+            end
+        end
+    end
+    return best, bestChar
+end
+
+-- Tek seferlik: seçili hedefin arkasına ışınla
 function features.TeleportBehindSelected()
-    local id = features._tpTargetId
-    if not id then return warn("[MYLF] Hedef seçili değil") end
+    local enemyHRP, enemyChar
+    if features._tpTargetId then
+        enemyHRP, enemyChar = _getHRPByUserId(features._tpTargetId)
+    end
+    if not enemyHRP then
+        warn("[MYLF] Hedef yok. (Dropdown’dan oyuncu seç)")
+        return
+    end
+    local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
 
-    local target = Players:GetPlayerByUserId(id)
-    local enemyHRP = target and target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-    local myHRP    = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not (enemyHRP and myHRP) then return end
-
-    local pos = enemyHRP.Position - enemyHRP.CFrame.LookVector * features._tpBehindDist
-    myHRP.CFrame = CFrame.new(pos, enemyHRP.Position)
-    print("[MYLF] Arkasına ışınlandın →",target.Name)
+    local back = enemyHRP.Position - enemyHRP.CFrame.LookVector * (features._tpBehindDist or 3)
+    back = back + Vector3.new(features._tpX or 0, features._tpY or 0, features._tpZ or 0)
+    myHRP.CFrame = CFrame.new(back, enemyHRP.Position)
+    print("[MYLF] Arkasına ışınlandın →", enemyChar and enemyChar.Name or "?")
 end
+
+-- Sürekli takip (Auto Behind)
+function features.ToggleAutoBehind(on)
+    if on then
+        if features._autoBehindConn then features._autoBehindConn:Disconnect() end
+        features._autoBehindConn = RunService.RenderStepped:Connect(function()
+            local enemyHRP, enemyChar
+            if features._tpTargetId then
+                enemyHRP, enemyChar = _getHRPByUserId(features._tpTargetId)
+            else
+                enemyHRP, enemyChar = _nearestEnemyHRP()
+            end
+            local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+            if not (enemyHRP and myHRP) then return end
+            local back = enemyHRP.Position - enemyHRP.CFrame.LookVector * (features._tpBehindDist or 3)
+            back = back + Vector3.new(features._tpX or 0, features._tpY or 0, features._tpZ or 0)
+            myHRP.CFrame = CFrame.new(back, enemyHRP.Position)
+        end)
+        print("[MYLF] Auto Behind: ON")
+    else
+        if features._autoBehindConn then features._autoBehindConn:Disconnect() end
+        features._autoBehindConn = nil
+        print("[MYLF] Auto Behind: OFF")
+    end
+end
+
 ------------------------------
 ------------------------------
 return features
