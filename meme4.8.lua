@@ -635,45 +635,47 @@ end
 --.-=Teleport=-.--
 do 
     
--- Sol panel: hedef seçimi + toggle + buton
-    local left = newSection(pTeleport, "Teleport")
-    local gL   = makeGroup(left)
+local left  = newSection(pPlayer, "Teleport")
+    local right = newSection(pPlayer, "Teleport Params")
+    local gL    = makeGroup(left)
+    local gR    = makeGroup(right)
 
-    gL:AddDropdown("tpTarget", { Text    = "TP Target", Values  = features.BuildTeleportTargetList(), Default = nil })
-    Options.tpTarget:OnChanged(function(label) features.SelectTeleportTargetByLabel(label) end)
+    -- ListBox (çoklu değer / scroll destekli)
+    local tpList = gL:AddListbox("tpTarget", { Text = "TP Target", Values = features.BuildTeleportTargetList(),Multi = false, -- çoklu seçmek istersen true })
 
-    -- Oyuncu listesi canlı güncelle
-    features._tpOnRosterChanged = function()
-        if Options.tpTarget and Options.tpTarget.SetValues then
-            Options.tpTarget:SetValues(features.BuildTeleportTargetList())
+    -- Seçim değişince hedefi ayarla
+    tpList:OnChanged(function(label) features.SelectTeleportTargetByLabel(label) end)
+
+    -- Listeyi otomatik güncel tut
+    local function refreshTargets()
+        local vals = features.BuildTeleportTargetList()
+        if tpList.SetValues then
+            tpList:SetValues(vals)
         end
     end
-    game.Players.PlayerAdded:Connect(features._tpOnRosterChanged)
-    game.Players.PlayerRemoving:Connect(features._tpOnRosterChanged)
+    game.Players.PlayerAdded:Connect(refreshTargets)
+    game.Players.PlayerRemoving:Connect(refreshTargets)
 
-    -- Auto Behind toggle (senin Controls.Toggle formatında)
-    Controls.Toggle(left, "Behind", false, function(on) features.ToggleAutoBehind(on)  end)
+    -- Elle yenile butonu
+    Controls.Button(left, "Yenile Liste", function() refreshTargets() end)
 
-    -- Tek seferlik arkaya ışınlan butonu
-    if gL.AddButton then   gL:AddButton("Teleport", function() features.TeleportBehindSelected()  end)  end
+    -- Auto Behind toggle
+    Controls.Toggle(left, "Auto Behind", false, function(on) features.ToggleAutoBehind(on) end)
 
-    -- Sağ panel: parametreler (senin slider pattern’inle)
-    local right  = newSection(pTeleport, "Teleport Value")
-    local gRight = makeGroup(right)
+    -- Tek seferlik TP arkaya
+    Controls.Button(left, "İşınlan (Arkaya)", function() features.TeleportBehindSelected() end)
 
-    gRight:AddSlider("tpDist", {Text = "Behind Distance",Min = 1, Max = 20,Default = features._tpBehindDist or 3,Rounding = 0})
+    -- Parametre slider’lar
+    gR:AddSlider("tpDist", {Text="Behind Distance", Min=1, Max=20, Default=features._tpBehindDist or 3})
     Options.tpDist:OnChanged(function(v) features.SetTeleportBehindDistance(v) end)
 
-    gRight:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX or 0,  Rounding=0})
-    gRight:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY or 0,  Rounding=0})
-    gRight:AddSlider("tpZ", {Text="Auto Farm Z", Min=  1, Max=100, Default=features._tpZ or 0,  Rounding=0})
+    gR:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX or 0, Rounding=0})
+    gR:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY or 0, Rounding=0})
+    gR:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ or 25, Rounding=0})
 
-    Options.tpX:OnChanged(function(val) features._tpX = val if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end end)
-    Options.tpY:OnChanged(function(val) features._tpY = val if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end end)
-    Options.tpZ:OnChanged(function(val) features._tpZ = val  if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end  end)
-
-
-
+    Options.tpX:OnChanged(function(val) features._tpX = val features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end)
+    Options.tpY:OnChanged(function(val) features._tpY = val features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end)
+    Options.tpZ:OnChanged(function(val) features._tpZ = val features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end)
     
 
 end
