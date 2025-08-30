@@ -609,6 +609,21 @@ end
 
 --.-=Teleport=-.--
 do 
+    Controls.Toggle(left, "Teleport (T Key)", false, function(on)
+        if features.ToggleTeleport then features.ToggleTeleport(on) end
+    end)
+
+    Controls.Toggle(left, "⚡ Always Behind Enemy", false, function(on)
+        if features.ToggleAutoBehind then features.ToggleAutoBehind(on) end
+    end)
+
+    Controls.Toggle(left, "⚡ Auto Farm Enemy", false, function(on)
+        if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end
+    end)
+    
+    features._tpX = tonumber(features._tpX) or 0
+    features._tpY = tonumber(features._tpY) or 0
+    features._tpZ = tonumber(features._tpZ) or 25
     -- pTeleport sayfasında 2 bölüm
 local left   = newSection(pTeleport, "Teleport ")
 local right  = newSection(pTeleport, "Values")
