@@ -36,6 +36,11 @@ features._targets = features._targets or {}
 features._conns = features._conns or {}
 features._t = features._t or 0
 
+
+features._tpTargetId   = nil
+features._tpTargetMap  = {}
+features._tpBehindDist = 3
+
 features.TriggerOnAim    = false     -- hedefteyken otomatik ateş
 features.TriggerRate     = 0     -- tetikler arası min süre
 features._lastTrigger    = 0 
@@ -1385,7 +1390,46 @@ local function clearDeadSkeletonAndTracers()
 end
 
 
+------------------
+------------------------
+local function _label(plr)
+    return ("%s (@%s)"):format(plr.DisplayName, plr.Name)
+end
 
+function features.BuildTeleportTargetList()
+    local labels, map = {}, {}
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player then
+            local L = _label(plr)
+            table.insert(labels,L)
+            map[L] = plr.UserId
+        end
+    end
+    features._tpTargetMap = map
+    return labels
+end
 
+function features.SelectTeleportTargetByLabel(label)
+    features._tpTargetId = features._tpTargetMap[label]
+end
 
+function features.SetTeleportBehindDistance(v)
+    features._tpBehindDist = math.clamp(tonumber(v) or 3,1,20)
+end
+
+function features.TeleportBehindSelected()
+    local id = features._tpTargetId
+    if not id then return warn("[MYLF] Hedef seçili değil") end
+
+    local target = Players:GetPlayerByUserId(id)
+    local enemyHRP = target and target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+    local myHRP    = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not (enemyHRP and myHRP) then return end
+
+    local pos = enemyHRP.Position - enemyHRP.CFrame.LookVector * features._tpBehindDist
+    myHRP.CFrame = CFrame.new(pos, enemyHRP.Position)
+    print("[MYLF] Arkasına ışınlandın →",target.Name)
+end
+------------------------------
+------------------------------
 return features
