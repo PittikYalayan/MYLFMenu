@@ -610,67 +610,51 @@ end
 --.-=Teleport=-.--
 do 
     
-local left  = newSection(pTeleport, "Teleport")
-    local right = newSection(pTeleport, "Teleport Params")
-    local gL    = makeGroup(left)
-    local gR    = makeGroup(right)
+-- örn: PLAYER sayfasında bir bölüm aç
+local left  = newSection(pTeleport, "Teleport Target")
+local right = newSection(pTeleport, "Offsets")
 
-    -- ListBox (çoklu değer / scroll destekli)
-    local tpList = gL:AddListbox("tpTarget", { Text = "TP Target", Values = features.BuildTeleportTargetList(),Multi = false, -- çoklu seçmek istersen true })
+local gL  = makeGroup(left)
+local gR  = makeGroup(right)
 
-    -- Seçim değişince hedefi ayarla
-    tpList:OnChanged(function(label) features.SelectTeleportTargetByLabel(label) end)
+-- Dropdown: hedef listesi
+local values = select(1, features.BuildTeleportTargetList())
+gL:AddDropdown("tpTarget", {
+    Text    = "Target",
+    Values  = values,
+    Default = #values > 0 and values[1] or nil
+})
 
-    -- Listeyi otomatik güncel tut
-    local function refreshTargets()
-        local vals = features.BuildTeleportTargetList()
-        if tpList.SetValues then
-            tpList:SetValues(vals)
-        end
+-- Dropdown değiştiğinde seçimi sakla
+Options.tpTarget:OnChanged(function(label)
+    features._tpSelected = label -- label’dan model’e map’i çağırırken kullanacağız
+end)
+
+-- Offset slider’ları
+gR:AddSlider("tpX", {Text="Offset X", Min=-50, Max=50,  Default=features._tpX, Rounding=0})
+gR:AddSlider("tpY", {Text="Offset Y", Min=-50, Max=50,  Default=features._tpY, Rounding=0})
+gR:AddSlider("tpZ", {Text="Behind Z", Min=  1, Max=100, Default=features._tpZ, Rounding=0})
+
+Options.tpX:OnChanged(function(v) features._tpX = v end)
+Options.tpY:OnChanged(function(v) features._tpY = v end)
+Options.tpZ:OnChanged(function(v) features._tpZ = v end)
+
+-- “Refresh list” butonu (oyuncu/NPC akışı için)
+Controls.Button(left, "🔄 Refresh Targets", function()
+    local vals = select(1, features.BuildTeleportTargetList())
+    Options.tpTarget:SetValues(vals)
+end)
+
+-- “Arkaya ışınla” butonu
+Controls.Button(left, "⚡ Teleport Behind", function()
+    local label = Options.tpTarget and Options.tpTarget.Value
+    if not (label and features._tpKeyMap and features._tpKeyMap[label]) then
+        warn("[MYLF] TP target yok / seçilmedi")
+        return
     end
-    game.Players.PlayerAdded:Connect(refreshTargets)
-    game.Players.PlayerRemoving:Connect(refreshTargets)
-
-    -- Elle yenile butonu
-    Controls.Button(left, "Yenile Liste", function() refreshTargets() end)
-
-    -- Auto Behind toggle
-    Controls.Toggle(left, "Auto Behind", false, function(on) features.ToggleAutoBehind(on) end)
-
-    -- Tek seferlik TP arkaya
-    Controls.Button(left, "İşınlan (Arkaya)", function() features.TeleportBehindSelected() end)
-
-    -- Parametre slider’lar
-    gRight:AddSlider("tpDist", { Text="Behind Distance", Min=1, Max=20, Default=..., Rounding=0 })
-    Options.tpDist:OnChanged(function(v) features.SetTeleportBehindDistance(v) end)
-
-     Controls.Toggle(left, "Teleport (T Key)", false, function(on)
-        if features.ToggleTeleport then features.ToggleTeleport(on) end
-    end)
-
-    Controls.Toggle(left, "⚡ Always Behind Enemy", false, function(on)
-        if features.ToggleAutoBehind then features.ToggleAutoBehind(on) end
-    end)
-
-    Controls.Toggle(left, "⚡ Auto Farm Enemy", false, function(on)
-        if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end
-    end)
-
-    features._flySpeed = features._flySpeed or 60
-    features._walkSpeed = features._walkSpeed or 16
-    
-    features._tpX = tonumber(features._tpX) or 0
-    features._tpY = tonumber(features._tpY) or 0
-    features._tpZ = tonumber(features._tpZ) or 25
-    
-    gright:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX, Rounding=0})
-    gright:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY, Rounding=0})
-    gright:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ, Rounding=0})
-   
-    Options.tpX:OnChanged(function(val) features._tpX=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
-    Options.tpY:OnChanged(function(val) features._tpY=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
-    Options.tpZ:OnChanged(function(val) features._tpZ=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
-    
+    local model = features._tpKeyMap[label]
+    features.TeleportBehindModel(model, features._tpX, features._tpY, features._tpZ)
+end)
 
 end
 
