@@ -565,32 +565,7 @@ Controls.Toggle(left, "⚡ Speed Boost (50)", false, function(on)
         if features.ToggleNoclip then features.ToggleNoclip(on) end
     end)
 
-    Controls.Toggle(left, "Teleport (T Key)", false, function(on)
-        if features.ToggleTeleport then features.ToggleTeleport(on) end
-    end)
-
-    Controls.Toggle(left, "⚡ Always Behind Enemy", false, function(on)
-        if features.ToggleAutoBehind then features.ToggleAutoBehind(on) end
-    end)
-
-    Controls.Toggle(left, "⚡ Auto Farm Enemy", false, function(on)
-        if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end
-    end)
-
-    features._flySpeed = features._flySpeed or 60
-    features._walkSpeed = features._walkSpeed or 16
-    
-    features._tpX = tonumber(features._tpX) or 0
-    features._tpY = tonumber(features._tpY) or 0
-    features._tpZ = tonumber(features._tpZ) or 25
-    
-    gright:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX, Rounding=0})
-    gright:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY, Rounding=0})
-    gright:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ, Rounding=0})
    
-    Options.tpX:OnChanged(function(val) features._tpX=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
-    Options.tpY:OnChanged(function(val) features._tpY=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
-    Options.tpZ:OnChanged(function(val) features._tpZ=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
 
     gright:AddSlider("walkSpeed", {Text="Walk Speed", Min=1, Max=200, Default=features._walkSpeed, Rounding=0})
     Options.walkSpeed:OnChanged(function(val) features.SetWalkSpeed(val) end)
@@ -635,8 +610,8 @@ end
 --.-=Teleport=-.--
 do 
     
-local left  = newSection(pPlayer, "Teleport")
-    local right = newSection(pPlayer, "Teleport Params")
+local left  = newSection(pTeleport, "Teleport")
+    local right = newSection(pTeleport, "Teleport Params")
     local gL    = makeGroup(left)
     local gR    = makeGroup(right)
 
@@ -666,16 +641,35 @@ local left  = newSection(pPlayer, "Teleport")
     Controls.Button(left, "İşınlan (Arkaya)", function() features.TeleportBehindSelected() end)
 
     -- Parametre slider’lar
-    gR:AddSlider("tpDist", {Text="Behind Distance", Min=1, Max=20, Default=features._tpBehindDist or 3})
+    gRight:AddSlider("tpDist", { Text="Behind Distance", Min=1, Max=20, Default=..., Rounding=0 })
     Options.tpDist:OnChanged(function(v) features.SetTeleportBehindDistance(v) end)
 
-    gR:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX or 0, Rounding=0})
-    gR:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY or 0, Rounding=0})
-    gR:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ or 25, Rounding=0})
+     Controls.Toggle(left, "Teleport (T Key)", false, function(on)
+        if features.ToggleTeleport then features.ToggleTeleport(on) end
+    end)
 
-    Options.tpX:OnChanged(function(val) features._tpX = val features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end)
-    Options.tpY:OnChanged(function(val) features._tpY = val features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end)
-    Options.tpZ:OnChanged(function(val) features._tpZ = val features.SetTeleportOffset(features._tpX, features._tpY, features._tpZ) end)
+    Controls.Toggle(left, "⚡ Always Behind Enemy", false, function(on)
+        if features.ToggleAutoBehind then features.ToggleAutoBehind(on) end
+    end)
+
+    Controls.Toggle(left, "⚡ Auto Farm Enemy", false, function(on)
+        if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end
+    end)
+
+    features._flySpeed = features._flySpeed or 60
+    features._walkSpeed = features._walkSpeed or 16
+    
+    features._tpX = tonumber(features._tpX) or 0
+    features._tpY = tonumber(features._tpY) or 0
+    features._tpZ = tonumber(features._tpZ) or 25
+    
+    gright:AddSlider("tpX", {Text="Auto Farm X", Min=-50, Max=50, Default=features._tpX, Rounding=0})
+    gright:AddSlider("tpY", {Text="Auto Farm Y", Min=-50, Max=50, Default=features._tpY, Rounding=0})
+    gright:AddSlider("tpZ", {Text="Auto Farm Z", Min=1, Max=100, Default=features._tpZ, Rounding=0})
+   
+    Options.tpX:OnChanged(function(val) features._tpX=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
+    Options.tpY:OnChanged(function(val) features._tpY=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
+    Options.tpZ:OnChanged(function(val) features._tpZ=val; try(features.SetTeleportOffset, features._tpX, features._tpY, features._tpZ) end)
     
 
 end
