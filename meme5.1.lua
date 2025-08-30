@@ -609,52 +609,49 @@ end
 
 --.-=Teleport=-.--
 do 
-    
--- örn: PLAYER sayfasında bir bölüm aç
-local left  = newSection(pTeleport, "Teleport Target")
-local right = newSection(pTeleport, "Offsets")
+    -- pTeleport sayfasında 2 bölüm
+local left   = newSection(pTeleport, "Teleport Targets")
+local right  = newSection(pTeleport, "Actions")
 
-local gL  = makeGroup(left)
-local gR  = makeGroup(right)
-
--- Dropdown: hedef listesi
-local values = select(1, features.BuildTeleportTargetList())
-gL:AddDropdown("tpTarget", {
-    Text    = "Target",
-    Values  = values,
-    Default = #values > 0 and values[1] or nil
-})
-
--- Dropdown değiştiğinde seçimi sakla
-Options.tpTarget:OnChanged(function(label)
-    features._tpSelected = label -- label’dan model’e map’i çağırırken kullanacağız
-end)
-
--- Offset slider’ları
-gR:AddSlider("tpX", {Text="Offset X", Min=-50, Max=50,  Default=features._tpX, Rounding=0})
-gR:AddSlider("tpY", {Text="Offset Y", Min=-50, Max=50,  Default=features._tpY, Rounding=0})
-gR:AddSlider("tpZ", {Text="Behind Z", Min=  1, Max=100, Default=features._tpZ, Rounding=0})
-
-Options.tpX:OnChanged(function(v) features._tpX = v end)
-Options.tpY:OnChanged(function(v) features._tpY = v end)
-Options.tpZ:OnChanged(function(v) features._tpZ = v end)
-
--- “Refresh list” butonu (oyuncu/NPC akışı için)
-Controls.Button(left, "🔄 Refresh Targets", function()
-    local vals = select(1, features.BuildTeleportTargetList())
-    Options.tpTarget:SetValues(vals)
-end)
-
--- “Arkaya ışınla” butonu
-Controls.Button(left, "⚡ Teleport Behind", function()
-    local label = Options.tpTarget and Options.tpTarget.Value
-    if not (label and features._tpKeyMap and features._tpKeyMap[label]) then
-        warn("[MYLF] TP target yok / seçilmedi")
-        return
+-- Scroll list
+local TPList = ResultsList.create(left)
+-- Oyuncuların listesini hazırla
+local function buildTPList()
+    local list = {}
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player and plr.Character then
+            table.insert(list, { id = plr, text = "👤 " .. plr.DisplayName })
+        end
     end
-    local model = features._tpKeyMap[label]
-    features.TeleportBehindModel(model, features._tpX, features._tpY, features._tpZ)
+    return list
+end
+
+-- Yenile
+TPList.set(buildTPList(), function(id, text)
+    print("[MYLF] Seçildi:", text)
 end)
+
+-- Otomatik yenile (oyuncu girince/çıkınca)
+Players.PlayerAdded:Connect(function() TPList.set(buildTPList()) end)
+Players.PlayerRemoving:Connect(function() TPList.set(buildTPList()) end)
+Controls.Button(right, "Teleport Behind", function()
+    local selId, selText = TPList.getSelection()
+    if selId and selId.Character and selId.Character:FindFirstChild("HumanoidRootPart") then
+        local enemyHRP = selId.Character.HumanoidRootPart
+        local myChar = Player.Character
+        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        if myHRP then
+            local lookVec = enemyHRP.CFrame.LookVector
+            local behindPos = enemyHRP.Position - lookVec * 3
+            myHRP.CFrame = CFrame.new(behindPos, enemyHRP.Position)
+            print("[MYLF] Işınlandın → "..selText)
+        end
+    else
+        warn("[MYLF] Hedef seçilmedi veya geçersiz.")
+    end
+end)
+
+-- örn: PLAYER sayfasında bir bölüm aç
 
 end
 
