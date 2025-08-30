@@ -393,32 +393,7 @@ do
     Controls.Toggle(left, "Crosshair", true, function(on) Crosshair.Visible = on end)
 -----------------------------------
 
-     -- Third-Person ve First-Person Modu Toggle
-    local thirdPerson = false
-    Controls.Toggle(right, "Third-Person", false, function(on)
-        thirdPerson = on
-        if thirdPerson then
-            Camera.CameraType = Enum.CameraType.Custom  -- 3rd Person
-        else
-            Camera.CameraType = Enum.CameraType.Scriptable  -- 1st Person
-        end
-    end)
-
-    -- FOV Ayarı
-    right:AddSlider("fov", {Text="FOV", Min=50, Max=120, Default=Camera.FieldOfView, Rounding=0})
-    Options.fov:OnChanged(function(val) Camera.FieldOfView = val print("FOV Değeri: " .. val) end)
-
-    -- Kamera Modu değişikliği loglama
-    local function logCameraMode()
-        print("Current Camera Mode: " .. (thirdPerson and "Third-Person" or "First-Person"))
-        print("Current FOV: " .. Camera.FieldOfView)
-    end
-
-    -- FOV ve Kamera modunu değiştirdiğinde log kaydı
-    Controls.Button(right, "Log Camera Mode and FOV", function()
-        logCameraMode()
-    end)
-
+   
 
     -------------------------
     Controls.Button(left, "Notify Snapshot", function()
