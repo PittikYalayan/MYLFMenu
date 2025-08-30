@@ -609,28 +609,30 @@ end
 
 --.-=Teleport=-.--
 do 
-    Controls.Toggle(left, "Teleport (T Key)", false, function(on)
-        if features.ToggleTeleport then features.ToggleTeleport(on) end
-    end)
 
-    Controls.Toggle(left, "⚡ Always Behind Enemy", false, function(on)
-        if features.ToggleAutoBehind then features.ToggleAutoBehind(on) end
-    end)
+    -- pTeleport sayfasında 2 bölüm
+   local left   = newSection(pTeleport, "Teleport ")
+   local right  = newSection(pTeleport, "Values")
+    
+   local g      = makeGroup(left)
+   local gRight = makeGroup(right)
 
-    Controls.Toggle(left, "⚡ Auto Farm Enemy", false, function(on)
-        if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end
-    end)
+
+    Controls.Toggle(left, "Teleport (T Key)", false, function(on) if features.ToggleTeleport then features.ToggleTeleport(on) end end)
+
+    Controls.Toggle(left, "⚡ Always Behind Enemy", false, function(on)  if features.ToggleAutoBehind then features.ToggleAutoBehind(on) end end)
+
+    Controls.Toggle(left, "⚡ Auto Farm Enemy", false, function(on) if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(on) end end)
+
+        
     
     features._tpX = tonumber(features._tpX) or 0
     features._tpY = tonumber(features._tpY) or 0
     features._tpZ = tonumber(features._tpZ) or 25
-    -- pTeleport sayfasında 2 bölüm
-local left   = newSection(pTeleport, "Teleport ")
-local right  = newSection(pTeleport, "Values")
     
-    right:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default= tonumber((features and features._tpX) or 0) or 0, Rounding=0})
-    right:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default= tonumber((features and features._tpY) or 0) or 0, Rounding=0})
-    right:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default= tonumber((features and features._tpZ) or 25) or 25, Rounding=0})
+    gRight:AddSlider("tpX", {Text="X Offset", Min=-50, Max=50, Default= tonumber((features and features._tpX) or 0) or 0, Rounding=0})
+    gRight:AddSlider("tpY", {Text="Y Offset", Min=-50, Max=50, Default= tonumber((features and features._tpY) or 0) or 0, Rounding=0})
+    gRight:AddSlider("tpZ", {Text="Z Offset", Min=1, Max=100, Default= tonumber((features and features._tpZ) or 25) or 25, Rounding=0})
     Options.tpX:OnChanged(function(val) if features then features._tpX = val end try(features and features.SetTeleportOffset, val, (features and features._tpY) or 0, (features and features._tpZ) or 25) end)
     Options.tpY:OnChanged(function(val)  if features then features._tpY = val end  try(features and features.SetTeleportOffset, (features and features._tpX) or 0, val, (features and features._tpZ) or 25) end)
     Options.tpZ:OnChanged(function(val) if features then features._tpZ = val end try(features and features.SetTeleportOffset, (features and features._tpX) or 0, (features and features._tpY) or 0, val) end)
