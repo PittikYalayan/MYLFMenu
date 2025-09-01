@@ -645,13 +645,13 @@ end
 
 --== CAMERA VIEW ==--
 do
-    local left  = newSection(pCam("CamView"), "Select Player")
-    local right = newSection(pCam["CamView"], "Controls")
+     local left  = newSection(pCamView, "PlayerCam")
+    local right = newSection(pCamView, "TP Controls")
 
     local g      = makeGroup(left)
     local gRight = makeGroup(right)
 
-    -- Player List Dropdown
+    -- Player List
     local playerNames = {}
     for _,plr in ipairs(Players:GetPlayers()) do
         if plr ~= LP then
@@ -660,43 +660,29 @@ do
     end
 
     local selectedPlayer = nil
-    local dd = Controls.Dropdown(left, "Player List", playerNames, 1, function(v)
+    Controls.Dropdown(left, "Player List", playerNames, 1, function(v)
         selectedPlayer = Players:FindFirstChild(v)
+        notify("Seçilen player: "..v)
     end)
 
-    -- Kamera sürekli takip toggle
-    local following = false
-    local followToggle = Controls.Toggle(right, "Follow Player", false, function(on)
-        following = on
-        if not on then
-            -- Toggle kapandığında kamerayı geri kendine döndür
-            local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                Camera.CameraSubject = LP.Character:FindFirstChildOfClass("Humanoid")
-                Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
-            end
-        end
-    end)
-
-    -- Tek seferlik View Tuşu
-    Controls.Button(right, "👁 View Once", function()
-        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = selectedPlayer.Character.HumanoidRootPart
-            Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
-            Camera.CameraSubject = hrp
+    -- Camera View Toggle
+   Controls.Toggle(right, "🎥 Camera View", false, function(on)
+    if on then
+        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+            notify("Camera Subject: "..selectedPlayer.Name)
         else
             notify("Player bulunamadı.")
         end
-    end)
-
-    -- Her adımda kamerayı güncelle
-    RunService.RenderStepped:Connect(function()
-        if following and selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = selectedPlayer.Character.HumanoidRootPart
-            Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+    else
+        -- Kamera tekrar sana döner
+        local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if myHum then
+            Camera.CameraSubject = myHum
         end
-    end)
-
+        notify("Camera eski haline döndü.")
+    end
+end)
     
 end
 
