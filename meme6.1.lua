@@ -651,13 +651,13 @@ do
     local g      = makeGroup(left)
     local gRight = makeGroup(right)
 
-    -- Player List
-  
     local selectedPlayer = nil
-    local camActive = false
-    local rainbowLabels = {}
+    local camActive      = false
+    local rainbowLabels  = {}
+    local btnRecords     = {}   -- { [plr]= {btn=..., stroke=...} }
+    local selectedBtn    = nil
 
-    -- Scrollable list
+    -- Scrollable list (Scanner tarzı)
     local playerList = Instance.new("ScrollingFrame")
     playerList.Size = UDim2.new(1,0,1,-0)
     playerList.Parent = left
@@ -666,12 +666,42 @@ do
     local listLayout = Instance.new("UIListLayout", playerList)
     listLayout.Padding = UDim.new(0,4)
 
+    -- tek yerden boyayan helper (theme ile uyumlu)
+    local function paintBtn(th, btn, stroke, isSelected)
+        if not btn or not btn.Parent then return end
+        btn.BackgroundColor3 = isSelected and th.AccentSoft or th.Hover
+        if stroke then stroke.Color = th.Stroke end
+        -- not: TextColor3'e dokunmuyoruz (rainbow akacak)
+    end
+
+    local function reapplyThemeForList()
+        for _,rec in pairs(btnRecords) do
+            paintBtn(CurrentTheme, rec.btn, rec.stroke, rec.btn == selectedBtn)
+        end
+    end
+
+    local function goToSelectedIfActive()
+        if not camActive then return end
+        if selectedPlayer and selectedPlayer.Character then
+            local hum = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+            local hrp = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hum and hrp then
+                Camera.CameraSubject = hum
+                Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+            end
+        end
+    end
+
     local function refreshPlayers()
+        -- temizle
         for _,child in ipairs(playerList:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
         end
         rainbowLabels = {}
+        btnRecords    = {}
+        selectedBtn   = nil  -- liste tazelendi, seçim görseli sıfırlansın
 
+        -- yeniden doldur
         for _,plr in ipairs(Players:GetPlayers()) do
             if plr ~= LP then
                 local btn = Instance.new("TextButton")
@@ -679,58 +709,61 @@ do
                 btn.Text = "👤 "..plr.Name
                 btn.Font = Enum.Font.GothamSemibold
                 btn.TextSize = 12
+                btn.AutoButtonColor = false
                 btn.Parent = playerList
-                btn.BackgroundColor3 = CurrentTheme.Hover
-                makeCorner(btn,6); makeStroke(btn,1,.1)
+                makeCorner(btn,6)
+                local st = makeStroke(btn,1,.1)
 
-                -- Rainbow için kaydet
+                -- rainbow ismi için kaydet
                 table.insert(rainbowLabels, btn)
+                btnRecords[plr] = { btn = btn, stroke = st }
 
+                -- theme updater: sadece BG + stroke (yazıya dokunma)
+                local key = "camlist_bg_"..tostring(plr.UserId)
+                registerThemeUpdater(key, function(th)
+                    paintBtn(th, btn, st, btn == selectedBtn)
+                end)
+
+                -- click -> seç, highlightla, kamera aktifse hemen git
                 btn.MouseButton1Click:Connect(function()
                     selectedPlayer = plr
+                    selectedBtn    = btn
                     notify("Seçildi: "..plr.Name)
-
-                    -- Eğer toggle ON ise hemen kamerayı geçir
-                    if camActive and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                        Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-                        Camera.CFrame = CFrame.new(
-                            selectedPlayer.Character.HumanoidRootPart.Position + Vector3.new(0,5,-10),
-                            selectedPlayer.Character.HumanoidRootPart.Position
-                        )
-                    end
+                    reapplyThemeForList()   -- highlight anında güncellensin
+                    goToSelectedIfActive()  -- Camera View ON ise anında geç
                 end)
             end
         end
+
+        -- liste ilk kez boyansın
+        reapplyThemeForList()
     end
 
     refreshPlayers()
     Players.PlayerAdded:Connect(refreshPlayers)
     Players.PlayerRemoving:Connect(refreshPlayers)
 
-    -- Rainbow effect updater
+    -- Rainbow akışı (sadece yazı rengi)
     RunService.RenderStepped:Connect(function()
-        local t = tick() * 0.3
+        local t = tick() * 0.35
         for i, lbl in ipairs(rainbowLabels) do
-            lbl.TextColor3 = Color3.fromHSV((t + i * 0.08) % 1, 1, 1)
+            if lbl and lbl.Parent then
+                lbl.TextColor3 = Color3.fromHSV((t + i * 0.08) % 1, 1, 1)
+            end
         end
     end)
 
-    -- Camera View Toggle
+    -- Camera View toggle (açıkken seçim değişirse direkt yeni hedefe gider)
     Controls.Toggle(right, "🎥 Camera View", false, function(on)
         camActive = on
         if on then
             if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-                Camera.CFrame = CFrame.new(
-                    selectedPlayer.Character.HumanoidRootPart.Position + Vector3.new(0,5,-10),
-                    selectedPlayer.Character.HumanoidRootPart.Position
-                )
+                goToSelectedIfActive()
                 notify("Camera kilitlendi: "..selectedPlayer.Name)
             else
                 notify("Player seçilmedi, listeden seç.")
             end
         else
-            -- Toggle kapatınca geri dön
             local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
             if myHum then
                 Camera.CameraSubject = myHum
