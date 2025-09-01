@@ -1392,6 +1392,245 @@ end
 
 ------------------
 ------------------------
+-- == EMOTE PACK FUNCTIONS ==
+
+-- 🎭 Default R15
+function features.ToggleDefault(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=507766666,Walk=507777826,Run=507767714,
+            Jump=507765000,Fall=507767968,Climb=507765644,Sit=507768133
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🧟 Zombie
+function features.ToggleZombie(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=616158929,Walk=616168032,Run=616163682,
+            Jump=616161997,Fall=616157476
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🥷 Ninja
+function features.ToggleNinja(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=656118852,Run=913376220,Jump=656117878,
+            Fall=656115606,Climb=656114359
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🧓 Elder
+function features.ToggleElder(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=845397899,Walk=845403856,Run=845386501,
+            Jump=845398858,Fall=845396048
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🧛 Vampire
+function features.ToggleVampire(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=1083445855,Walk=1083473930,Run=1083462077,
+            Jump=1083455352,Fall=1083443587
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🚀 Astronaut
+function features.ToggleAstronaut(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=891621366,Walk=891636393,Run=891636393,
+            Jump=891627522,Fall=891617961
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🏴‍☠️ Pirate
+function features.TogglePirate(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=750781874,Walk=750785693,Run=750783738,
+            Jump=750782230,Fall=750779899
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- ✨ Levitation
+function features.ToggleLevitation(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=1092126624,Walk=1092119346,Run=1092104628,
+            Jump=1092112482,Fall=1092107824
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🤪 Bubbly
+function features.ToggleBubbly(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=910004836,Walk=910034870,Run=910025107,
+            Jump=910016857,Fall=910001910
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🤖 Robot
+function features.ToggleRobot(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=616088211,Walk=616095330,Run=616091570,
+            Jump=616090535,Fall=616087089
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🧸 Toy
+function features.ToggleToy(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=782841498,Walk=782843345,Run=782842708,
+            Jump=782843869,Fall=782841498
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🦸 Superhero
+function features.ToggleSuperhero(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=1092151588,Walk=1092124167,Run=1092103267,
+            Jump=1092115546,Fall=1092109590
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🧙 Mage
+function features.ToggleMage(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=837021890,Walk=837023452,Run=837024127,
+            Jump=837025333,Fall=837026348
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
+
+-- 🐺 Werewolf
+function features.ToggleWerewolf(on)
+    if on then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        local anims = {
+            Idle=1083195517,Walk=1083216690,Run=1083218792,
+            Jump=1083223652,Fall=1083224036
+        }
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
+end
 
 
 ------------------------------
