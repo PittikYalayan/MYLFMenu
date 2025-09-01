@@ -787,156 +787,21 @@ do
     local left = newSection(pEmotes,"Packs")
     local gLeft = makeGroup(left)
 
-    local function applyPack(anims)
-        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            hum:LoadAnimation(anim):Play()
-        end
-    end
+Controls.Toggle(left,"🎭 Default R15",false,function(on) if features.ToggleDefault then features.ToggleDefault(on) end end)
+Controls.Toggle(left,"🧟 Zombie Pack",false,function(on) if features.ToggleZombie then features.ToggleZombie(on) end end)
+Controls.Toggle(left,"🥷 Ninja Pack",false,function(on) if features.ToggleNinja then features.ToggleNinja(on) end end)
+Controls.Toggle(left,"🧓 Elder Pack",false,function(on) if features.ToggleElder then features.ToggleElder(on) end end)
+Controls.Toggle(left,"🧛 Vampire Pack",false,function(on) if features.ToggleVampire then features.ToggleVampire(on) end end)
+Controls.Toggle(left,"🚀 Astronaut Pack",false,function(on) if features.ToggleAstronaut then features.ToggleAstronaut(on) end end)
+Controls.Toggle(left,"🏴‍☠️ Pirate Pack",false,function(on) if features.TogglePirate then features.TogglePirate(on) end end)
+Controls.Toggle(left,"✨ Levitation Pack",false,function(on) if features.ToggleLevitation then features.ToggleLevitation(on) end end)
+Controls.Toggle(left,"🤪 Bubbly Pack",false,function(on) if features.ToggleBubbly then features.ToggleBubbly(on) end end)
+Controls.Toggle(left,"🤖 Robot Pack",false,function(on) if features.ToggleRobot then features.ToggleRobot(on) end end)
+Controls.Toggle(left,"🧸 Toy Pack",false,function(on) if features.ToggleToy then features.ToggleToy(on) end end)
+Controls.Toggle(left,"🦸 Superhero Pack",false,function(on) if features.ToggleSuperhero then features.ToggleSuperhero(on) end end)
+Controls.Toggle(left,"🧙 Mage Pack",false,function(on) if features.ToggleMage then features.ToggleMage(on) end end)
+Controls.Toggle(left,"🐺 Werewolf Pack",false,function(on) if features.ToggleWerewolf then features.ToggleWerewolf(on) end end)
 
-    -- 🎭 Default R15
-    Controls.Toggle(gLeft,"🎭 Default R15",false,function(on)
-        if on then
-            applyPack({
-                Idle=507766666,Walk=507777826,Run=507767714,
-                Jump=507765000,Fall=507767968,Climb=507765644,
-                Sit=507768133
-            })
-        end
-    end)
-
-    -- 🧟 Zombie
-    Controls.Toggle(gLeft,"🧟 Zombie Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=616158929,Walk=616168032,Run=616163682,
-                Jump=616161997,Fall=616157476
-            })
-        end
-    end)
-
-    -- 🥷 Ninja
-    Controls.Toggle(gLeft,"🥷 Ninja Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=656118852,Walk=nil,Run=913376220,
-                Jump=656117878,Fall=656115606,Climb=656114359
-            })
-        end
-    end)
-
-    -- 🧓 Elder
-    Controls.Toggle(gLeft,"🧓 Elder Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=845397899,Walk=845403856,Run=845386501,
-                Jump=845398858,Fall=845396048
-            })
-        end
-    end)
-
-    -- 🧛 Vampire
-    Controls.Toggle(gLeft,"🧛 Vampire Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=1083445855,Walk=1083473930,Run=1083462077,
-                Jump=1083455352,Fall=1083443587
-            })
-        end
-    end)
-
-    -- 🚀 Astronaut
-    Controls.Toggle(gLeft,"🚀 Astronaut Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=891621366,Walk=891636393,Run=891636393,
-                Jump=891627522,Fall=891617961
-            })
-        end
-    end)
-
-    -- 🏴‍☠️ Pirate
-    Controls.Toggle(gLeft,"🏴‍☠️ Pirate Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=750781874,Walk=750785693,Run=750783738,
-                Jump=750782230,Fall=750779899
-            })
-        end
-    end)
-
-    -- ✨ Levitation
-    Controls.Toggle(gLeft,"✨ Levitation Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=1092126624,Walk=1092119346,Run=1092104628,
-                Jump=1092112482,Fall=1092107824
-            })
-        end
-    end)
-
-    -- 🤪 Bubbly
-    Controls.Toggle(gLeft,"🤪 Bubbly Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=910004836,Walk=910034870,Run=910025107,
-                Jump=910016857,Fall=910001910
-            })
-        end
-    end)
-
-    -- 🤖 Robot
-    Controls.Toggle(gLeft,"🤖 Robot Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=616088211,Walk=616095330,Run=616091570,
-                Jump=616090535,Fall=616087089
-            })
-        end
-    end)
-
-    -- 🧸 Toy
-    Controls.Toggle(gLeft,"🧸 Toy Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=782841498,Walk=782843345,Run=782842708,
-                Jump=782843869,Fall=782841498
-            })
-        end
-    end)
-
-    -- 🦸 Superhero
-    Controls.Toggle(gLeft,"🦸 Superhero Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=1092151588,Walk=1092124167,Run=1092103267,
-                Jump=1092115546,Fall=1092109590
-            })
-        end
-    end)
-
-    -- 🧙 Mage
-    Controls.Toggle(gLeft,"🧙 Mage Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=837021890,Walk=837023452,Run=837024127,
-                Jump=837025333,Fall=837026348
-            })
-        end
-    end)
-
-    -- 🐺 Werewolf
-    Controls.Toggle(gLeft,"🐺 Werewolf Pack",false,function(on)
-        if on then
-            applyPack({
-                Idle=1083195517,Walk=1083216690,Run=1083218792,
-                Jump=1083223652,Fall=1083224036
-            })
-        end
-    end)
 end
 
 
