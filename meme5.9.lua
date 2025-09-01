@@ -660,7 +660,6 @@ do
     playerList.Parent = left
     playerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
     playerList.ScrollBarThickness = 6
-
     local listLayout = Instance.new("UIListLayout", playerList)
     listLayout.Padding = UDim.new(0,4)
 
@@ -673,12 +672,20 @@ do
             if plr ~= LP then
                 local btn = Instance.new("TextButton")
                 btn.Size = UDim2.new(1,0,0,24)
-                btn.Text = "👤 "..plr.Name
+                btn.Text = "=====>"..plr.Name
                 btn.Font = Enum.Font.GothamSemibold
                 btn.TextSize = 12
                 btn.Parent = playerList
                 btn.BackgroundColor3 = CurrentTheme.Hover
-                makeCorner(btn,6); makeStroke(btn,1,.1)
+                makeCorner(btn,6)
+                local st = makeStroke(btn,1,.1)
+
+                -- Tema ile senkron
+                registerThemeUpdater("camlist_"..plr.Name, function(th)
+                    btn.TextColor3 = th.Text
+                    btn.BackgroundColor3 = th.Hover
+                    st.Color = th.Stroke
+                end)
 
                 btn.MouseButton1Click:Connect(function()
                     selectedPlayer = plr
@@ -688,7 +695,6 @@ do
         end
     end
 
-    -- İlk yükleme
     refreshPlayers()
     Players.PlayerAdded:Connect(refreshPlayers)
     Players.PlayerRemoving:Connect(refreshPlayers)
@@ -697,12 +703,18 @@ do
     Controls.Toggle(right, "🎥 Camera View", false, function(on)
         if on then
             if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                -- Toggle açıldığında anında kamera seçili player’a gider
                 Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+                Camera.CFrame = CFrame.new(
+                    selectedPlayer.Character.HumanoidRootPart.Position + Vector3.new(0,5,-10),
+                    selectedPlayer.Character.HumanoidRootPart.Position
+                )
                 notify("Camera kilitlendi: "..selectedPlayer.Name)
             else
                 notify("Player seçilmedi ya da bulunamadı.")
             end
         else
+            -- Toggle kapatınca geri dön
             local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
             if myHum then
                 Camera.CameraSubject = myHum
