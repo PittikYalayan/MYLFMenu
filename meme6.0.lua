@@ -652,7 +652,10 @@ do
     local gRight = makeGroup(right)
 
     -- Player List
-   local selectedPlayer = nil
+  
+    local selectedPlayer = nil
+    local camActive = false
+    local rainbowLabels = {}
 
     -- Scrollable list
     local playerList = Instance.new("ScrollingFrame")
@@ -667,29 +670,34 @@ do
         for _,child in ipairs(playerList:GetChildren()) do
             if child:IsA("TextButton") then child:Destroy() end
         end
+        rainbowLabels = {}
 
         for _,plr in ipairs(Players:GetPlayers()) do
             if plr ~= LP then
                 local btn = Instance.new("TextButton")
                 btn.Size = UDim2.new(1,0,0,24)
-                btn.Text = "=====>"..plr.Name
+                btn.Text = "👤 "..plr.Name
                 btn.Font = Enum.Font.GothamSemibold
                 btn.TextSize = 12
                 btn.Parent = playerList
                 btn.BackgroundColor3 = CurrentTheme.Hover
-                makeCorner(btn,6)
-                local st = makeStroke(btn,1,.1)
+                makeCorner(btn,6); makeStroke(btn,1,.1)
 
-                -- Tema ile senkron
-                registerThemeUpdater("camlist_"..plr.Name, function(th)
-                    btn.TextColor3 = th.Text
-                    btn.BackgroundColor3 = th.Hover
-                    st.Color = th.Stroke
-                end)
+                -- Rainbow için kaydet
+                table.insert(rainbowLabels, btn)
 
                 btn.MouseButton1Click:Connect(function()
                     selectedPlayer = plr
                     notify("Seçildi: "..plr.Name)
+
+                    -- Eğer toggle ON ise hemen kamerayı geçir
+                    if camActive and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                        Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+                        Camera.CFrame = CFrame.new(
+                            selectedPlayer.Character.HumanoidRootPart.Position + Vector3.new(0,5,-10),
+                            selectedPlayer.Character.HumanoidRootPart.Position
+                        )
+                    end
                 end)
             end
         end
@@ -699,11 +707,19 @@ do
     Players.PlayerAdded:Connect(refreshPlayers)
     Players.PlayerRemoving:Connect(refreshPlayers)
 
+    -- Rainbow effect updater
+    RunService.RenderStepped:Connect(function()
+        local t = tick() * 0.3
+        for i, lbl in ipairs(rainbowLabels) do
+            lbl.TextColor3 = Color3.fromHSV((t + i * 0.08) % 1, 1, 1)
+        end
+    end)
+
     -- Camera View Toggle
     Controls.Toggle(right, "🎥 Camera View", false, function(on)
+        camActive = on
         if on then
             if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                -- Toggle açıldığında anında kamera seçili player’a gider
                 Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
                 Camera.CFrame = CFrame.new(
                     selectedPlayer.Character.HumanoidRootPart.Position + Vector3.new(0,5,-10),
@@ -711,7 +727,7 @@ do
                 )
                 notify("Camera kilitlendi: "..selectedPlayer.Name)
             else
-                notify("Player seçilmedi ya da bulunamadı.")
+                notify("Player seçilmedi, listeden seç.")
             end
         else
             -- Toggle kapatınca geri dön
