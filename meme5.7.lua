@@ -645,8 +645,8 @@ end
 
 --== CAMERA VIEW ==--
 do
-     local left  = newSection(pCamView, "PlayerCam")
-    local right = newSection(pCamView, "TP Controls")
+     local left  = newSection(pCam, "PlayerCam")
+    local right = newSection(pCam, "TP Controls")
 
     local g      = makeGroup(left)
     local gRight = makeGroup(right)
