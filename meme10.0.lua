@@ -50,7 +50,7 @@ end
 
 --== EXTERNAL FEATURES (direct load) ==--
 -- === FEATURES ===
-local features   = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.3.5.lua"))()
+local features   = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.3.6.lua"))()
 
 
 assert(type(features)=="table","[MYLF] features1.1.5.lua tablo döndürmedi, en sona 'return M' ekle!")
@@ -482,6 +482,10 @@ do
 
     Controls.Toggle(left, "Silent Aim", false, function(on)
         if features.ToggleSilentAim then features.ToggleSilentAim(on) end
+    end)
+
+     Controls.Toggle(left, "Risk Silent Aim", false, function(on)
+        if features.ToggleRageMode then features.ToggleRageMode(on) end
     end)
 
     Controls.Toggle(left, "Magic Bullet (Fallback)", false, function(on)
