@@ -1394,214 +1394,185 @@ end
 ------------------------
 -- == EMOTE PACK FUNCTIONS ==
 -- == EMOTE PACK FUNCTIONS ==
--- == EMOTE PACK FUNCTIONS ==
-local connections = {}
+local currentPack = nil
 
-local function bindPack(packName, ids)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+local function applyPack(ids)
+    local char = Player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
     if not hum then return end
 
-    local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-    local tracks = {}
+    local animate = char:FindFirstChild("Animate")
+    if not animate then return end
 
-    for name,id in pairs(ids) do
-        local anim = Instance.new("Animation")
-        anim.AnimationId = "rbxassetid://"..id
-        tracks[name] = animator:LoadAnimation(anim)
+    -- Idle
+    if animate.idle then
+        if animate.idle.Animation1 then
+            animate.idle.Animation1.AnimationId = "rbxassetid://"..ids.Idle
+        end
+        if animate.idle.Animation2 then
+            animate.idle.Animation2.AnimationId = "rbxassetid://"..ids.Idle
+        end
     end
 
-    -- eski bağlantıları kopar
-    if connections[packName] then
-        for _,c in pairs(connections[packName]) do c:Disconnect() end
+    -- Walk
+    if animate.walk and animate.walk:FindFirstChild("WalkAnim") and ids.Walk then
+        animate.walk.WalkAnim.AnimationId = "rbxassetid://"..ids.Walk
     end
-    connections[packName] = {}
 
-    -- Running event → Idle / Walk / Run
-    table.insert(connections[packName], hum.Running:Connect(function(speed)
-        if speed < 0.1 and tracks.Idle then
-            for _,t in pairs(tracks) do t:Stop() end
-            tracks.Idle:Play()
-        elseif speed < 10 and tracks.Walk then
-            for _,t in pairs(tracks) do t:Stop() end
-            tracks.Walk:Play()
-        elseif tracks.Run then
-            for _,t in pairs(tracks) do t:Stop() end
-            tracks.Run:Play()
-        end
-    end))
+    -- Run
+    if animate.run and animate.run:FindFirstChild("RunAnim") and ids.Run then
+        animate.run.RunAnim.AnimationId = "rbxassetid://"..ids.Run
+    end
 
-    -- StateChanged → Jump / Fall
-    table.insert(connections[packName], hum.StateChanged:Connect(function(_,new)
-        if new == Enum.HumanoidStateType.Jumping and tracks.Jump then
-            for _,t in pairs(tracks) do t:Stop() end
-            tracks.Jump:Play()
-        elseif new == Enum.HumanoidStateType.Freefall and tracks.Fall then
-            for _,t in pairs(tracks) do t:Stop() end
-            tracks.Fall:Play()
-        end
-    end))
+    -- Jump
+    if animate.jump and animate.jump:FindFirstChild("JumpAnim") and ids.Jump then
+        animate.jump.JumpAnim.AnimationId = "rbxassetid://"..ids.Jump
+    end
+
+    -- Fall
+    if animate.fall and animate.fall:FindFirstChild("FallAnim") and ids.Fall then
+        animate.fall.FallAnim.AnimationId = "rbxassetid://"..ids.Fall
+    end
+
+    -- Climb
+    if animate.climb and animate.climb:FindFirstChild("ClimbAnim") and ids.Climb then
+        animate.climb.ClimbAnim.AnimationId = "rbxassetid://"..ids.Climb
+    end
+
+    -- Sit
+    if animate.sit and animate.sit:FindFirstChild("SitAnim") and ids.Sit then
+        animate.sit.SitAnim.AnimationId = "rbxassetid://"..ids.Sit
+    end
 end
 
-local function clearPack(packName)
-    if connections[packName] then
-        for _,c in pairs(connections[packName]) do c:Disconnect() end
-        connections[packName] = nil
+local function setPack(name, ids, on)
+    if on then
+        -- açık başka pack varsa kapat
+        if currentPack and currentPack ~= name then
+            features["Toggle"..currentPack](false)
+        end
+        currentPack = name
+        applyPack(ids)
+    else
+        if currentPack == name then
+            currentPack = nil
+        end
     end
 end
 
 -- 🎭 Default
 function features.ToggleDefault(on)
-    clearPack("Default")
-    if on then
-        bindPack("Default", {
-            Idle=507766666,Walk=507777826,Run=507767714,
-            Jump=507765000,Fall=507767968,Climb=507765644,Sit=507768133
-        })
-    end
+    setPack("Default", {
+        Idle=507766666,Walk=507777826,Run=507767714,
+        Jump=507765000,Fall=507767968,Climb=507765644,Sit=507768133
+    }, on)
 end
 
 -- 🧟 Zombie
 function features.ToggleZombie(on)
-    clearPack("Zombie")
-    if on then
-        bindPack("Zombie", {
-            Idle=616158929,Walk=616168032,Run=616163682,
-            Jump=616161997,Fall=616157476
-        })
-    end
+    setPack("Zombie", {
+        Idle=616158929,Walk=616168032,Run=616163682,
+        Jump=616161997,Fall=616157476
+    }, on)
 end
 
 -- 🥷 Ninja
 function features.ToggleNinja(on)
-    clearPack("Ninja")
-    if on then
-        bindPack("Ninja", {
-            Idle=656118852,Run=913376220,Jump=656117878,
-            Fall=656115606,Climb=656114359
-        })
-    end
+    setPack("Ninja", {
+        Idle=656118852,Run=913376220,Jump=656117878,
+        Fall=656115606,Climb=656114359
+    }, on)
 end
 
 -- 🧓 Elder
 function features.ToggleElder(on)
-    clearPack("Elder")
-    if on then
-        bindPack("Elder", {
-            Idle=845397899,Walk=845403856,Run=845386501,
-            Jump=845398858,Fall=845396048
-        })
-    end
+    setPack("Elder", {
+        Idle=845397899,Walk=845403856,Run=845386501,
+        Jump=845398858,Fall=845396048
+    }, on)
 end
 
 -- 🧛 Vampire
 function features.ToggleVampire(on)
-    clearPack("Vampire")
-    if on then
-        bindPack("Vampire", {
-            Idle=1083445855,Walk=1083473930,Run=1083462077,
-            Jump=1083455352,Fall=1083443587
-        })
-    end
+    setPack("Vampire", {
+        Idle=1083445855,Walk=1083473930,Run=1083462077,
+        Jump=1083455352,Fall=1083443587
+    }, on)
 end
 
 -- 🚀 Astronaut
 function features.ToggleAstronaut(on)
-    clearPack("Astronaut")
-    if on then
-        bindPack("Astronaut", {
-            Idle=891621366,Walk=891636393,Run=891636393,
-            Jump=891627522,Fall=891617961
-        })
-    end
+    setPack("Astronaut", {
+        Idle=891621366,Walk=891636393,Run=891636393,
+        Jump=891627522,Fall=891617961
+    }, on)
 end
 
 -- 🏴‍☠️ Pirate
 function features.TogglePirate(on)
-    clearPack("Pirate")
-    if on then
-        bindPack("Pirate", {
-            Idle=750781874,Walk=750785693,Run=750783738,
-            Jump=750782230,Fall=750779899
-        })
-    end
+    setPack("Pirate", {
+        Idle=750781874,Walk=750785693,Run=750783738,
+        Jump=750782230,Fall=750779899
+    }, on)
 end
 
 -- ✨ Levitation
 function features.ToggleLevitation(on)
-    clearPack("Levitation")
-    if on then
-        bindPack("Levitation", {
-            Idle=1092126624,Walk=1092119346,Run=1092104628,
-            Jump=1092112482,Fall=1092107824
-        })
-    end
+    setPack("Levitation", {
+        Idle=1092126624,Walk=1092119346,Run=1092104628,
+        Jump=1092112482,Fall=1092107824
+    }, on)
 end
 
 -- 🤪 Bubbly
 function features.ToggleBubbly(on)
-    clearPack("Bubbly")
-    if on then
-        bindPack("Bubbly", {
-            Idle=910004836,Walk=910034870,Run=910025107,
-            Jump=910016857,Fall=910001910
-        })
-    end
+    setPack("Bubbly", {
+        Idle=910004836,Walk=910034870,Run=910025107,
+        Jump=910016857,Fall=910001910
+    }, on)
 end
 
 -- 🤖 Robot
 function features.ToggleRobot(on)
-    clearPack("Robot")
-    if on then
-        bindPack("Robot", {
-            Idle=616088211,Walk=616095330,Run=616091570,
-            Jump=616090535,Fall=616087089
-        })
-    end
+    setPack("Robot", {
+        Idle=616088211,Walk=616095330,Run=616091570,
+        Jump=616090535,Fall=616087089
+    }, on)
 end
 
 -- 🧸 Toy
 function features.ToggleToy(on)
-    clearPack("Toy")
-    if on then
-        bindPack("Toy", {
-            Idle=782841498,Walk=782843345,Run=782842708,
-            Jump=782843869,Fall=782841498
-        })
-    end
+    setPack("Toy", {
+        Idle=782841498,Walk=782843345,Run=782842708,
+        Jump=782843869,Fall=782841498
+    }, on)
 end
 
 -- 🦸 Superhero
 function features.ToggleSuperhero(on)
-    clearPack("Superhero")
-    if on then
-        bindPack("Superhero", {
-            Idle=1092151588,Walk=1092124167,Run=1092103267,
-            Jump=1092115546,Fall=1092109590
-        })
-    end
+    setPack("Superhero", {
+        Idle=1092151588,Walk=1092124167,Run=1092103267,
+        Jump=1092115546,Fall=1092109590
+    }, on)
 end
 
 -- 🧙 Mage
 function features.ToggleMage(on)
-    clearPack("Mage")
-    if on then
-        bindPack("Mage", {
-            Idle=837021890,Walk=837023452,Run=837024127,
-            Jump=837025333,Fall=837026348
-        })
-    end
+    setPack("Mage", {
+        Idle=837021890,Walk=837023452,Run=837024127,
+        Jump=837025333,Fall=837026348
+    }, on)
 end
 
 -- 🐺 Werewolf
 function features.ToggleWerewolf(on)
-    clearPack("Werewolf")
-    if on then
-        bindPack("Werewolf", {
-            Idle=1083195517,Walk=1083216690,Run=1083218792,
-            Jump=1083223652,Fall=1083224036
-        })
-    end
+    setPack("Werewolf", {
+        Idle=1083195517,Walk=1083216690,Run=1083218792,
+        Jump=1083223652,Fall=1083224036
+    }, on)
 end
+
 
 
 ------------------------------
