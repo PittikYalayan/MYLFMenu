@@ -785,10 +785,11 @@ end
 -- == EMOTES PAGE ==
 do
     local left  = newSection(pEmotes,"Emotes")
-    local right = newSection(pEmotes,"Emotes")
+    local right = newSection(pEmotes,"Emotes+")
 
-    local gright = makeGroup(right)
+    
     local gLeft = makeGroup(left)
+    local g = makeGroup(right)
 
 Controls.Toggle(left,"🎭 Default R15",false,function(on) if features.ToggleDefault then features.ToggleDefault(on) end end)
 Controls.Toggle(left,"🧟 Zombie Pack",false,function(on) if features.ToggleZombie then features.ToggleZombie(on) end end)
