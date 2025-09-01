@@ -50,7 +50,7 @@ end
 
 --== EXTERNAL FEATURES (direct load) ==--
 -- === FEATURES ===
-local features   = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.3.0.lua"))()
+local features   = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.3.1.lua"))()
 
 
 assert(type(features)=="table","[MYLF] features1.1.5.lua tablo döndürmedi, en sona 'return M' ekle!")
@@ -804,6 +804,7 @@ Controls.Toggle(right,"🧸 Toy Pack",false,function(on) if features.ToggleToy t
 Controls.Toggle(right,"🦸 Superhero Pack",false,function(on) if features.ToggleSuperhero then features.ToggleSuperhero(on) end end)
 Controls.Toggle(right,"🧙 Mage Pack",false,function(on) if features.ToggleMage then features.ToggleMage(on) end end)
 Controls.Toggle(right,"🐺 Werewolf Pack",false,function(on) if features.ToggleWerewolf then features.ToggleWerewolf(on) end end)  
+Controls.Toggle(right,"🐺 Moderation Pack",false,function(on) if features.ToggleModeration then features.ToggleModeration(on) end end)  
 
 end
 
