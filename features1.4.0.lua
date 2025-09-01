@@ -517,21 +517,7 @@ local function EnsureHook()
 end
 
 --// Mouse.Hit spoof (bazı oyunlar bunu kullanır)
-local mt = getrawmetatable(game)
-setreadonly(mt,false)
-local oldIndex = mt.__index
-mt.__index = newcclosure(function(t,k)
-    if SilentAimActive and (t == UIS or tostring(t) == "Mouse") then
-        if k == "Hit" or k == "Target" then
-            local head = RageModeActive and getAnyHead() or getClosestHead()
-            if head then
-                return CFrame.new(head.Position)
-            end
-        end
-    end
-    return oldIndex(t,k)
-end)
-setreadonly(mt,true)
+
 
 --// Toggle Fonksiyonları
 function ToggleSilentAim(on)
