@@ -1393,166 +1393,152 @@ end
 ------------------
 ------------------------
 -- == EMOTE PACK FUNCTIONS ==
+local function applyCorePack(pack)
+    local char = Player.Character or Player.CharacterAdded:Wait()
+    local animate = char:FindFirstChild("Animate")
+    if not animate then return end
+    for slot,id in pairs(pack) do
+        local anim = animate:FindFirstChild(slot, true)
+        if anim and anim:IsA("Animation") then
+            anim.AnimationId = "rbxassetid://"..id
+        end
+    end
+end
 
---local AnimEvent = RS:WaitForChild("AnimationEvent") -- exploit kısmı (çalışmaz halde)
-
+-- Tüm Paketler
 local Packs = {
     Default = {
-        Idle=507766666,Walk=507777826,Run=507767714,
-        Jump=507765000,Fall=507767968,Climb=507765644,Sit=507768133
+        Idle = 507766666,
+        WalkAnim = 507777826,
+        RunAnim = 507767714,
+        JumpAnim = 507765000,
+        FallAnim = 507767968,
+        ClimbAnim = 507765644,
+        Swim = 507784897,
+        SwimIdle = 507785072,
+        SitAnim = 2506281703
     },
     Zombie = {
-        Idle=616158929,Walk=616168032,Run=616163682,
-        Jump=616161997,Fall=616157476
+        Idle = 616158929,
+        WalkAnim = 616168032,
+        RunAnim = 616163682,
+        JumpAnim = 616161997,
+        FallAnim = 616157476,
+        ClimbAnim = 616156119
     },
     Ninja = {
-        Idle=656118852,Run=913376220,Jump=656117878,
-        Fall=656115606,Climb=656114359
+        Idle = 656118852,
+        WalkAnim = 656121766,
+        RunAnim = 913376220,
+        JumpAnim = 656117878,
+        FallAnim = 656115606,
+        ClimbAnim = 656114359
     },
     Elder = {
-        Idle=845397899,Walk=845403856,Run=845386501,
-        Jump=845398858,Fall=845396048
+        Idle = 845397899,
+        WalkAnim = 845403856,
+        RunAnim = 845386501,
+        JumpAnim = 845398858,
+        FallAnim = 845396048,
+        ClimbAnim = 845392038
     },
     Vampire = {
-        Idle=1083445855,Walk=1083473930,Run=1083462077,
-        Jump=1083455352,Fall=1083443587
+        Idle = 1083456611,
+        WalkAnim = 1083473930,
+        RunAnim = 1083462077,
+        JumpAnim = 1083455794,
+        FallAnim = 1083450166,
+        ClimbAnim = 1083443587
     },
     Astronaut = {
-        Idle=891621366,Walk=891636393,Run=891636393,
-        Jump=891627522,Fall=891617961
+        Idle = 891621366,
+        WalkAnim = 891633237,
+        RunAnim = 891636393,
+        JumpAnim = 891627522,
+        FallAnim = 891617961,
+        ClimbAnim = 891609353
     },
     Pirate = {
-        Idle=750781874,Walk=750785693,Run=750783738,
-        Jump=750782230,Fall=750779899
-    },
-    Levitation = {
-        Idle=1092126624,Walk=1092119346,Run=1092104628,
-        Jump=1092112482,Fall=1092107824
-    },
-    Bubbly = {
-        Idle=910004836,Walk=910034870,Run=910025107,
-        Jump=910016857,Fall=910001910
-    },
-    Robot = {
-        Idle=616088211,Walk=616095330,Run=616091570,
-        Jump=616090535,Fall=616087089
-    },
-    Toy = {
-        Idle=782841498,Walk=782843345,Run=782842708,
-        Jump=782843869,Fall=782841498
+        Idle = 750781874,
+        WalkAnim = 750785693,
+        RunAnim = 750783738,
+        JumpAnim = 750782230,
+        FallAnim = 750780242,
+        ClimbAnim = 750779899
     },
     Superhero = {
-        Idle=1092151588,Walk=1092124167,Run=1092103267,
-        Jump=1092115546,Fall=1092109590
+        Idle = 619521748,
+        WalkAnim = 619512767,
+        RunAnim = 619529340,
+        JumpAnim = 619522053,
+        FallAnim = 619527841,
+        ClimbAnim = 619525520
+    },
+    Bubbly = {
+        Idle = 910004836,
+        WalkAnim = 910034870,
+        RunAnim = 910025107,
+        JumpAnim = 910016857,
+        FallAnim = 910001910,
+        ClimbAnim = 910009958
+    },
+    Levitation = {
+        Idle = 313762630,
+        WalkAnim = 313762620,
+        RunAnim = 313762682,
+        JumpAnim = 313762568,
+        FallAnim = 313762645,
+        ClimbAnim = 313762694
     },
     Mage = {
-        Idle=837021890,Walk=837023452,Run=837024127,
-        Jump=837025333,Fall=837026348
+        Idle = 707742142,
+        WalkAnim = 707897309,
+        RunAnim = 707861613,
+        JumpAnim = 707853694,
+        FallAnim = 707829716,
+        ClimbAnim = 707826056
+    },
+    Robot = {
+        Idle = 616088211,
+        WalkAnim = 616095330,
+        RunAnim = 616091570,
+        JumpAnim = 616090535,
+        FallAnim = 616087089,
+        ClimbAnim = 616086996
+    },
+    Toy = {
+        Idle = 782841498,
+        WalkAnim = 782843345,
+        RunAnim = 782842708,
+        JumpAnim = 782847020,
+        FallAnim = 782846423,
+        ClimbAnim = 782845736
     },
     Werewolf = {
-        Idle=1083195517,Walk=1083216690,Run=1083218792,
-        Jump=1083223652,Fall=1083224036
+        Idle = 1083195517,
+        WalkAnim = 1083178339,
+        RunAnim = 1083216690,
+        JumpAnim = 1083218792,
+        FallAnim = 1083182000,
+        ClimbAnim = 1083182000
     }
 }
 
--- ✅ Toggle fonksiyonları (çalışmaz, sadece mantık gösterir)
-function features.ToggleDefault(on)
-    if on then
-        AnimEvent:FireServer("Default") 
-        print("Default pack seçildi (Idle="..Packs.Default.Idle..")")
-    end
-end
-
-function features.ToggleZombie(on)
-    if on then
-        AnimEvent:FireServer("Zombie") 
-        print("Zombie pack seçildi (Idle="..Packs.Zombie.Idle..")")
-    end
-end
-
-function features.ToggleNinja(on)
-    if on then
-        AnimEvent:FireServer("Ninja") 
-        print("Ninja pack seçildi (Idle="..Packs.Ninja.Idle..")")
-    end
-end
-
-function features.ToggleElder(on)
-    if on then
-         AnimEvent:FireServer("Elder")
-        print("Elder pack seçildi (Idle="..Packs.Elder.Idle..")")
-    end
-end
-
-function features.ToggleVampire(on)
-    if on then
-        AnimEvent:FireServer("Vampire") 
-        print("Vampire pack seçildi (Idle="..Packs.Vampire.Idle..")")
-    end
-end
-
-function features.ToggleAstronaut(on)
-    if on then
-        AnimEvent:FireServer("Astronaut") 
-        print("Astronaut pack seçildi (Idle="..Packs.Astronaut.Idle..")")
-    end
-end
-
-function features.TogglePirate(on)
-    if on then
-         AnimEvent:FireServer("Pirate") 
-        print("Pirate pack seçildi (Idle="..Packs.Pirate.Idle..")")
-    end
-end
-
-function features.ToggleLevitation(on)
-    if on then
-         AnimEvent:FireServer("Levitation")
-        print("Levitation pack seçildi (Idle="..Packs.Levitation.Idle..")")
-    end
-end
-
-function features.ToggleBubbly(on)
-    if on then
-        AnimEvent:FireServer("Bubbly")
-        print("Bubbly pack seçildi (Idle="..Packs.Bubbly.Idle..")")
-    end
-end
-
-function features.ToggleRobot(on)
-    if on then
-        AnimEvent:FireServer("Robot") 
-        print("Robot pack seçildi (Idle="..Packs.Robot.Idle..")")
-    end
-end
-
-function features.ToggleToy(on)
-    if on then
-        AnimEvent:FireServer("Toy")
-        print("Toy pack seçildi (Idle="..Packs.Toy.Idle..")")
-    end
-end
-
-function features.ToggleSuperhero(on)
-    if on then
-        AnimEvent:FireServer("Superhero") 
-        print("Superhero pack seçildi (Idle="..Packs.Superhero.Idle..")")
-    end
-end
-
-function features.ToggleMage(on)
-    if on then
-         AnimEvent:FireServer("Mage")
-        print("Mage pack seçildi (Idle="..Packs.Mage.Idle..")")
-    end
-end
-
-function features.ToggleWerewolf(on)
-    if on then
-        AnimEvent:FireServer("Werewolf") 
-        print("Werewolf pack seçildi (Idle="..Packs.Werewolf.Idle..")")
-    end
-end
+-- Toggle Fonksiyonları
+function features.ToggleDefault(on) if on then applyCorePack(Packs.Default) end end
+function features.ToggleZombie(on) if on then applyCorePack(Packs.Zombie) end end
+function features.ToggleNinja(on) if on then applyCorePack(Packs.Ninja) end end
+function features.ToggleElder(on) if on then applyCorePack(Packs.Elder) end end
+function features.ToggleVampire(on) if on then applyCorePack(Packs.Vampire) end end
+function features.ToggleAstronaut(on) if on then applyCorePack(Packs.Astronaut) end end
+function features.TogglePirate(on) if on then applyCorePack(Packs.Pirate) end end
+function features.ToggleSuperhero(on) if on then applyCorePack(Packs.Superhero) end end
+function features.ToggleBubbly(on) if on then applyCorePack(Packs.Bubbly) end end
+function features.ToggleLevitation(on) if on then applyCorePack(Packs.Levitation) end end
+function features.ToggleMage(on) if on then applyCorePack(Packs.Mage) end end
+function features.ToggleRobot(on) if on then applyCorePack(Packs.Robot) end end
+function features.ToggleToy(on) if on then applyCorePack(Packs.Toy) end end
+function features.ToggleWerewolf(on) if on then applyCorePack(Packs.Werewolf) end end
 
 ------------------------------
 ------------------------------
