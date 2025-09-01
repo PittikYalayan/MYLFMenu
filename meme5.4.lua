@@ -360,20 +360,22 @@ local pAim      = newPage("AIM")     -- ✅ yeni
 local pESP      = newPage("ESP")     -- ✅ yeni
 local pPlayer   = newPage("Player")
 local pTeleport = newPage("Teleport") 
+local pCam = newPage("CameraTP") 
 local pVisuals  = newPage("Visuals")
 local pHUD      = newPage("HUD")
 local pScanner  = newPage("Scanner")
 local pSettings = newPage("Settings")
 
-local tFeatures = makeTabButton("Features","🛠")
-local tAim      = makeTabButton("AIM","🎯")
-local tESPBtn   = makeTabButton("ESP","👁️")
-local tPlayer   = makeTabButton("Player","👤")
-local tTeleport = makeTabButton("Teleport","👤")
-local tVisuals  = makeTabButton("Visuals","🎨")
-local tHUD      = makeTabButton("HUD","📊")
-local tScanner  = makeTabButton("Scanner","🔍")
-local tSettings = makeTabButton("Settings","⚙️")
+local tFeatures = makeTabButton("Features","")
+local tAim      = makeTabButton("AIM","")
+local tESPBtn   = makeTabButton("ESP","👁")
+local tPlayer   = makeTabButton("Player","")
+local tTeleport = makeTabButton("Teleport","")
+local tCam      = makeTabButton("CameraTP","")
+local tVisuals  = makeTabButton("Visuals","")
+local tHUD      = makeTabButton("HUD","")
+local tScanner  = makeTabButton("Scanner","")
+local tSettings = makeTabButton("Settings","")
 
 local function showPage(name) for k,f in pairs(Pages) do f.Visible=(k==name) end end
 showPage("Features")
@@ -382,6 +384,7 @@ tAim.MouseButton1Click:Connect(function() showPage("AIM") end)
 tESPBtn.MouseButton1Click:Connect(function() showPage("ESP") end)
 tPlayer.MouseButton1Click:Connect(function() showPage("Player") end)
 tTeleport.MouseButton1Click:Connect(function() showPage("Teleport") end)
+tCam.MouseButton1Click:Connect(function() showPage("CameraTP") end)
 tVisuals.MouseButton1Click:Connect(function() showPage("Visuals") end)
 tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
 tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
@@ -638,6 +641,71 @@ do
     Options.tpZ:OnChanged(function(val) if features then features._tpZ = val end try(features and features.SetTeleportOffset, (features and features._tpX) or 0, (features and features._tpY) or 0, val) end)
 
 end
+
+
+--== CAMERA VIEW ==--
+do
+    local left  = newSection(pCam("CamView"), "Select Player")
+    local right = newSection(pCam["CamView"], "Controls")
+
+    local g      = makeGroup(left)
+    local gRight = makeGroup(right)
+
+    -- Player List Dropdown
+    local playerNames = {}
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LP then
+            table.insert(playerNames, plr.Name)
+        end
+    end
+
+    local selectedPlayer = nil
+    local dd = Controls.Dropdown(left, "Player List", playerNames, 1, function(v)
+        selectedPlayer = Players:FindFirstChild(v)
+    end)
+
+    -- Kamera sürekli takip toggle
+    local following = false
+    local followToggle = Controls.Toggle(right, "Follow Player", false, function(on)
+        following = on
+        if not on then
+            -- Toggle kapandığında kamerayı geri kendine döndür
+            local hrp = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                Camera.CameraSubject = LP.Character:FindFirstChildOfClass("Humanoid")
+                Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+            end
+        end
+    end)
+
+    -- Tek seferlik View Tuşu
+    Controls.Button(right, "👁 View Once", function()
+        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = selectedPlayer.Character.HumanoidRootPart
+            Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+            Camera.CameraSubject = hrp
+        else
+            notify("Player bulunamadı.")
+        end
+    end)
+
+    -- Her adımda kamerayı güncelle
+    RunService.RenderStepped:Connect(function()
+        if following and selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = selectedPlayer.Character.HumanoidRootPart
+            Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+        end
+    end)
+
+    
+end
+
+
+
+
+
+
+
 
 --== VISUALS ==--
 do
