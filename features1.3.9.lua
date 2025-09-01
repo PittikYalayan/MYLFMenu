@@ -487,17 +487,7 @@ local function PatchArgs(args, headPos)
 end
 
 --// Raycast hook
-local oldRaycast = workspace.Raycast
 
-workspace.Raycast = function(origin, direction, params)
-    if SilentAimActive then
-        local head = RageModeActive and getAnyHead() or getClosestHead()
-        if head then
-            direction = (head.Position - origin).Unit * direction.Magnitude
-        end
-    end
-    return oldRaycast(workspace, origin, direction, params)
-end
 
 
 
