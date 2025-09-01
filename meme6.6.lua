@@ -784,33 +784,22 @@ end
 
 -- == EMOTES PAGE ==
 do
-
+    local left  = newSection(pEmotes,"Categories")
+    local right = newSection(pEmotes,"Animations")
+    
     local gLeft  = makeGroup(left)
     local gRight = makeGroup(right)
 
-    -- kayıt: kategori -> group
-    local categoryGroups = {}
+    local activeGroup = nil -- şu an açık olan
 
-    -- helper: kategori oluştur
-    local function addCategory(name, icon, anims)
-        -- sağdaki group
+    -- helper: kategori ekle
+    local function newEmoteCategory(name, icon, anims)
         local grp = makeGroup(right)
         grp.Visible = false
-        categoryGroups[name] = grp
 
-        -- buton sola
-        Controls.Button(gLeft, icon.." "..name, function()
-            -- önce tüm grupları kapat
-            for _,cg in pairs(categoryGroups) do
-                cg.Visible = false
-            end
-            -- seçilen kategori toggle
-            grp.Visible = true
-        end)
-
-        -- anim butonlarını sağdaki gruba doldur
+        -- animasyon butonlarını sağ gruba koy
         for _,a in ipairs(anims) do
-            Controls.Button(grp, "🎬 "..a[1], function()
+            Controls.Button(grp, icon.." "..a[1], function()
                 if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
                     game.ReplicatedStorage.PlayEmote:FireServer(a[2])
                 else
@@ -824,10 +813,27 @@ do
                 end
             end)
         end
+
+        -- sol tarafa toggle koy
+        Controls.Toggle(gLeft, icon.." "..name, false, function(on)
+            if on then
+                -- varsa diğerini kapat
+                if activeGroup and activeGroup ~= grp then
+                    activeGroup.Visible = false
+                end
+                grp.Visible = true
+                activeGroup = grp
+            else
+                grp.Visible = false
+                if activeGroup == grp then
+                    activeGroup = nil
+                end
+            end
+        end)
     end
 
-    -- Kategoriler
-    addCategory("Default R15","🎭",{
+    -- 🎭 Default R15
+    newEmoteCategory("Default R15","🎭",{
         {"Idle",507766666},{"Walk",507777826},{"Run",507767714},
         {"Jump",507765000},{"Fall",507767968},{"Climb",507765644},
         {"Sit",507768133},{"Wave",507770239},{"Point",507770818},
@@ -835,35 +841,43 @@ do
         {"Dance1",507771019},{"Dance2",507776043},{"Dance3",507777268}
     })
 
-    addCategory("Zombie Pack","🧟",{
+    -- 🧟 Zombie
+    newEmoteCategory("Zombie Pack","🧟",{
         {"Walk",616168032},{"Idle",616158929},{"Jump",616161997},
         {"Fall",616157476},{"Run",616163682}
     })
 
-    addCategory("Ninja Pack","🥷",{
+    -- 🥷 Ninja
+    newEmoteCategory("Ninja Pack","🥷",{
         {"Run",913376220},{"Jump",656117878},{"Idle",656118852},
         {"Fall",656115606},{"Climb",656114359}
     })
 
-    addCategory("Elder Pack","🧓",{
+    -- 🧓 Elder
+    newEmoteCategory("Elder Pack","🧓",{
         {"Idle",845397899},{"Walk",845403856},{"Run",845386501},
         {"Jump",845398858},{"Fall",845396048}
     })
 
-    addCategory("Vampire Pack","🧛",{
+    -- 🧛 Vampire
+    newEmoteCategory("Vampire Pack","🧛",{
         {"Idle",1083445855},{"Walk",1083473930},{"Run",1083462077},
         {"Jump",1083455352},{"Fall",1083443587}
     })
 
-    addCategory("Astronaut Pack","🚀",{
+    -- 🚀 Astronaut
+    newEmoteCategory("Astronaut Pack","🚀",{
         {"Idle",891621366},{"Walk",891636393},{"Run",891636393},
         {"Jump",891627522},{"Fall",891617961}
     })
 
-    addCategory("Pirate Pack","🏴‍☠️",{
+    -- 🏴‍☠️ Pirate
+    newEmoteCategory("Pirate Pack","🏴‍☠️",{
         {"Idle",750781874},{"Walk",750785693},{"Run",750783738},
         {"Jump",750782230},{"Fall",750779899}
     })
+
+    
 end
 
 
