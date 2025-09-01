@@ -652,37 +652,64 @@ do
     local gRight = makeGroup(right)
 
     -- Player List
-    local playerNames = {}
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LP then
-            table.insert(playerNames, plr.Name)
+   local selectedPlayer = nil
+
+    -- Scrollable list
+    local playerList = Instance.new("ScrollingFrame")
+    playerList.Size = UDim2.new(1,0,1,-0)
+    playerList.Parent = left
+    playerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    playerList.ScrollBarThickness = 6
+
+    local listLayout = Instance.new("UIListLayout", playerList)
+    listLayout.Padding = UDim.new(0,4)
+
+    local function refreshPlayers()
+        for _,child in ipairs(playerList:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
+        end
+
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LP then
+                local btn = Instance.new("TextButton")
+                btn.Size = UDim2.new(1,0,0,24)
+                btn.Text = "👤 "..plr.Name
+                btn.Font = Enum.Font.GothamSemibold
+                btn.TextSize = 12
+                btn.Parent = playerList
+                btn.BackgroundColor3 = CurrentTheme.Hover
+                makeCorner(btn,6); makeStroke(btn,1,.1)
+
+                btn.MouseButton1Click:Connect(function()
+                    selectedPlayer = plr
+                    notify("Seçildi: "..plr.Name)
+                end)
+            end
         end
     end
 
-    local selectedPlayer = nil
-    Controls.Dropdown(left, "Player List", playerNames, 1, function(v)
-        selectedPlayer = Players:FindFirstChild(v)
-        notify("Seçilen player: "..v)
-    end)
+    -- İlk yükleme
+    refreshPlayers()
+    Players.PlayerAdded:Connect(refreshPlayers)
+    Players.PlayerRemoving:Connect(refreshPlayers)
 
     -- Camera View Toggle
-   Controls.Toggle(right, "🎥 Camera View", false, function(on)
-    if on then
-        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
-            Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-            notify("Camera Subject: "..selectedPlayer.Name)
+    Controls.Toggle(right, "🎥 Camera View", false, function(on)
+        if on then
+            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
+                Camera.CameraSubject = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+                notify("Camera kilitlendi: "..selectedPlayer.Name)
+            else
+                notify("Player seçilmedi ya da bulunamadı.")
+            end
         else
-            notify("Player bulunamadı.")
+            local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+            if myHum then
+                Camera.CameraSubject = myHum
+            end
+            notify("Camera eski haline döndü.")
         end
-    else
-        -- Kamera tekrar sana döner
-        local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-        if myHum then
-            Camera.CameraSubject = myHum
-        end
-        notify("Camera eski haline döndü.")
-    end
-end)
+    end)
     
 end
 
