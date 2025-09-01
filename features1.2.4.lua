@@ -1394,255 +1394,234 @@ end
 ------------------------
 -- == EMOTE PACK FUNCTIONS ==
 
+-- == EMOTE PACK FUNCTIONS ==
+local function bindPack(hum, packName, ids)
+    local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
+
+    -- bağlantılar için storage
+    hum["__"..packName.."Conn"] = {}
+
+    local tracks = {}
+    for name,id in pairs(ids) do
+        local anim = Instance.new("Animation")
+        anim.AnimationId = "rbxassetid://"..id
+        tracks[name] = animator:LoadAnimation(anim)
+    end
+
+    -- Running → Idle / Walk / Run
+    table.insert(hum["__"..packName.."Conn"], hum.Running:Connect(function(speed)
+        if speed < 0.1 and tracks.Idle then
+            for _,t in pairs(tracks) do t:Stop() end
+            tracks.Idle:Play()
+        elseif speed < 10 and tracks.Walk then
+            for _,t in pairs(tracks) do t:Stop() end
+            tracks.Walk:Play()
+        elseif tracks.Run then
+            for _,t in pairs(tracks) do t:Stop() end
+            tracks.Run:Play()
+        end
+    end))
+
+    -- StateChanged → Jump / Fall
+    table.insert(hum["__"..packName.."Conn"], hum.StateChanged:Connect(function(_,new)
+        if new == Enum.HumanoidStateType.Jumping and tracks.Jump then
+            for _,t in pairs(tracks) do t:Stop() end
+            tracks.Jump:Play()
+        elseif new == Enum.HumanoidStateType.Freefall and tracks.Fall then
+            for _,t in pairs(tracks) do t:Stop() end
+            tracks.Fall:Play()
+        end
+    end))
+end
+
+local function clearPack(hum, packName)
+    if hum["__"..packName.."Conn"] then
+        for _,c in pairs(hum["__"..packName.."Conn"]) do
+            c:Disconnect()
+        end
+        hum["__"..packName.."Conn"] = nil
+    end
+end
+
 -- 🎭 Default R15
 function features.ToggleDefault(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Default")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Default",{
             Idle=507766666,Walk=507777826,Run=507767714,
             Jump=507765000,Fall=507767968,Climb=507765644,Sit=507768133
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🧟 Zombie
 function features.ToggleZombie(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Zombie")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Zombie",{
             Idle=616158929,Walk=616168032,Run=616163682,
             Jump=616161997,Fall=616157476
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🥷 Ninja
 function features.ToggleNinja(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Ninja")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Ninja",{
             Idle=656118852,Run=913376220,Jump=656117878,
             Fall=656115606,Climb=656114359
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🧓 Elder
 function features.ToggleElder(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Elder")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Elder",{
             Idle=845397899,Walk=845403856,Run=845386501,
             Jump=845398858,Fall=845396048
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🧛 Vampire
 function features.ToggleVampire(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Vampire")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Vampire",{
             Idle=1083445855,Walk=1083473930,Run=1083462077,
             Jump=1083455352,Fall=1083443587
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🚀 Astronaut
 function features.ToggleAstronaut(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Astronaut")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Astronaut",{
             Idle=891621366,Walk=891636393,Run=891636393,
             Jump=891627522,Fall=891617961
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🏴‍☠️ Pirate
 function features.TogglePirate(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Pirate")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Pirate",{
             Idle=750781874,Walk=750785693,Run=750783738,
             Jump=750782230,Fall=750779899
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- ✨ Levitation
 function features.ToggleLevitation(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Levitation")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Levitation",{
             Idle=1092126624,Walk=1092119346,Run=1092104628,
             Jump=1092112482,Fall=1092107824
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🤪 Bubbly
 function features.ToggleBubbly(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Bubbly")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Bubbly",{
             Idle=910004836,Walk=910034870,Run=910025107,
             Jump=910016857,Fall=910001910
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🤖 Robot
 function features.ToggleRobot(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Robot")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Robot",{
             Idle=616088211,Walk=616095330,Run=616091570,
             Jump=616090535,Fall=616087089
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🧸 Toy
 function features.ToggleToy(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Toy")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Toy",{
             Idle=782841498,Walk=782843345,Run=782842708,
             Jump=782843869,Fall=782841498
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🦸 Superhero
 function features.ToggleSuperhero(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Superhero")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Superhero",{
             Idle=1092151588,Walk=1092124167,Run=1092103267,
             Jump=1092115546,Fall=1092109590
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🧙 Mage
 function features.ToggleMage(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Mage")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Mage",{
             Idle=837021890,Walk=837023452,Run=837024127,
             Jump=837025333,Fall=837026348
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
 -- 🐺 Werewolf
 function features.ToggleWerewolf(on)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    clearPack(hum,"Werewolf")
     if on then
-        local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-        if not hum then return end
-        local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-        local anims = {
+        bindPack(hum,"Werewolf",{
             Idle=1083195517,Walk=1083216690,Run=1083218792,
             Jump=1083223652,Fall=1083224036
-        }
-        for _,id in pairs(anims) do
-            local anim = Instance.new("Animation")
-            anim.AnimationId = "rbxassetid://"..id
-            animator:LoadAnimation(anim):Play()
-        end
+        })
     end
 end
 
