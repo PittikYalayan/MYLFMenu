@@ -419,34 +419,61 @@ function features.ToggleAimbot(on)
 end
 
 ----------------------------------------------------------------
--- Silent Aim Hard Hook İskeleti
+-- Silent Aim Gelişmiş
 ----------------------------------------------------------------
-
 features._silentAimOn = false
 features._nc_hooked   = false
 
--- Tek PatchArgs fonksiyonu (bir kere tanımla!)
-local function PatchArgs(args, headPos)
+-- En iyi hedefi bul
+local function getBestTarget()
+    local cam = Workspace.CurrentCamera
+    local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+
+    local best, bestDist = nil, math.huge
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player and plr.Team ~= Player.Team and plr.Character then
+            local head = plr.Character:FindFirstChild("Head")
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+            if head and hum and hum.Health > 0 then
+                local d = (myHRP.Position - head.Position).Magnitude
+                if d < 300 then
+                    local ray = Ray.new(cam.CFrame.Position, (head.Position - cam.CFrame.Position).Unit * d)
+                    local hit = Workspace:FindPartOnRay(ray, Player.Character, false, true)
+                    if not hit or hit:IsDescendantOf(plr.Character) then
+                        local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
+                        if onScreen then
+                            local mousePos = UIS:GetMouseLocation()
+                            local fov = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                            if fov < 150 and fov < bestDist then
+                                best = head
+                                bestDist = fov
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+-- Argüman patch
+local function PatchArgs(args, targetPos)
     for i,v in ipairs(args) do
-        local t = typeof(v)
-
-        -- Basit oyun → tek Vector3 pozisyon
-        if t == "Vector3" then
-            args[i] = headPos
-
-        -- Zor oyun (FPS) → CFrame ray veya yön bilgisi
-        elseif t == "CFrame" then
-            args[i] = CFrame.new(v.Position, headPos)
-
-        -- Orta seviye oyun → table içindeki alanları patchle
-        elseif t == "table" then
+        if typeof(v) == "Vector3" then
+            args[i] = targetPos
+        elseif typeof(v) == "CFrame" then
+            args[i] = CFrame.new(v.Position, targetPos)
+        elseif typeof(v) == "table" then
             for k,val in pairs(v) do
-                local key = tostring(k):lower()
-                if key:find("pos") or key:find("hit") or key:find("target") then
+                local lk = tostring(k):lower()
+                if lk:find("pos") or lk:find("hit") or lk:find("target") then
                     if typeof(val) == "Vector3" then
-                        v[k] = headPos
+                        v[k] = targetPos
                     elseif typeof(val) == "CFrame" then
-                        v[k] = CFrame.new(val.Position, headPos)
+                        v[k] = CFrame.new(val.Position, targetPos)
                     end
                 end
             end
@@ -455,9 +482,7 @@ local function PatchArgs(args, headPos)
     return args
 end
 
-----------------------------------------------------------------
--- Hook: __namecall (Silent Aim buraya entegre edilir)
-----------------------------------------------------------------
+-- Hook
 local function EnsureSilentAimHook()
     if features._nc_hooked then return end
     features._nc_hooked = true
@@ -465,41 +490,28 @@ local function EnsureSilentAimHook()
     local old
     old = hookmetamethod(game, "__namecall", function(self, ...)
         local method = getnamecallmethod()
-        local args   = {...}
+        local args = {...}
 
         if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
         and (method == "FireServer" or method == "InvokeServer") then
 
             if features._silentAimOn then
-                local head = getClosestVisibleHead()
-                if head then
-                    local patched = PatchArgs(args, head.Position)
-                    return old(self, unpack(patched)) -- 🔥 exploit tetikleme noktası
+                local target = getBestTarget()
+                if target then
+                    args = PatchArgs(args, target.Position)
+                    return old(self, unpack(args))
                 end
             end
         end
-
         return old(self, ...)
     end)
 end
 
-----------------------------------------------------------------
--- Toggle Fonksiyonu
-----------------------------------------------------------------
+-- Toggle
 function features.ToggleSilentAim(on)
     features._silentAimOn = not not on
     EnsureSilentAimHook()
-    print("Silent Aim: "..(on and "ON" or "OFF"))
-end
-
-
-----------------------------------------------------------------
--- Toggle Fonksiyonu
-----------------------------------------------------------------
-function features.ToggleSilentAim(on)
-    features._silentAimOn = not not on
-    EnsureSilentAimHook()
-    print("Silent Aim: "..(on and "ON" or "OFF"))
+    notify("Silent Aim: "..(on and "ON" or "OFF"))
 end
 
 
