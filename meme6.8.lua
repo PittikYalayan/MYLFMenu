@@ -790,7 +790,8 @@ do
     local gLeft  = makeGroup(left)
     local gRight = makeGroup(right)
 
-    -- Paketler
+       local activeDropdown = nil
+
     local EmotePacks = {
         ["🎭 Default R15"] = {
             {"Idle",507766666},{"Walk",507777826},{"Run",507767714},
@@ -825,24 +826,22 @@ do
         }
     }
 
-    local currentDropdown = nil
-
-    -- Sol tarafa paket toggle koy
+    -- her kategori için ayrı toggle
     for packName, anims in pairs(EmotePacks) do
         Controls.Toggle(gLeft, packName, false, function(on)
             if on then
-                -- önce varsa sağdaki dropdown'u kapat
-                if currentDropdown then
-                    currentDropdown.Visible = false
+                -- önce varsa eski dropdown’u kaldır
+                if activeDropdown then
+                    activeDropdown.Visible = false
                 end
 
-                -- sağda yeni dropdown yarat
-                local names = {}
+                -- yeni dropdown yarat
+                local animNames = {}
                 for _,a in ipairs(anims) do
-                    table.insert(names, a[1])
+                    table.insert(animNames, a[1])
                 end
 
-                local dropdown = Controls.Dropdown(gRight, "Choose Animation", names, 1, function(selected)
+                local dropdown = Controls.Dropdown(gRight, "Choose Animation", animNames, 1, function(selected)
                     for _,a in ipairs(anims) do
                         if a[1] == selected then
                             if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
@@ -861,17 +860,15 @@ do
                 end)
 
                 dropdown.Visible = true
-                currentDropdown = dropdown
+                activeDropdown = dropdown
             else
-                if currentDropdown then
-                    currentDropdown.Visible = false
-                    currentDropdown = nil
+                if activeDropdown then
+                    activeDropdown.Visible = false
+                    activeDropdown = nil
                 end
             end
         end)
     end
-
-    
 end
 
 
