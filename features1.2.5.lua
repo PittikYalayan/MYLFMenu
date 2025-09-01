@@ -1394,7 +1394,7 @@ end
 ------------------------
 -- == EMOTE PACK FUNCTIONS ==
 
-local AnimEvent = RS:WaitForChild("AnimationEvent") -- exploit kısmı (çalışmaz halde)
+--local AnimEvent = RS:WaitForChild("AnimationEvent") -- exploit kısmı (çalışmaz halde)
 
 local Packs = {
     Default = {
