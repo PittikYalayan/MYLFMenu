@@ -355,39 +355,42 @@ RunService.RenderStepped:Connect(function(dt)
 end)
 
 --== PAGES ==--
-local pFeatures = newPage("Features")
+
 local pAim      = newPage("AIM")     -- ✅ yeni
 local pESP      = newPage("ESP")     -- ✅ yeni
 local pPlayer   = newPage("Player")
 local pTeleport = newPage("Teleport") 
 local pCam = newPage("CameraTP") 
+local pScanner  = newPage("Scanner")
 local pVisuals  = newPage("Visuals")
 local pHUD      = newPage("HUD")
-local pScanner  = newPage("Scanner")
+local pFeatures = newPage("Features")
 local pSettings = newPage("Settings")
 
-local tFeatures = makeTabButton("Features","")
-local tAim      = makeTabButton("AIM","")
+
+local tAim      = makeTabButton("AimBot","👑")
 local tESPBtn   = makeTabButton("ESP","👁")
-local tPlayer   = makeTabButton("Player","")
-local tTeleport = makeTabButton("Teleport","")
-local tCam      = makeTabButton("CameraTP","")
-local tVisuals  = makeTabButton("Visuals","")
-local tHUD      = makeTabButton("HUD","")
-local tScanner  = makeTabButton("Scanner","")
-local tSettings = makeTabButton("Settings","")
+local tPlayer   = makeTabButton("Player","🧍")
+local tTeleport = makeTabButton("TeleP","🔥")
+local tCam      = makeTabButton("C View","🌀")
+local tScanner  = makeTabButton("Scanner","🔮")
+local tVisuals  = makeTabButton("CrossH","🕹")
+local tHUD      = makeTabButton("MenuHud","🛰")
+local tFeatures = makeTabButton("Features","💥")
+local tSettings = makeTabButton("Settings","⚙️")
 
 local function showPage(name) for k,f in pairs(Pages) do f.Visible=(k==name) end end
 showPage("Features")
-tFeatures.MouseButton1Click:Connect(function() showPage("Features") end)
+
 tAim.MouseButton1Click:Connect(function() showPage("AIM") end)
 tESPBtn.MouseButton1Click:Connect(function() showPage("ESP") end)
 tPlayer.MouseButton1Click:Connect(function() showPage("Player") end)
 tTeleport.MouseButton1Click:Connect(function() showPage("Teleport") end)
 tCam.MouseButton1Click:Connect(function() showPage("CameraTP") end)
+tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
 tVisuals.MouseButton1Click:Connect(function() showPage("Visuals") end)
 tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
-tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
+tFeatures.MouseButton1Click:Connect(function() showPage("Features") end)
 tSettings.MouseButton1Click:Connect(function() showPage("Settings") end)
 
 --== FEATURES (artık sadece HUD/Quick + bağlama şimi) ==--
