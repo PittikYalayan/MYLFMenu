@@ -1465,7 +1465,7 @@ end
 
 function features.ToggleZombie(on)
     if on then
-        -AnimEvent:FireServer("Zombie") 
+        AnimEvent:FireServer("Zombie") 
         print("Zombie pack seçildi (Idle="..Packs.Zombie.Idle..")")
     end
 end
