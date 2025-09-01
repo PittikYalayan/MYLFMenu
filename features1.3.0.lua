@@ -1483,14 +1483,6 @@ local Packs = {
         FallAnim = 910001910,
         ClimbAnim = 910009958
     },
-    Levitation = {
-        Idle = 313762630,
-        WalkAnim = 313762620,
-        RunAnim = 313762682,
-        JumpAnim = 313762568,
-        FallAnim = 313762645,
-        ClimbAnim = 313762694
-    },
     Mage = {
         Idle = 707742142,
         WalkAnim = 707897309,
@@ -1522,15 +1514,8 @@ local Packs = {
         JumpAnim = 1083218792,
         FallAnim = 1083182000,
         ClimbAnim = 1083182000
-    },
-    Moderation = {
-        Idle = 113960239878969,
-        WalkAnim = 126516908191316,
-        RunAnim = 135431679610889,
-        JumpAnim = 99563839802389,
-        SwimAnim = 88425531063616,
-        ClimbAnim = 110511723808460
     }
+
 }
 
 -- Toggle Fonksiyonları
@@ -1543,12 +1528,11 @@ function features.ToggleAstronaut(on) if on then applyCorePack(Packs.Astronaut) 
 function features.TogglePirate(on) if on then applyCorePack(Packs.Pirate) end end
 function features.ToggleSuperhero(on) if on then applyCorePack(Packs.Superhero) end end
 function features.ToggleBubbly(on) if on then applyCorePack(Packs.Bubbly) end end
-function features.ToggleLevitation(on) if on then applyCorePack(Packs.Levitation) end end
 function features.ToggleMage(on) if on then applyCorePack(Packs.Mage) end end
 function features.ToggleRobot(on) if on then applyCorePack(Packs.Robot) end end
 function features.ToggleToy(on) if on then applyCorePack(Packs.Toy) end end
 function features.ToggleWerewolf(on) if on then applyCorePack(Packs.Werewolf) end end
-function features.ToggleModeration(on) if on then applyCorePack(Packs.Moderation) end end
+
 
 ------------------------------
 ------------------------------
