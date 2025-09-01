@@ -1393,23 +1393,31 @@ end
 ------------------
 ------------------------
 -- == EMOTE PACK FUNCTIONS ==
-
 -- == EMOTE PACK FUNCTIONS ==
-local function bindPack(hum, packName, ids)
+local connections = {}
+
+local function bindPack(packName, ids)
+    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+
     local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
-
-    -- bağlantılar için storage
-    hum["__"..packName.."Conn"] = {}
-
     local tracks = {}
+
+    -- Animasyon tracklerini yükle
     for name,id in pairs(ids) do
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://"..id
         tracks[name] = animator:LoadAnimation(anim)
     end
 
-    -- Running → Idle / Walk / Run
-    table.insert(hum["__"..packName.."Conn"], hum.Running:Connect(function(speed)
+    -- eski bağlantıları kopar
+    if connections[packName] then
+        for _,c in pairs(connections[packName]) do c:Disconnect() end
+    end
+    connections[packName] = {}
+
+    -- Running event → Idle / Walk / Run
+    table.insert(connections[packName], hum.Running:Connect(function(speed)
         if speed < 0.1 and tracks.Idle then
             for _,t in pairs(tracks) do t:Stop() end
             tracks.Idle:Play()
@@ -1422,8 +1430,8 @@ local function bindPack(hum, packName, ids)
         end
     end))
 
-    -- StateChanged → Jump / Fall
-    table.insert(hum["__"..packName.."Conn"], hum.StateChanged:Connect(function(_,new)
+    -- StateChanged event → Jump / Fall
+    table.insert(connections[packName], hum.StateChanged:Connect(function(_,new)
         if new == Enum.HumanoidStateType.Jumping and tracks.Jump then
             for _,t in pairs(tracks) do t:Stop() end
             tracks.Jump:Play()
@@ -1434,22 +1442,18 @@ local function bindPack(hum, packName, ids)
     end))
 end
 
-local function clearPack(hum, packName)
-    if hum["__"..packName.."Conn"] then
-        for _,c in pairs(hum["__"..packName.."Conn"]) do
-            c:Disconnect()
-        end
-        hum["__"..packName.."Conn"] = nil
+local function clearPack(packName)
+    if connections[packName] then
+        for _,c in pairs(connections[packName]) do c:Disconnect() end
+        connections[packName] = nil
     end
 end
 
 -- 🎭 Default R15
 function features.ToggleDefault(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Default")
+    clearPack("Default")
     if on then
-        bindPack(hum,"Default",{
+        bindPack("Default", {
             Idle=507766666,Walk=507777826,Run=507767714,
             Jump=507765000,Fall=507767968,Climb=507765644,Sit=507768133
         })
@@ -1458,11 +1462,9 @@ end
 
 -- 🧟 Zombie
 function features.ToggleZombie(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Zombie")
+    clearPack("Zombie")
     if on then
-        bindPack(hum,"Zombie",{
+        bindPack("Zombie", {
             Idle=616158929,Walk=616168032,Run=616163682,
             Jump=616161997,Fall=616157476
         })
@@ -1471,11 +1473,9 @@ end
 
 -- 🥷 Ninja
 function features.ToggleNinja(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Ninja")
+    clearPack("Ninja")
     if on then
-        bindPack(hum,"Ninja",{
+        bindPack("Ninja", {
             Idle=656118852,Run=913376220,Jump=656117878,
             Fall=656115606,Climb=656114359
         })
@@ -1484,11 +1484,9 @@ end
 
 -- 🧓 Elder
 function features.ToggleElder(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Elder")
+    clearPack("Elder")
     if on then
-        bindPack(hum,"Elder",{
+        bindPack("Elder", {
             Idle=845397899,Walk=845403856,Run=845386501,
             Jump=845398858,Fall=845396048
         })
@@ -1497,11 +1495,9 @@ end
 
 -- 🧛 Vampire
 function features.ToggleVampire(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Vampire")
+    clearPack("Vampire")
     if on then
-        bindPack(hum,"Vampire",{
+        bindPack("Vampire", {
             Idle=1083445855,Walk=1083473930,Run=1083462077,
             Jump=1083455352,Fall=1083443587
         })
@@ -1510,11 +1506,9 @@ end
 
 -- 🚀 Astronaut
 function features.ToggleAstronaut(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Astronaut")
+    clearPack("Astronaut")
     if on then
-        bindPack(hum,"Astronaut",{
+        bindPack("Astronaut", {
             Idle=891621366,Walk=891636393,Run=891636393,
             Jump=891627522,Fall=891617961
         })
@@ -1523,11 +1517,9 @@ end
 
 -- 🏴‍☠️ Pirate
 function features.TogglePirate(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Pirate")
+    clearPack("Pirate")
     if on then
-        bindPack(hum,"Pirate",{
+        bindPack("Pirate", {
             Idle=750781874,Walk=750785693,Run=750783738,
             Jump=750782230,Fall=750779899
         })
@@ -1536,11 +1528,9 @@ end
 
 -- ✨ Levitation
 function features.ToggleLevitation(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Levitation")
+    clearPack("Levitation")
     if on then
-        bindPack(hum,"Levitation",{
+        bindPack("Levitation", {
             Idle=1092126624,Walk=1092119346,Run=1092104628,
             Jump=1092112482,Fall=1092107824
         })
@@ -1549,11 +1539,9 @@ end
 
 -- 🤪 Bubbly
 function features.ToggleBubbly(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Bubbly")
+    clearPack("Bubbly")
     if on then
-        bindPack(hum,"Bubbly",{
+        bindPack("Bubbly", {
             Idle=910004836,Walk=910034870,Run=910025107,
             Jump=910016857,Fall=910001910
         })
@@ -1562,11 +1550,9 @@ end
 
 -- 🤖 Robot
 function features.ToggleRobot(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Robot")
+    clearPack("Robot")
     if on then
-        bindPack(hum,"Robot",{
+        bindPack("Robot", {
             Idle=616088211,Walk=616095330,Run=616091570,
             Jump=616090535,Fall=616087089
         })
@@ -1575,11 +1561,9 @@ end
 
 -- 🧸 Toy
 function features.ToggleToy(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Toy")
+    clearPack("Toy")
     if on then
-        bindPack(hum,"Toy",{
+        bindPack("Toy", {
             Idle=782841498,Walk=782843345,Run=782842708,
             Jump=782843869,Fall=782841498
         })
@@ -1588,11 +1572,9 @@ end
 
 -- 🦸 Superhero
 function features.ToggleSuperhero(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Superhero")
+    clearPack("Superhero")
     if on then
-        bindPack(hum,"Superhero",{
+        bindPack("Superhero", {
             Idle=1092151588,Walk=1092124167,Run=1092103267,
             Jump=1092115546,Fall=1092109590
         })
@@ -1601,11 +1583,9 @@ end
 
 -- 🧙 Mage
 function features.ToggleMage(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Mage")
+    clearPack("Mage")
     if on then
-        bindPack(hum,"Mage",{
+        bindPack("Mage", {
             Idle=837021890,Walk=837023452,Run=837024127,
             Jump=837025333,Fall=837026348
         })
@@ -1614,11 +1594,9 @@ end
 
 -- 🐺 Werewolf
 function features.ToggleWerewolf(on)
-    local hum = Player.Character and Player.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    clearPack(hum,"Werewolf")
+    clearPack("Werewolf")
     if on then
-        bindPack(hum,"Werewolf",{
+        bindPack("Werewolf", {
             Idle=1083195517,Walk=1083216690,Run=1083218792,
             Jump=1083223652,Fall=1083224036
         })
