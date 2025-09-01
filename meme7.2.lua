@@ -784,224 +784,157 @@ end
 
 -- == EMOTES PAGE ==
 do
-    local left  = newSection(pEmotes,"Categories")
-    local right = newSection(pEmotes,"Animations")
-    
-    local gLeft  = makeGroup(left)
-    local gRight = makeGroup(right)
+    local left = newSection(pEmotes,"Packs")
+    local gLeft = makeGroup(left)
 
-  local activeDropdown = nil
+    local function applyPack(anims)
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        for _,id in pairs(anims) do
+            local anim = Instance.new("Animation")
+            anim.AnimationId = "rbxassetid://"..id
+            hum:LoadAnimation(anim):Play()
+        end
+    end
 
     -- 🎭 Default R15
-    Controls.Toggle(gLeft, "🎭 Default R15", false, function(on)
+    Controls.Toggle(gLeft,"🎭 Default R15",false,function(on)
         if on then
-            if activeDropdown then activeDropdown.Visible = false end
-            local dropdown = Controls.Dropdown(gRight, "Default Animations",
-                {"Idle","Walk","Run","Jump","Fall","Climb","Sit","Wave","Point","Laugh","Cheer","Dance1","Dance2","Dance3"},
-                1,
-                function(selected)
-                    local ids = {
-                        Idle=507766666,Walk=507777826,Run=507767714,
-                        Jump=507765000,Fall=507767968,Climb=507765644,
-                        Sit=507768133,Wave=507770239,Point=507770818,
-                        Laugh=507770453,Cheer=507770677,
-                        Dance1=507771019,Dance2=507776043,Dance3=507777268
-                    }
-                    local animId = ids[selected]
-                    if animId then
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            local anim = Instance.new("Animation")
-                            anim.AnimationId = "rbxassetid://"..animId
-                            hum:LoadAnimation(anim):Play()
-                        end
-                    end
-                end
-            )
-            dropdown.Visible = true
-            activeDropdown = dropdown
-        else
-            if activeDropdown then activeDropdown.Visible = false end
+            applyPack({
+                Idle=507766666,Walk=507777826,Run=507767714,
+                Jump=507765000,Fall=507767968,Climb=507765644,
+                Sit=507768133
+            })
         end
     end)
 
-    -- 🧟 Zombie Pack
-    Controls.Toggle(gLeft, "🧟 Zombie Pack", false, function(on)
+    -- 🧟 Zombie
+    Controls.Toggle(gLeft,"🧟 Zombie Pack",false,function(on)
         if on then
-            if activeDropdown then activeDropdown.Visible = false end
-            local dropdown = Controls.Dropdown(gRight, "Zombie Animations",
-                {"Walk","Idle","Jump","Fall","Run"},
-                1,
-                function(selected)
-                    local ids = {
-                        Walk=616168032,Idle=616158929,
-                        Jump=616161997,Fall=616157476,Run=616163682
-                    }
-                    local animId = ids[selected]
-                    if animId then
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            local anim = Instance.new("Animation")
-                            anim.AnimationId = "rbxassetid://"..animId
-                            hum:LoadAnimation(anim):Play()
-                        end
-                    end
-                end
-            )
-            dropdown.Visible = true
-            activeDropdown = dropdown
-        else
-            if activeDropdown then activeDropdown.Visible = false end
+            applyPack({
+                Idle=616158929,Walk=616168032,Run=616163682,
+                Jump=616161997,Fall=616157476
+            })
         end
     end)
 
-    -- 🥷 Ninja Pack
-    Controls.Toggle(gLeft, "🥷 Ninja Pack", false, function(on)
+    -- 🥷 Ninja
+    Controls.Toggle(gLeft,"🥷 Ninja Pack",false,function(on)
         if on then
-            if activeDropdown then activeDropdown.Visible = false end
-            local dropdown = Controls.Dropdown(gRight, "Ninja Animations",
-                {"Run","Jump","Idle","Fall","Climb"},
-                1,
-                function(selected)
-                    local ids = {
-                        Run=913376220,Jump=656117878,
-                        Idle=656118852,Fall=656115606,Climb=656114359
-                    }
-                    local animId = ids[selected]
-                    if animId then
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            local anim = Instance.new("Animation")
-                            anim.AnimationId = "rbxassetid://"..animId
-                            hum:LoadAnimation(anim):Play()
-                        end
-                    end
-                end
-            )
-            dropdown.Visible = true
-            activeDropdown = dropdown
-        else
-            if activeDropdown then activeDropdown.Visible = false end
+            applyPack({
+                Idle=656118852,Walk=nil,Run=913376220,
+                Jump=656117878,Fall=656115606,Climb=656114359
+            })
         end
     end)
 
-    -- 🧓 Elder Pack
-    Controls.Toggle(gLeft, "🧓 Elder Pack", false, function(on)
+    -- 🧓 Elder
+    Controls.Toggle(gLeft,"🧓 Elder Pack",false,function(on)
         if on then
-            if activeDropdown then activeDropdown.Visible = false end
-            local dropdown = Controls.Dropdown(gRight, "Elder Animations",
-                {"Idle","Walk","Run","Jump","Fall"},
-                1,
-                function(selected)
-                    local ids = {
-                        Idle=845397899,Walk=845403856,Run=845386501,
-                        Jump=845398858,Fall=845396048
-                    }
-                    local animId = ids[selected]
-                    if animId then
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            local anim = Instance.new("Animation")
-                            anim.AnimationId = "rbxassetid://"..animId
-                            hum:LoadAnimation(anim):Play()
-                        end
-                    end
-                end
-            )
-            dropdown.Visible = true
-            activeDropdown = dropdown
-        else
-            if activeDropdown then activeDropdown.Visible = false end
+            applyPack({
+                Idle=845397899,Walk=845403856,Run=845386501,
+                Jump=845398858,Fall=845396048
+            })
         end
     end)
 
-    -- 🧛 Vampire Pack
-    Controls.Toggle(gLeft, "🧛 Vampire Pack", false, function(on)
+    -- 🧛 Vampire
+    Controls.Toggle(gLeft,"🧛 Vampire Pack",false,function(on)
         if on then
-            if activeDropdown then activeDropdown.Visible = false end
-            local dropdown = Controls.Dropdown(gRight, "Vampire Animations",
-                {"Idle","Walk","Run","Jump","Fall"},
-                1,
-                function(selected)
-                    local ids = {
-                        Idle=1083445855,Walk=1083473930,Run=1083462077,
-                        Jump=1083455352,Fall=1083443587
-                    }
-                    local animId = ids[selected]
-                    if animId then
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            local anim = Instance.new("Animation")
-                            anim.AnimationId = "rbxassetid://"..animId
-                            hum:LoadAnimation(anim):Play()
-                        end
-                    end
-                end
-            )
-            dropdown.Visible = true
-            activeDropdown = dropdown
-        else
-            if activeDropdown then activeDropdown.Visible = false end
+            applyPack({
+                Idle=1083445855,Walk=1083473930,Run=1083462077,
+                Jump=1083455352,Fall=1083443587
+            })
         end
     end)
 
-    -- 🚀 Astronaut Pack
-    Controls.Toggle(gLeft, "🚀 Astronaut Pack", false, function(on)
+    -- 🚀 Astronaut
+    Controls.Toggle(gLeft,"🚀 Astronaut Pack",false,function(on)
         if on then
-            if activeDropdown then activeDropdown.Visible = false end
-            local dropdown = Controls.Dropdown(gRight, "Astronaut Animations",
-                {"Idle","Walk","Run","Jump","Fall"},
-                1,
-                function(selected)
-                    local ids = {
-                        Idle=891621366,Walk=891636393,Run=891636393,
-                        Jump=891627522,Fall=891617961
-                    }
-                    local animId = ids[selected]
-                    if animId then
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            local anim = Instance.new("Animation")
-                            anim.AnimationId = "rbxassetid://"..animId
-                            hum:LoadAnimation(anim):Play()
-                        end
-                    end
-                end
-            )
-            dropdown.Visible = true
-            activeDropdown = dropdown
-        else
-            if activeDropdown then activeDropdown.Visible = false end
+            applyPack({
+                Idle=891621366,Walk=891636393,Run=891636393,
+                Jump=891627522,Fall=891617961
+            })
         end
     end)
 
-    -- 🏴‍☠️ Pirate Pack
-    Controls.Toggle(gLeft, "🏴‍☠️ Pirate Pack", false, function(on)
+    -- 🏴‍☠️ Pirate
+    Controls.Toggle(gLeft,"🏴‍☠️ Pirate Pack",false,function(on)
         if on then
-            if activeDropdown then activeDropdown.Visible = false end
-            local dropdown = Controls.Dropdown(gRight, "Pirate Animations",
-                {"Idle","Walk","Run","Jump","Fall"},
-                1,
-                function(selected)
-                    local ids = {
-                        Idle=750781874,Walk=750785693,Run=750783738,
-                        Jump=750782230,Fall=750779899
-                    }
-                    local animId = ids[selected]
-                    if animId then
-                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                        if hum then
-                            local anim = Instance.new("Animation")
-                            anim.AnimationId = "rbxassetid://"..animId
-                            hum:LoadAnimation(anim):Play()
-                        end
-                    end
-                end
-            )
-            dropdown.Visible = true
-            activeDropdown = dropdown
-        else
-            if activeDropdown then activeDropdown.Visible = false end
+            applyPack({
+                Idle=750781874,Walk=750785693,Run=750783738,
+                Jump=750782230,Fall=750779899
+            })
+        end
+    end)
+
+    -- ✨ Levitation
+    Controls.Toggle(gLeft,"✨ Levitation Pack",false,function(on)
+        if on then
+            applyPack({
+                Idle=1092126624,Walk=1092119346,Run=1092104628,
+                Jump=1092112482,Fall=1092107824
+            })
+        end
+    end)
+
+    -- 🤪 Bubbly
+    Controls.Toggle(gLeft,"🤪 Bubbly Pack",false,function(on)
+        if on then
+            applyPack({
+                Idle=910004836,Walk=910034870,Run=910025107,
+                Jump=910016857,Fall=910001910
+            })
+        end
+    end)
+
+    -- 🤖 Robot
+    Controls.Toggle(gLeft,"🤖 Robot Pack",false,function(on)
+        if on then
+            applyPack({
+                Idle=616088211,Walk=616095330,Run=616091570,
+                Jump=616090535,Fall=616087089
+            })
+        end
+    end)
+
+    -- 🧸 Toy
+    Controls.Toggle(gLeft,"🧸 Toy Pack",false,function(on)
+        if on then
+            applyPack({
+                Idle=782841498,Walk=782843345,Run=782842708,
+                Jump=782843869,Fall=782841498
+            })
+        end
+    end)
+
+    -- 🦸 Superhero
+    Controls.Toggle(gLeft,"🦸 Superhero Pack",false,function(on)
+        if on then
+            applyPack({
+                Idle=1092151588,Walk=1092124167,Run=1092103267,
+                Jump=1092115546,Fall=1092109590
+            })
+        end
+    end)
+
+    -- 🧙 Mage
+    Controls.Toggle(gLeft,"🧙 Mage Pack",false,function(on)
+        if on then
+            applyPack({
+                Idle=837021890,Walk=837023452,Run=837024127,
+                Jump=837025333,Fall=837026348
+            })
+        end
+    end)
+
+    -- 🐺 Werewolf
+    Controls.Toggle(gLeft,"🐺 Werewolf Pack",false,function(on)
+        if on then
+            applyPack({
+                Idle=1083195517,Walk=1083216690,Run=1083218792,
+                Jump=1083223652,Fall=1083224036
+            })
         end
     end)
 end
