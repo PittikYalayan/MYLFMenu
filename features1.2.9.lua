@@ -1467,12 +1467,13 @@ local Packs = {
         ClimbAnim = 750779899
     },
     Superhero = {
-        Idle = 619521748,
-        WalkAnim = 619512767,
-        RunAnim = 619529340,
-        JumpAnim = 619522053,
-        FallAnim = 619527841,
-        ClimbAnim = 619525520
+        Idle = 619528125,
+        WalkAnim = 619529601,
+        RunAnim = 619528716,
+        JumpAnim = 619528412,
+        FallAnim = 619527817,
+        ClimbAnim = 619527470,
+        SwimAnim = 619529095
     },
     Bubbly = {
         Idle = 910004836,
