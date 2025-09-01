@@ -1514,6 +1514,14 @@ local Packs = {
         JumpAnim = 1083218792,
         FallAnim = 1083182000,
         ClimbAnim = 1083182000
+    },
+        Moderation = {
+        Idle = 113960239878969,
+        WalkAnim = 126516908191316,
+        RunAnim = 135431679610889,
+        JumpAnim = 99563839802389,
+        SwimAnim = 88425531063616,
+        ClimbAnim = 110511723808460
     }
 
 }
@@ -1532,7 +1540,7 @@ function features.ToggleMage(on) if on then applyCorePack(Packs.Mage) end end
 function features.ToggleRobot(on) if on then applyCorePack(Packs.Robot) end end
 function features.ToggleToy(on) if on then applyCorePack(Packs.Toy) end end
 function features.ToggleWerewolf(on) if on then applyCorePack(Packs.Werewolf) end end
-
+function features.ToggleModeration(on) if on then applyCorePack(Packs.Moderation) end end
 
 ------------------------------
 ------------------------------
