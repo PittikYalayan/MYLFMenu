@@ -360,7 +360,8 @@ local pAim      = newPage("AIM")     -- ✅ yeni
 local pESP      = newPage("ESP")     -- ✅ yeni
 local pPlayer   = newPage("Player")
 local pTeleport = newPage("Teleport") 
-local pCam = newPage("CameraTP") 
+local pCam      = newPage("CameraTP") 
+local pEmotes   = newPage("Emotes")
 local pScanner  = newPage("Scanner")
 local pVisuals  = newPage("Visuals")
 local pHUD      = newPage("HUD")
@@ -373,6 +374,7 @@ local tESPBtn   = makeTabButton("ESP","👁")
 local tPlayer   = makeTabButton("Player","🧍")
 local tTeleport = makeTabButton("TeleP","🔥")
 local tCam      = makeTabButton("C View","🌀")
+local tEmotes   = makeTabButton("Emotes","🏴‍☠️")
 local tScanner  = makeTabButton("Scanner","🔮")
 local tVisuals  = makeTabButton("CrossH","🕹")
 local tHUD      = makeTabButton("MenuHud","🛰")
@@ -387,6 +389,7 @@ tESPBtn.MouseButton1Click:Connect(function() showPage("ESP") end)
 tPlayer.MouseButton1Click:Connect(function() showPage("Player") end)
 tTeleport.MouseButton1Click:Connect(function() showPage("Teleport") end)
 tCam.MouseButton1Click:Connect(function() showPage("CameraTP") end)
+tEmotes.MouseButton1Click:Connect(function() showPage("Emotes") end)
 tScanner.MouseButton1Click:Connect(function() showPage("Scanner") end)
 tVisuals.MouseButton1Click:Connect(function() showPage("Visuals") end)
 tHUD.MouseButton1Click:Connect(function() showPage("HUD") end)
@@ -779,6 +782,96 @@ end
 
 
 
+-- == EMOTES PAGE ==
+do
+
+    -- 🎭 Default R15 Emotes
+    local secDefault = newSection(pEmotes, "🎭 Default R15 Emotes")
+    local DefaultAnims = {
+        {"Idle",507766666},{"Walk",507777826},{"Run",507767714},
+        {"Jump",507765000},{"Fall",507767968},{"Climb",507765644},
+        {"Sit",507768133},{"Wave",507770239},{"Point",507770818},
+        {"Laugh",507770453},{"Cheer",507770677},
+        {"Dance1",507771019},{"Dance2",507776043},{"Dance3",507777268}
+    }
+    for _,a in ipairs(DefaultAnims) do
+        Controls.Button(secDefault,"🎬 "..a[1],function()
+            game.ReplicatedStorage.PlayEmote:FireServer(a[2])
+        end)
+    end
+
+    -- 🧟 Zombie Pack
+    local secZombie = newSection(pEmotes, "🧟 Zombie Pack")
+    local Zombie = {
+        {"Walk",616168032},{"Idle",616158929},{"Jump",616161997},
+        {"Fall",616157476},{"Run",616163682}
+    }
+    for _,a in ipairs(Zombie) do
+        Controls.Button(secZombie,"🧟 "..a[1],function()
+            game.ReplicatedStorage.PlayEmote:FireServer(a[2])
+        end)
+    end
+
+    -- 🥷 Ninja Pack
+    local secNinja = newSection(pEmotes, "🥷 Ninja Pack")
+    local Ninja = {
+        {"Run",913376220},{"Jump",656117878},{"Idle",656118852},
+        {"Fall",656115606},{"Climb",656114359}
+    }
+    for _,a in ipairs(Ninja) do
+        Controls.Button(secNinja,"🥷 "..a[1],function()
+            game.ReplicatedStorage.PlayEmote:FireServer(a[2])
+        end)
+    end
+
+    -- 🧓 Elder Pack
+    local secElder = newSection(pEmotes, "🧓 Elder Pack")
+    local Elder = {
+        {"Idle",845397899},{"Walk",845403856},{"Run",845386501},
+        {"Jump",845398858},{"Fall",845396048}
+    }
+    for _,a in ipairs(Elder) do
+        Controls.Button(secElder,"🧓 "..a[1],function()
+            game.ReplicatedStorage.PlayEmote:FireServer(a[2])
+        end)
+    end
+
+    -- 🧛 Vampire Pack
+    local secVampire = newSection(pEmotes, "🧛 Vampire Pack")
+    local Vampire = {
+        {"Idle",1083445855},{"Walk",1083473930},{"Run",1083462077},
+        {"Jump",1083455352},{"Fall",1083443587}
+    }
+    for _,a in ipairs(Vampire) do
+        Controls.Button(secVampire,"🧛 "..a[1],function()
+            game.ReplicatedStorage.PlayEmote:FireServer(a[2])
+        end)
+    end
+
+    -- 🚀 Astronaut Pack
+    local secAstronaut = newSection(pEmotes, "🚀 Astronaut Pack")
+    local Astro = {
+        {"Idle",891621366},{"Walk",891636393},{"Run",891636393},
+        {"Jump",891627522},{"Fall",891617961}
+    }
+    for _,a in ipairs(Astro) do
+        Controls.Button(secAstronaut,"🚀 "..a[1],function()
+            game.ReplicatedStorage.PlayEmote:FireServer(a[2])
+        end)
+    end
+
+    -- 🏴‍☠️ Pirate Pack
+    local secPirate = newSection(pEmotes, "🏴‍☠️ Pirate Pack")
+    local Pirate = {
+        {"Idle",750781874},{"Walk",750785693},{"Run",750783738},
+        {"Jump",750782230},{"Fall",750779899}
+    }
+    for _,a in ipairs(Pirate) do
+        Controls.Button(secPirate,"🏴‍☠️ "..a[1],function()
+            game.ReplicatedStorage.PlayEmote:FireServer(a[2])
+        end)
+    end
+end
 
 
 
