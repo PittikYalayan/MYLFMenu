@@ -790,7 +790,7 @@ do
     local gLeft  = makeGroup(left)
     local gRight = makeGroup(right)
 
-       local activeDropdown = nil
+   local activeDropdown = nil
 
     local EmotePacks = {
         ["🎭 Default R15"] = {
@@ -826,22 +826,19 @@ do
         }
     }
 
-    -- her kategori için ayrı toggle
     for packName, anims in pairs(EmotePacks) do
         Controls.Toggle(gLeft, packName, false, function(on)
             if on then
-                -- önce varsa eski dropdown’u kaldır
                 if activeDropdown then
                     activeDropdown.Visible = false
                 end
 
-                -- yeni dropdown yarat
-                local animNames = {}
+                local names = {}
                 for _,a in ipairs(anims) do
-                    table.insert(animNames, a[1])
+                    table.insert(names, a[1])
                 end
 
-                local dropdown = Controls.Dropdown(gRight, "Choose Animation", animNames, 1, function(selected)
+                local dropdown = Controls.Dropdown(gRight, packName.." Animations", names, 1, function(selected)
                     for _,a in ipairs(anims) do
                         if a[1] == selected then
                             if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
