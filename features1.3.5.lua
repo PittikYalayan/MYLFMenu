@@ -421,60 +421,45 @@ end
 ----------------------------------------------------------------
 -- Hedef bulucu: en yakın görünür kafa
 ----------------------------------------------------------------
+--// Ayarlar
+local SilentAimActive = false
+local SilentAimHooked = false
+local SilentAimSettings = {
+    FOV = 120,         -- Derece cinsinden görüş açısı
+    WallCheck = true,  -- Duvar arkası engelle
+    Prediction = true, -- Hareket tahmini (velocity)
+    PredictionTime = 0.12
+}
 
--- Config ayarlarını kendin features içine alabilirsin
-local SilentFOV   = 100     -- fov pixel yarıçapı
-local Prediction  = 0.12    -- saniye
-local TeamCheck   = true
-local WallCheck   = true
-
-----------------------------------------------------------------
--- Target Finder
-----------------------------------------------------------------
+--// FOV içindeki en yakın hedefi bul
 local function getClosestVisibleHead()
-    local closest, closestDist = nil, math.huge
-    local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-    if not myHRP then return nil end
+    local closest, dist = nil, math.huge
+    local mouse = UIS:GetMouseLocation()
 
     for _,plr in ipairs(Players:GetPlayers()) do
         if plr ~= Player and plr.Character then
-            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-            local head= plr.Character:FindFirstChild("Head")
-            local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-
-            if hum and hum.Health > 0 and head and hrp then
-                -- team check
-                if TeamCheck and Player.Team and plr.Team == Player.Team then
-                    continue
-                end
-
-                -- FOV check
-                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+            local head = plr.Character:FindFirstChild("Head")
+            local hum  = plr.Character:FindFirstChildOfClass("Humanoid")
+            if head and hum and hum.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
                 if onScreen then
-                    local dx = screenPos.X - (Camera.ViewportSize.X/2)
-                    local dy = screenPos.Y - (Camera.ViewportSize.Y/2)
-                    local fovDist = math.sqrt(dx*dx + dy*dy)
-                    if fovDist > SilentFOV then
-                        continue
-                    end
-                end
+                    local screenDist = (Vector2.new(pos.X,pos.Y) - mouse).Magnitude
+                    local angle = math.deg(math.atan2(pos.Y - mouse.Y, pos.X - mouse.X))
 
-                -- wall check
-                if WallCheck then
-                    local ray = Ray.new(Camera.CFrame.Position, (head.Position - Camera.CFrame.Position).Unit * 500)
-                    local hit = Workspace:FindPartOnRay(ray, Player.Character, false, true)
-                    if hit and hit:IsDescendantOf(plr.Character) == false then
-                        continue
+                    if screenDist < dist and screenDist <= SilentAimSettings.FOV then
+                        -- wallcheck
+                        if SilentAimSettings.WallCheck then
+                            local ray = Ray.new(Camera.CFrame.Position, (head.Position - Camera.CFrame.Position).Unit * 500)
+                            local hit = Workspace:FindPartOnRay(ray, Player.Character, false, true)
+                            if hit and hit:IsDescendantOf(plr.Character) then
+                                closest = head
+                                dist = screenDist
+                            end
+                        else
+                            closest = head
+                            dist = screenDist
+                        end
                     end
-                end
-
-                -- distance
-                local dist = (hrp.Position - myHRP.Position).Magnitude
-                if dist < closestDist then
-                    closestDist = dist
-                    local vel = hrp.Velocity * Prediction
-                    closest = head
-                    closest._aimPos = head.Position + vel
                 end
             end
         end
@@ -483,10 +468,15 @@ local function getClosestVisibleHead()
     return closest
 end
 
-----------------------------------------------------------------
--- PatchArgs
-----------------------------------------------------------------
+--// Args patch fonksiyonu
 local function PatchArgs(args, headPos)
+    if SilentAimSettings.Prediction then
+        local hrp = args and typeof(args[1]) == "Instance" and args[1]:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp:IsA("BasePart") then
+            headPos = headPos + (hrp.Velocity * SilentAimSettings.PredictionTime)
+        end
+    end
+
     for i,v in ipairs(args) do
         if typeof(v) == "Vector3" then
             args[i] = headPos
@@ -508,34 +498,30 @@ local function PatchArgs(args, headPos)
     return args
 end
 
-----------------------------------------------------------------
--- Hook
-----------------------------------------------------------------
-local old
-old = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    local args   = {...}
+--// Toggle + Hook birleşmiş
+function ToggleSilentAim(on)
+    SilentAimActive = (on == true)
+    print("[SilentAim] "..(SilentAimActive and "ON" or "OFF"))
 
-    if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
-    and (method == "FireServer" or method == "InvokeServer") then
+    if SilentAimHooked then return end
+    SilentAimHooked = true
 
-        -- burayı kendi flag’inle bağla (ör: features._silentAimOn)
-        if getgenv().SilentAimActive then
+    local old
+    old = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        local args   = {...}
+
+        if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        and (method == "FireServer" or method == "InvokeServer")
+        and SilentAimActive then
             local head = getClosestVisibleHead()
-            if head and head._aimPos then
-                local patched = PatchArgs(args, head._aimPos)
-                return old(self, unpack(patched))
+            if head then
+                args = PatchArgs(args, head.Position)
+                return old(self, table.unpack(args))
             end
         end
-    end
-
-    return old(self, ...)
-end)
-
--- Menüdeki herhangi bir buton/toggle callback
-function ToggleSilentAim(on)
-    getgenv().SilentAimActive = on
-    print("Silent Aim: "..(on and "ON" or "OFF"))
+        return old(self, ...)
+    end)
 end
 
 ----------------------------------------------------------------
