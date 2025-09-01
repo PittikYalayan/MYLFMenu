@@ -784,7 +784,10 @@ end
 
 -- == EMOTES PAGE ==
 do
-    local left = newSection(pEmotes,"Packs")
+    local left  = newSection(pEmotes,"Emotes")
+    local right = newSection(pEmotes,"Emotes")
+
+    local gright = makeGroup(right)
     local gLeft = makeGroup(left)
 
 Controls.Toggle(left,"🎭 Default R15",false,function(on) if features.ToggleDefault then features.ToggleDefault(on) end end)
@@ -794,13 +797,14 @@ Controls.Toggle(left,"🧓 Elder Pack",false,function(on) if features.ToggleElde
 Controls.Toggle(left,"🧛 Vampire Pack",false,function(on) if features.ToggleVampire then features.ToggleVampire(on) end end)
 Controls.Toggle(left,"🚀 Astronaut Pack",false,function(on) if features.ToggleAstronaut then features.ToggleAstronaut(on) end end)
 Controls.Toggle(left,"🏴‍☠️ Pirate Pack",false,function(on) if features.TogglePirate then features.TogglePirate(on) end end)
-Controls.Toggle(left,"✨ Levitation Pack",false,function(on) if features.ToggleLevitation then features.ToggleLevitation(on) end end)
-Controls.Toggle(left,"🤪 Bubbly Pack",false,function(on) if features.ToggleBubbly then features.ToggleBubbly(on) end end)
-Controls.Toggle(left,"🤖 Robot Pack",false,function(on) if features.ToggleRobot then features.ToggleRobot(on) end end)
-Controls.Toggle(left,"🧸 Toy Pack",false,function(on) if features.ToggleToy then features.ToggleToy(on) end end)
-Controls.Toggle(left,"🦸 Superhero Pack",false,function(on) if features.ToggleSuperhero then features.ToggleSuperhero(on) end end)
-Controls.Toggle(left,"🧙 Mage Pack",false,function(on) if features.ToggleMage then features.ToggleMage(on) end end)
-Controls.Toggle(left,"🐺 Werewolf Pack",false,function(on) if features.ToggleWerewolf then features.ToggleWerewolf(on) end end)
+Controls.Toggle(right,"✨ Levitation Pack",false,function(on) if features.ToggleLevitation then features.ToggleLevitation(on) end end)
+Controls.Toggle(right,"🤪 Bubbly Pack",false,function(on) if features.ToggleBubbly then features.ToggleBubbly(on) end end)
+Controls.Toggle(right,"🤖 Robot Pack",false,function(on) if features.ToggleRobot then features.ToggleRobot(on) end end)
+Controls.Toggle(right,"🧸 Toy Pack",false,function(on) if features.ToggleToy then features.ToggleToy(on) end end)
+Controls.Toggle(right,"🦸 Superhero Pack",false,function(on) if features.ToggleSuperhero then features.ToggleSuperhero(on) end end)
+Controls.Toggle(right,"🧙 Mage Pack",false,function(on) if features.ToggleMage then features.ToggleMage(on) end end)
+Controls.Toggle(right,"🐺 Werewolf Pack",false,function(on) if features.ToggleWerewolf then features.ToggleWerewolf(on) end end)
+Controls.Toggle(right,"⚡ Moderator Pack",false,function(on) if features.ToggleModeration then features.ToggleModeration(on) end end)    
 
 end
 
