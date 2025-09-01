@@ -487,16 +487,18 @@ local function PatchArgs(args, headPos)
 end
 
 --// Raycast hook
-local oldRaycast = workspace.Raycast
-workspace.Raycast = newcclosure(function(self, origin, direction, params)
-    if SilentAimActive then
-        local head = RageModeActive and getAnyHead() or getClosestHead()
+local oldRaycast
+oldRaycast = hookfunction(workspace.Raycast, function(self, origin, direction, params)
+    if getgenv().SilentAimActive then
+        local head = (getgenv().RageModeActive and getAnyHead()) or getClosestHead()
         if head then
+            -- yönü direkt hedef kafaya çevir
             direction = (head.Position - origin).Unit * direction.Magnitude
         end
     end
     return oldRaycast(self, origin, direction, params)
 end)
+
 
 --// __namecall hook (Remote patch)
 local function EnsureHook()
