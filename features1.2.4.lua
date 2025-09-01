@@ -1394,6 +1394,7 @@ end
 ------------------------
 -- == EMOTE PACK FUNCTIONS ==
 -- == EMOTE PACK FUNCTIONS ==
+-- == EMOTE PACK FUNCTIONS ==
 local connections = {}
 
 local function bindPack(packName, ids)
@@ -1403,7 +1404,6 @@ local function bindPack(packName, ids)
     local animator = hum:FindFirstChildOfClass("Animator") or Instance.new("Animator", hum)
     local tracks = {}
 
-    -- Animasyon tracklerini yükle
     for name,id in pairs(ids) do
         local anim = Instance.new("Animation")
         anim.AnimationId = "rbxassetid://"..id
@@ -1430,7 +1430,7 @@ local function bindPack(packName, ids)
         end
     end))
 
-    -- StateChanged event → Jump / Fall
+    -- StateChanged → Jump / Fall
     table.insert(connections[packName], hum.StateChanged:Connect(function(_,new)
         if new == Enum.HumanoidStateType.Jumping and tracks.Jump then
             for _,t in pairs(tracks) do t:Stop() end
@@ -1449,7 +1449,7 @@ local function clearPack(packName)
     end
 end
 
--- 🎭 Default R15
+-- 🎭 Default
 function features.ToggleDefault(on)
     clearPack("Default")
     if on then
