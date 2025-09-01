@@ -777,15 +777,16 @@ do
             notify("Camera eski haline döndü.")
         end
     end)
-    Controls.Toggle(right, "⚡ Teleport", false, function(on)
+ -- Toggle: Seçilen oyuncunun yanına ışınlan
+Controls.Toggle(left, "⚡ Teleport", false, function(on)
     if on then
-        local selected = getgenv().SelectedPlayer -- dropdown'dan gelen seçim
+        local selected = getgenv().selectedPlayer.Name -- Camera View'daki dropdown’dan seçilen
         if selected and Players:FindFirstChild(selected) then
             local target = Players[selected].Character
             if target and target:FindFirstChild("HumanoidRootPart") then
                 local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    hrp.CFrame = target.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0) -- yanında spawn
+                    hrp.CFrame = target.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
                 end
             end
         end
