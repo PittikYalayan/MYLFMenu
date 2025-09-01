@@ -790,15 +790,14 @@ do
     local gLeft  = makeGroup(left)
     local gRight = makeGroup(right)
 
-   local activeDropdown = nil
+  local activeDropdown = nil
 
     -- 🎭 Default R15
     Controls.Toggle(gLeft, "🎭 Default R15", false, function(on)
         if on then
             if activeDropdown then activeDropdown.Visible = false end
             local dropdown = Controls.Dropdown(gRight, "Default Animations",
-                {"Idle","Walk","Run","Jump","Fall","Climb","Sit",
-                 "Wave","Point","Laugh","Cheer","Dance1","Dance2","Dance3"},
+                {"Idle","Walk","Run","Jump","Fall","Climb","Sit","Wave","Point","Laugh","Cheer","Dance1","Dance2","Dance3"},
                 1,
                 function(selected)
                     local ids = {
@@ -810,15 +809,11 @@ do
                     }
                     local animId = ids[selected]
                     if animId then
-                        if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
-                            game.ReplicatedStorage.PlayEmote:FireServer(animId)
-                        else
-                            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://"..animId
-                                hum:LoadAnimation(anim):Play()
-                            end
+                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local anim = Instance.new("Animation")
+                            anim.AnimationId = "rbxassetid://"..animId
+                            hum:LoadAnimation(anim):Play()
                         end
                     end
                 end
@@ -830,7 +825,7 @@ do
         end
     end)
 
-    -- 🧟 Zombie
+    -- 🧟 Zombie Pack
     Controls.Toggle(gLeft, "🧟 Zombie Pack", false, function(on)
         if on then
             if activeDropdown then activeDropdown.Visible = false end
@@ -844,15 +839,11 @@ do
                     }
                     local animId = ids[selected]
                     if animId then
-                        if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
-                            game.ReplicatedStorage.PlayEmote:FireServer(animId)
-                        else
-                            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://"..animId
-                                hum:LoadAnimation(anim):Play()
-                            end
+                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local anim = Instance.new("Animation")
+                            anim.AnimationId = "rbxassetid://"..animId
+                            hum:LoadAnimation(anim):Play()
                         end
                     end
                 end
@@ -864,7 +855,7 @@ do
         end
     end)
 
-    -- 🥷 Ninja
+    -- 🥷 Ninja Pack
     Controls.Toggle(gLeft, "🥷 Ninja Pack", false, function(on)
         if on then
             if activeDropdown then activeDropdown.Visible = false end
@@ -878,15 +869,11 @@ do
                     }
                     local animId = ids[selected]
                     if animId then
-                        if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
-                            game.ReplicatedStorage.PlayEmote:FireServer(animId)
-                        else
-                            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://"..animId
-                                hum:LoadAnimation(anim):Play()
-                            end
+                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local anim = Instance.new("Animation")
+                            anim.AnimationId = "rbxassetid://"..animId
+                            hum:LoadAnimation(anim):Play()
                         end
                     end
                 end
@@ -898,7 +885,7 @@ do
         end
     end)
 
-    -- 🧓 Elder
+    -- 🧓 Elder Pack
     Controls.Toggle(gLeft, "🧓 Elder Pack", false, function(on)
         if on then
             if activeDropdown then activeDropdown.Visible = false end
@@ -912,15 +899,11 @@ do
                     }
                     local animId = ids[selected]
                     if animId then
-                        if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
-                            game.ReplicatedStorage.PlayEmote:FireServer(animId)
-                        else
-                            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://"..animId
-                                hum:LoadAnimation(anim):Play()
-                            end
+                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local anim = Instance.new("Animation")
+                            anim.AnimationId = "rbxassetid://"..animId
+                            hum:LoadAnimation(anim):Play()
                         end
                     end
                 end
@@ -932,7 +915,7 @@ do
         end
     end)
 
-    -- 🧛 Vampire
+    -- 🧛 Vampire Pack
     Controls.Toggle(gLeft, "🧛 Vampire Pack", false, function(on)
         if on then
             if activeDropdown then activeDropdown.Visible = false end
@@ -946,15 +929,11 @@ do
                     }
                     local animId = ids[selected]
                     if animId then
-                        if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
-                            game.ReplicatedStorage.PlayEmote:FireServer(animId)
-                        else
-                            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://"..animId
-                                hum:LoadAnimation(anim):Play()
-                            end
+                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local anim = Instance.new("Animation")
+                            anim.AnimationId = "rbxassetid://"..animId
+                            hum:LoadAnimation(anim):Play()
                         end
                     end
                 end
@@ -966,7 +945,7 @@ do
         end
     end)
 
-    -- 🚀 Astronaut
+    -- 🚀 Astronaut Pack
     Controls.Toggle(gLeft, "🚀 Astronaut Pack", false, function(on)
         if on then
             if activeDropdown then activeDropdown.Visible = false end
@@ -980,15 +959,11 @@ do
                     }
                     local animId = ids[selected]
                     if animId then
-                        if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
-                            game.ReplicatedStorage.PlayEmote:FireServer(animId)
-                        else
-                            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://"..animId
-                                hum:LoadAnimation(anim):Play()
-                            end
+                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local anim = Instance.new("Animation")
+                            anim.AnimationId = "rbxassetid://"..animId
+                            hum:LoadAnimation(anim):Play()
                         end
                     end
                 end
@@ -1000,7 +975,7 @@ do
         end
     end)
 
-    -- 🏴‍☠️ Pirate
+    -- 🏴‍☠️ Pirate Pack
     Controls.Toggle(gLeft, "🏴‍☠️ Pirate Pack", false, function(on)
         if on then
             if activeDropdown then activeDropdown.Visible = false end
@@ -1014,15 +989,11 @@ do
                     }
                     local animId = ids[selected]
                     if animId then
-                        if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
-                            game.ReplicatedStorage.PlayEmote:FireServer(animId)
-                        else
-                            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://"..animId
-                                hum:LoadAnimation(anim):Play()
-                            end
+                        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local anim = Instance.new("Animation")
+                            anim.AnimationId = "rbxassetid://"..animId
+                            hum:LoadAnimation(anim):Play()
                         end
                     end
                 end
