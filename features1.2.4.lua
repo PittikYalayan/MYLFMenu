@@ -1393,187 +1393,166 @@ end
 ------------------
 ------------------------
 -- == EMOTE PACK FUNCTIONS ==
--- == EMOTE PACK FUNCTIONS ==
-local currentPack = nil
 
-local function applyPack(ids)
-    local char = Player.Character
-    if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
+local AnimEvent = RS:WaitForChild("AnimationEvent") -- exploit kısmı (çalışmaz halde)
 
-    local animate = char:FindFirstChild("Animate")
-    if not animate then return end
-
-    -- Idle
-    if animate.idle then
-        if animate.idle.Animation1 then
-            animate.idle.Animation1.AnimationId = "rbxassetid://"..ids.Idle
-        end
-        if animate.idle.Animation2 then
-            animate.idle.Animation2.AnimationId = "rbxassetid://"..ids.Idle
-        end
-    end
-
-    -- Walk
-    if animate.walk and animate.walk:FindFirstChild("WalkAnim") and ids.Walk then
-        animate.walk.WalkAnim.AnimationId = "rbxassetid://"..ids.Walk
-    end
-
-    -- Run
-    if animate.run and animate.run:FindFirstChild("RunAnim") and ids.Run then
-        animate.run.RunAnim.AnimationId = "rbxassetid://"..ids.Run
-    end
-
-    -- Jump
-    if animate.jump and animate.jump:FindFirstChild("JumpAnim") and ids.Jump then
-        animate.jump.JumpAnim.AnimationId = "rbxassetid://"..ids.Jump
-    end
-
-    -- Fall
-    if animate.fall and animate.fall:FindFirstChild("FallAnim") and ids.Fall then
-        animate.fall.FallAnim.AnimationId = "rbxassetid://"..ids.Fall
-    end
-
-    -- Climb
-    if animate.climb and animate.climb:FindFirstChild("ClimbAnim") and ids.Climb then
-        animate.climb.ClimbAnim.AnimationId = "rbxassetid://"..ids.Climb
-    end
-
-    -- Sit
-    if animate.sit and animate.sit:FindFirstChild("SitAnim") and ids.Sit then
-        animate.sit.SitAnim.AnimationId = "rbxassetid://"..ids.Sit
-    end
-end
-
-local function setPack(name, ids, on)
-    if on then
-        -- açık başka pack varsa kapat
-        if currentPack and currentPack ~= name then
-            features["Toggle"..currentPack](false)
-        end
-        currentPack = name
-        applyPack(ids)
-    else
-        if currentPack == name then
-            currentPack = nil
-        end
-    end
-end
-
--- 🎭 Default
-function features.ToggleDefault(on)
-    setPack("Default", {
+local Packs = {
+    Default = {
         Idle=507766666,Walk=507777826,Run=507767714,
         Jump=507765000,Fall=507767968,Climb=507765644,Sit=507768133
-    }, on)
-end
-
--- 🧟 Zombie
-function features.ToggleZombie(on)
-    setPack("Zombie", {
+    },
+    Zombie = {
         Idle=616158929,Walk=616168032,Run=616163682,
         Jump=616161997,Fall=616157476
-    }, on)
-end
-
--- 🥷 Ninja
-function features.ToggleNinja(on)
-    setPack("Ninja", {
+    },
+    Ninja = {
         Idle=656118852,Run=913376220,Jump=656117878,
         Fall=656115606,Climb=656114359
-    }, on)
-end
-
--- 🧓 Elder
-function features.ToggleElder(on)
-    setPack("Elder", {
+    },
+    Elder = {
         Idle=845397899,Walk=845403856,Run=845386501,
         Jump=845398858,Fall=845396048
-    }, on)
-end
-
--- 🧛 Vampire
-function features.ToggleVampire(on)
-    setPack("Vampire", {
+    },
+    Vampire = {
         Idle=1083445855,Walk=1083473930,Run=1083462077,
         Jump=1083455352,Fall=1083443587
-    }, on)
-end
-
--- 🚀 Astronaut
-function features.ToggleAstronaut(on)
-    setPack("Astronaut", {
+    },
+    Astronaut = {
         Idle=891621366,Walk=891636393,Run=891636393,
         Jump=891627522,Fall=891617961
-    }, on)
-end
-
--- 🏴‍☠️ Pirate
-function features.TogglePirate(on)
-    setPack("Pirate", {
+    },
+    Pirate = {
         Idle=750781874,Walk=750785693,Run=750783738,
         Jump=750782230,Fall=750779899
-    }, on)
-end
-
--- ✨ Levitation
-function features.ToggleLevitation(on)
-    setPack("Levitation", {
+    },
+    Levitation = {
         Idle=1092126624,Walk=1092119346,Run=1092104628,
         Jump=1092112482,Fall=1092107824
-    }, on)
-end
-
--- 🤪 Bubbly
-function features.ToggleBubbly(on)
-    setPack("Bubbly", {
+    },
+    Bubbly = {
         Idle=910004836,Walk=910034870,Run=910025107,
         Jump=910016857,Fall=910001910
-    }, on)
-end
-
--- 🤖 Robot
-function features.ToggleRobot(on)
-    setPack("Robot", {
+    },
+    Robot = {
         Idle=616088211,Walk=616095330,Run=616091570,
         Jump=616090535,Fall=616087089
-    }, on)
-end
-
--- 🧸 Toy
-function features.ToggleToy(on)
-    setPack("Toy", {
+    },
+    Toy = {
         Idle=782841498,Walk=782843345,Run=782842708,
         Jump=782843869,Fall=782841498
-    }, on)
-end
-
--- 🦸 Superhero
-function features.ToggleSuperhero(on)
-    setPack("Superhero", {
+    },
+    Superhero = {
         Idle=1092151588,Walk=1092124167,Run=1092103267,
         Jump=1092115546,Fall=1092109590
-    }, on)
-end
-
--- 🧙 Mage
-function features.ToggleMage(on)
-    setPack("Mage", {
+    },
+    Mage = {
         Idle=837021890,Walk=837023452,Run=837024127,
         Jump=837025333,Fall=837026348
-    }, on)
-end
-
--- 🐺 Werewolf
-function features.ToggleWerewolf(on)
-    setPack("Werewolf", {
+    },
+    Werewolf = {
         Idle=1083195517,Walk=1083216690,Run=1083218792,
         Jump=1083223652,Fall=1083224036
-    }, on)
+    }
+}
+
+-- ✅ Toggle fonksiyonları (çalışmaz, sadece mantık gösterir)
+function features.ToggleDefault(on)
+    if on then
+        AnimEvent:FireServer("Default") 
+        print("Default pack seçildi (Idle="..Packs.Default.Idle..")")
+    end
 end
 
+function features.ToggleZombie(on)
+    if on then
+        -AnimEvent:FireServer("Zombie") 
+        print("Zombie pack seçildi (Idle="..Packs.Zombie.Idle..")")
+    end
+end
 
+function features.ToggleNinja(on)
+    if on then
+        AnimEvent:FireServer("Ninja") 
+        print("Ninja pack seçildi (Idle="..Packs.Ninja.Idle..")")
+    end
+end
+
+function features.ToggleElder(on)
+    if on then
+         AnimEvent:FireServer("Elder")
+        print("Elder pack seçildi (Idle="..Packs.Elder.Idle..")")
+    end
+end
+
+function features.ToggleVampire(on)
+    if on then
+        AnimEvent:FireServer("Vampire") 
+        print("Vampire pack seçildi (Idle="..Packs.Vampire.Idle..")")
+    end
+end
+
+function features.ToggleAstronaut(on)
+    if on then
+        AnimEvent:FireServer("Astronaut") 
+        print("Astronaut pack seçildi (Idle="..Packs.Astronaut.Idle..")")
+    end
+end
+
+function features.TogglePirate(on)
+    if on then
+         AnimEvent:FireServer("Pirate") 
+        print("Pirate pack seçildi (Idle="..Packs.Pirate.Idle..")")
+    end
+end
+
+function features.ToggleLevitation(on)
+    if on then
+         AnimEvent:FireServer("Levitation")
+        print("Levitation pack seçildi (Idle="..Packs.Levitation.Idle..")")
+    end
+end
+
+function features.ToggleBubbly(on)
+    if on then
+        AnimEvent:FireServer("Bubbly")
+        print("Bubbly pack seçildi (Idle="..Packs.Bubbly.Idle..")")
+    end
+end
+
+function features.ToggleRobot(on)
+    if on then
+        AnimEvent:FireServer("Robot") 
+        print("Robot pack seçildi (Idle="..Packs.Robot.Idle..")")
+    end
+end
+
+function features.ToggleToy(on)
+    if on then
+        AnimEvent:FireServer("Toy")
+        print("Toy pack seçildi (Idle="..Packs.Toy.Idle..")")
+    end
+end
+
+function features.ToggleSuperhero(on)
+    if on then
+        AnimEvent:FireServer("Superhero") 
+        print("Superhero pack seçildi (Idle="..Packs.Superhero.Idle..")")
+    end
+end
+
+function features.ToggleMage(on)
+    if on then
+         AnimEvent:FireServer("Mage")
+        print("Mage pack seçildi (Idle="..Packs.Mage.Idle..")")
+    end
+end
+
+function features.ToggleWerewolf(on)
+    if on then
+        AnimEvent:FireServer("Werewolf") 
+        print("Werewolf pack seçildi (Idle="..Packs.Werewolf.Idle..")")
+    end
+end
 
 ------------------------------
 ------------------------------
