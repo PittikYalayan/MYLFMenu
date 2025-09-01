@@ -785,11 +785,32 @@ end
 -- == EMOTES PAGE ==
 do
 
-        -- helper: collapsible category
-    local function makeCollapsibleCategory(title, icon, anims)
-        local buttons = {}
+    local gLeft  = makeGroup(left)
+    local gRight = makeGroup(right)
+
+    -- kayıt: kategori -> group
+    local categoryGroups = {}
+
+    -- helper: kategori oluştur
+    local function addCategory(name, icon, anims)
+        -- sağdaki group
+        local grp = makeGroup(right)
+        grp.Visible = false
+        categoryGroups[name] = grp
+
+        -- buton sola
+        Controls.Button(gLeft, icon.." "..name, function()
+            -- önce tüm grupları kapat
+            for _,cg in pairs(categoryGroups) do
+                cg.Visible = false
+            end
+            -- seçilen kategori toggle
+            grp.Visible = true
+        end)
+
+        -- anim butonlarını sağdaki gruba doldur
         for _,a in ipairs(anims) do
-            local btn = Controls.Button(pEmotes, icon.." "..a[1], function()
+            Controls.Button(grp, "🎬 "..a[1], function()
                 if game.ReplicatedStorage:FindFirstChild("PlayEmote") then
                     game.ReplicatedStorage.PlayEmote:FireServer(a[2])
                 else
@@ -802,18 +823,11 @@ do
                     end
                 end
             end)
-            btn.Visible = false
-            table.insert(buttons, btn)
         end
-        Controls.Toggle(pEmotes, icon.." "..title, false, function(on)
-            for _,btn in ipairs(buttons) do
-                btn.Visible = on
-            end
-        end)
     end
 
-    -- 🎭 Default R15
-    makeCollapsibleCategory("Default R15","🎭",{
+    -- Kategoriler
+    addCategory("Default R15","🎭",{
         {"Idle",507766666},{"Walk",507777826},{"Run",507767714},
         {"Jump",507765000},{"Fall",507767968},{"Climb",507765644},
         {"Sit",507768133},{"Wave",507770239},{"Point",507770818},
@@ -821,38 +835,32 @@ do
         {"Dance1",507771019},{"Dance2",507776043},{"Dance3",507777268}
     })
 
-    -- 🧟 Zombie
-    makeCollapsibleCategory("Zombie Pack","🧟",{
+    addCategory("Zombie Pack","🧟",{
         {"Walk",616168032},{"Idle",616158929},{"Jump",616161997},
         {"Fall",616157476},{"Run",616163682}
     })
 
-    -- 🥷 Ninja
-    makeCollapsibleCategory("Ninja Pack","🥷",{
+    addCategory("Ninja Pack","🥷",{
         {"Run",913376220},{"Jump",656117878},{"Idle",656118852},
         {"Fall",656115606},{"Climb",656114359}
     })
 
-    -- 🧓 Elder
-    makeCollapsibleCategory("Elder Pack","🧓",{
+    addCategory("Elder Pack","🧓",{
         {"Idle",845397899},{"Walk",845403856},{"Run",845386501},
         {"Jump",845398858},{"Fall",845396048}
     })
 
-    -- 🧛 Vampire
-    makeCollapsibleCategory("Vampire Pack","🧛",{
+    addCategory("Vampire Pack","🧛",{
         {"Idle",1083445855},{"Walk",1083473930},{"Run",1083462077},
         {"Jump",1083455352},{"Fall",1083443587}
     })
 
-    -- 🚀 Astronaut
-    makeCollapsibleCategory("Astronaut Pack","🚀",{
+    addCategory("Astronaut Pack","🚀",{
         {"Idle",891621366},{"Walk",891636393},{"Run",891636393},
         {"Jump",891627522},{"Fall",891617961}
     })
 
-    -- 🏴‍☠️ Pirate
-    makeCollapsibleCategory("Pirate Pack","🏴‍☠️",{
+    addCategory("Pirate Pack","🏴‍☠️",{
         {"Idle",750781874},{"Walk",750785693},{"Run",750783738},
         {"Jump",750782230},{"Fall",750779899}
     })
