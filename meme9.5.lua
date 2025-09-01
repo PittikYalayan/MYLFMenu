@@ -778,20 +778,22 @@ do
         end
     end)
  -- Toggle: Seçilen oyuncunun yanına ışınlan
-Controls.Toggle(left, "⚡ Teleport", false, function(on)
+Controls.Toggle(right, "⚡ Teleport", false, function(on) 
     if on then
-        local selected = getgenv().selectedPlayer.Name -- Camera View'daki dropdown’dan seçilen
-        if selected and Players:FindFirstChild(selected) then
-            local target = Players[selected].Character
-            if target and target:FindFirstChild("HumanoidRootPart") then
-                local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    hrp.CFrame = target.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-                end
+        if selectedPlayer and selectedPlayer.Character then
+            local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local myHRP = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+            if targetHRP and myHRP then
+                -- PivotTo daha stabil
+                Player.Character:PivotTo(targetHRP.CFrame * CFrame.new(0,0,3))
+                notify("Teleport oldun: "..selectedPlayer.Name)
             end
+        else
+            notify("Player seçilmedi veya karakteri yok.")
         end
     end
 end)
+
     
 end
 
