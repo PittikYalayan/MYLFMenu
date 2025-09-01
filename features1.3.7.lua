@@ -185,23 +185,22 @@ end
 ----------------------------------------------------------------
 -- ⚡ Ultra Full Godmode (Hard Multi-Hook + Anti-Grab + Anti-Freeze)
 ----------------------------------------------------------------
-features._miniHB_on   = false
-features._multiHooked = false
-local function PatchArgs(args, tinyPos)
+--// Durum
+local GodmodeActive = false
+local GodHooks = {namecall=false, index=false, raycast=false}
+
+--// Patch Damage Args (namecall için)
+local function PatchDamageArgs(args)
     for i,v in ipairs(args) do
-        local t = typeof(v)
-        if t == "Vector3" then
-            args[i] = tinyPos
-        elseif t == "CFrame" then
-            args[i] = CFrame.new(v.Position, tinyPos)
-        elseif t == "table" then
-            for k,val in pairs(v) do
-                local key = tostring(k):lower()
-                if key:find("pos") or key:find("hit") or key:find("target") then
-                    if typeof(val) == "Vector3" then
-                        v[k] = tinyPos
-                    elseif typeof(val) == "CFrame" then
-                        v[k] = CFrame.new(val.Position, tinyPos)
+        local str = tostring(v):lower()
+        if str:find("damage") or str:find("hit") or str:find("hurt") then
+            if type(v) == "number" then
+                args[i] = 0
+            elseif typeof(v) == "table" then
+                for k,val in pairs(v) do
+                    local key = tostring(k):lower()
+                    if key:find("damage") or key:find("hit") then
+                        v[k] = 0
                     end
                 end
             end
@@ -209,72 +208,68 @@ local function PatchArgs(args, tinyPos)
     end
     return args
 end
-local function EnsureMultiHook()
-    if features._multiHooked then return end
-    features._multiHooked = true
 
-    -- __namecall hook
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+--// __namecall Hook
+local function HookNamecall()
+    if GodHooks.namecall then return end
+    GodHooks.namecall = true
+
+    local old
+    old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
-        local args   = {...}
+        local args = {...}
 
-        if features._miniHB_on
-        and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        if GodmodeActive and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
         and (method == "FireServer" or method == "InvokeServer") then
-            local char = Player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local tinyPos = hrp.Position + Vector3.new(0,0.1,0)
-                args = PatchArgs(args, tinyPos)
-                return oldNamecall(self, unpack(args))
-            end
+            args = PatchDamageArgs(args)
+            return old(self, table.unpack(args))
         end
 
-        return oldNamecall(self, ...)
-    end)
+        return old(self, ...)
+    end))
+end
 
-    -- __newindex hook (set block)
-    local oldNewIndex
-    oldNewIndex = hookmetamethod(game, "__newindex", function(self, key, val)
-        if features._miniHB_on then
-            if self:IsA("BasePart") and key == "Size" and val.X > 2 then
-                warn("[MiniHitbox] Server büyütmeye çalıştı:", self:GetFullName())
-                return
+--// __index Hook (Health okumalarını patchle)
+local function HookIndex()
+    if GodHooks.index then return end
+    GodHooks.index = true
+
+    local old
+    old = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if GodmodeActive and tostring(key):lower():find("health") then
+            if self:IsA("Humanoid") and self == Player.Character:FindFirstChildOfClass("Humanoid") then
+                return self.MaxHealth -- her zaman max döndür
             end
         end
-        return oldNewIndex(self, key, val)
-    end)
+        return old(self, key)
+    end))
+end
 
-    -- __index hook (fake value)
-    local oldIndex
-    oldIndex = hookmetamethod(game, "__index", function(self, key)
-        if features._miniHB_on then
-            if self:IsA("BasePart") and key == "Size" then
-                return Vector3.new(2,2,1) -- normalmiş gibi döndür
-            end
+--// Raycast Hook
+local function HookRaycast()
+    if GodHooks.raycast then return end
+    GodHooks.raycast = true
+
+    local old = Workspace.Raycast
+    Workspace.Raycast = newcclosure(function(self, origin, direction, params)
+        if GodmodeActive then
+            -- saldırı raycast’inde seni hedef almaya çalışsa bile boşa düşür
+            local spoofOrigin = origin + Vector3.new(9999,9999,9999)
+            return old(self, spoofOrigin, direction, params)
         end
-        return oldIndex(self, key)
+        return old(self, origin, direction, params)
     end)
 end
-function features.ToggleGodmode(on)
-    features._miniHB_on = on
-    EnsureMultiHook()
 
-    -- Client tarafı küçültme
-    local char = Player.Character
-    if char and on then
-        for _,partName in ipairs({"Head","UpperTorso","LowerTorso","HumanoidRootPart"}) do
-            local part = char:FindFirstChild(partName)
-            if part and part:IsA("BasePart") then
-                part.Size = Vector3.new(0.001,0.001,0.001)
-                part.CanCollide = false
-            end
-        end
-    elseif char and not on then
-        -- burada istersen resetle
-    end
+--// Toggle Fonksiyonu
+function ToggleGodmode(on)
+    GodmodeActive = (on == true)
+    HookNamecall()
+    HookIndex()
+    HookRaycast()
+    print("[Godmode] "..(GodmodeActive and "ON" or "OFF"))
 end
+
 
 
 ----------------------------------------------------------------
@@ -421,16 +416,23 @@ end
 ----------------------------------------------------------------
 -- Hedef bulucu: en yakın görünür kafa
 ----------------------------------------------------------------
---// durum
+--// Services
+local RunService = game:GetService("RunService")
+local UIS        = game:GetService("UserInputService")
+local Camera     = workspace.CurrentCamera
+local Players    = game:GetService("Players")
+local LP         = Players.LocalPlayer
+
+--// Durum
 local SilentAimActive = false
 local RageModeActive  = false
 local Hooked          = false
 
---// head finder (normal)
+--// Head finder (legit + rage)
 local function getClosestHead()
     local closest, dist = nil, math.huge
     for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Player and plr.Character then
+        if plr ~= LP and plr.Character then
             local head = plr.Character:FindFirstChild("Head")
             local hum  = plr.Character:FindFirstChildOfClass("Humanoid")
             if head and hum and hum.Health > 0 then
@@ -448,10 +450,9 @@ local function getClosestHead()
     return closest
 end
 
---// head finder (rage mode → ilk bulduğunu al)
 local function getAnyHead()
     for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Player and plr.Character then
+        if plr ~= LP and plr.Character then
             local head = plr.Character:FindFirstChild("Head")
             local hum  = plr.Character:FindFirstChildOfClass("Humanoid")
             if head and hum and hum.Health > 0 then
@@ -462,7 +463,7 @@ local function getAnyHead()
     return nil
 end
 
---// patch args
+--// Arg Patch
 local function PatchArgs(args, headPos)
     for i,v in ipairs(args) do
         if typeof(v) == "Vector3" then
@@ -471,8 +472,13 @@ local function PatchArgs(args, headPos)
             args[i] = CFrame.new(v.Position, headPos)
         elseif typeof(v) == "table" then
             for k,val in pairs(v) do
-                if typeof(val) == "Vector3" or typeof(val) == "CFrame" then
-                    args[i][k] = headPos
+                local key = tostring(k):lower()
+                if key:find("pos") or key:find("hit") or key:find("target") then
+                    if typeof(val) == "Vector3" then
+                        v[k] = headPos
+                    elseif typeof(val) == "CFrame" then
+                        v[k] = CFrame.new(val.Position, headPos)
+                    end
                 end
             end
         end
@@ -480,25 +486,32 @@ local function PatchArgs(args, headPos)
     return args
 end
 
---// hook
+--// Raycast hook
+local oldRaycast = workspace.Raycast
+workspace.Raycast = newcclosure(function(self, origin, direction, params)
+    if SilentAimActive then
+        local head = RageModeActive and getAnyHead() or getClosestHead()
+        if head then
+            direction = (head.Position - origin).Unit * direction.Magnitude
+        end
+    end
+    return oldRaycast(self, origin, direction, params)
+end)
+
+--// __namecall hook (Remote patch)
 local function EnsureHook()
     if Hooked then return end
     Hooked = true
 
     local old
-    old = hookmetamethod(game, "__namecall", function(self, ...)
+    old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
         local method = getnamecallmethod()
         local args   = {...}
 
         if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
         and (method == "FireServer" or method == "InvokeServer") then
             if SilentAimActive then
-                local head
-                if RageModeActive then
-                    head = getAnyHead()
-                else
-                    head = getClosestHead()
-                end
+                local head = RageModeActive and getAnyHead() or getClosestHead()
                 if head then
                     args = PatchArgs(args, head.Position)
                     return old(self, table.unpack(args))
@@ -507,10 +520,27 @@ local function EnsureHook()
         end
 
         return old(self, ...)
-    end)
+    end))
 end
 
---// toggle fonksiyonları
+--// Mouse.Hit spoof (bazı oyunlar bunu kullanır)
+local mt = getrawmetatable(game)
+setreadonly(mt,false)
+local oldIndex = mt.__index
+mt.__index = newcclosure(function(t,k)
+    if SilentAimActive and (t == UIS or tostring(t) == "Mouse") then
+        if k == "Hit" or k == "Target" then
+            local head = RageModeActive and getAnyHead() or getClosestHead()
+            if head then
+                return CFrame.new(head.Position)
+            end
+        end
+    end
+    return oldIndex(t,k)
+end)
+setreadonly(mt,true)
+
+--// Toggle Fonksiyonları
 function ToggleSilentAim(on)
     SilentAimActive = (on == true)
     EnsureHook()
@@ -522,56 +552,130 @@ function ToggleRageMode(on)
     print("[RageMode] "..(RageModeActive and "ON" or "OFF"))
 end
 
+
 ----------------------------------------------------------------
 -- Rapid Fire Toggle
 ----------------------------------------------------------------
 ----------------------------------------------------------------
 -- Hard Fire Rate (Local + Remote Spam birleşik)
 ----------------------------------------------------------------
-function features.ToggleFireRate(on)
-    if on then
-        -- Local cooldown bypass
-        if features._fireRateLocal then features._fireRateLocal:Disconnect() end
-        features._fireRateLocal = RunService.Heartbeat:Connect(function()
-            local ch = Player.Character
-            local tool = ch and ch:FindFirstChildOfClass("Tool")
-            if not tool then return end
+--// Durum
+local FireRateActive = false
+local FireRateHooks  = {namecall=false, index=false, newindex=false, wait=false, heartbeat=false}
 
-            for _, v in ipairs(tool:GetDescendants()) do
-                if v:IsA("NumberValue") or v:IsA("IntValue") then
-                    local name = v.Name:lower()
-                    if name:find("cooldown") or name:find("fire") or name:find("rate") or name:find("reload") then
-                        v.Value = 0 -- cooldown reset
+--// Arg Patch
+local function PatchFireRateArgs(args)
+    for i,v in ipairs(args) do
+        if type(v) == "number" then
+            if v > 0.05 then args[i] = 0 end
+        elseif typeof(v) == "table" then
+            for k,val in pairs(v) do
+                local key = tostring(k):lower()
+                if key:find("cooldown") or key:find("delay") or key:find("debounce") or key:find("rate") or key:find("speed") then
+                    if type(val) == "number" and val > 0 then
+                        v[k] = 0
                     end
                 end
             end
-        end)
-
-        -- Remote spam
-        if features._fireRateRemote then features._fireRateRemote:Disconnect() end
-        features._fireRateRemote = RunService.Heartbeat:Connect(function()
-            local ch = Player.Character
-            local tool = ch and ch:FindFirstChildOfClass("Tool")
-            if not tool then return end
-
-            for _, rem in ipairs(tool:GetDescendants()) do
-                if rem:IsA("RemoteEvent") and rem.Name:lower():find("fire") then
-                    local head = getClosestVisibleHead()
-                    if head then
-                        pcall(function()
-                            rem:FireServer(head.Position)
-                        end)
-                    end
-                end
-            end
-        end)
-
-        print("🔥 Hard FireRate: ON ✅")
-    else
-        if features._fireRateLocal then features._fireRateLocal:Disconnect(); features._fireRateLocal=nil end
-        if features._fireRateRemote then features._fireRateRemote:Disconnect(); features._fireRateRemote=nil end
-        print("🔥 Hard FireRate: OFF ❌")
+        end
     end
+    return args
+end
+
+--// __namecall Hook
+local function HookNamecall()
+    if FireRateHooks.namecall then return end
+    FireRateHooks.namecall = true
+
+    local old
+    old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+
+        if FireRateActive 
+        and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        and (method == "FireServer" or method == "InvokeServer") then
+            args = PatchFireRateArgs(args)
+            return old(self, table.unpack(args))
+        end
+
+        return old(self, ...)
+    end))
+end
+
+--// __index Hook (cooldown değerlerini sıfırla)
+local function HookIndex()
+    if FireRateHooks.index then return end
+    FireRateHooks.index = true
+
+    local old
+    old = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if FireRateActive and type(key) == "string" then
+            local k = key:lower()
+            if k:find("cooldown") or k:find("delay") or k:find("debounce") or k:find("firerate") then
+                return 0
+            end
+        end
+        return old(self, key)
+    end))
+end
+
+--// __newindex Hook (yeni cooldown yazmaya çalışırsa engelle)
+local function HookNewIndex()
+    if FireRateHooks.newindex then return end
+    FireRateHooks.newindex = true
+
+    local old
+    old = hookmetamethod(game, "__newindex", newcclosure(function(self, key, val)
+        if FireRateActive and type(key) == "string" then
+            local k = key:lower()
+            if k:find("cooldown") or k:find("delay") or k:find("debounce") or k:find("firerate") then
+                val = 0
+            end
+        end
+        return old(self, key, val)
+    end))
+end
+
+--// wait / task.wait Hook
+local function HookWait()
+    if FireRateHooks.wait then return end
+    FireRateHooks.wait = true
+
+    local old = wait
+    getgenv().wait = newcclosure(function(t)
+        if FireRateActive then return old(0) end
+        return old(t)
+    end)
+
+    local taskWait = task.wait
+    task.wait = newcclosure(function(t)
+        if FireRateActive then return taskWait(0) end
+        return taskWait(t)
+    end)
+end
+
+--// Heartbeat Hook (frame gecikmelerini azalt)
+local function HookHeartbeat()
+    if FireRateHooks.heartbeat then return end
+    FireRateHooks.heartbeat = true
+
+    RunService.Heartbeat:Connect(function()
+        if FireRateActive then
+            -- burada tick tabanlı delay varsa resetlemiş gibi olur
+        end
+    end)
+end
+
+--// Toggle
+function ToggleFireRate(on)
+    FireRateActive = (on == true)
+    HookNamecall()
+    HookIndex()
+    HookNewIndex()
+    HookWait()
+    HookHeartbeat()
+    print("[FireRate] "..(FireRateActive and "ON" or "OFF"))
 end
 
 ----------------------------------------------------------------
@@ -580,54 +684,140 @@ end
 ----------------------------------------------------------------
 -- Kill Aura (yakındaki düşmanlara otomatik saldırı + DamageRemote)
 ----------------------------------------------------------------
-features._aura = nil
-features.DamageAmount = 150  -- sabit hasar (serverine göre değiştir)
+--// Durum
+local KillAuraActive = false
+local KillAuraHooks  = {namecall=false, index=false, newindex=false, wait=false, heartbeat=false}
 
--- ⚠️ Burayı kendi serverine göre ayarla:
--- örnek kullanım:
--- DamageRemote:FireServer(enemy, features.DamageAmount)
- 
-local DamageRemote = game:GetService("ReplicatedStorage"):WaitForChild("DamageRemote", 5)
+--// Enemy Seçici
+local function getClosestEnemy()
+    local closest, dist = nil, math.huge
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = plr.Character.HumanoidRootPart
+            local mag = (hrp.Position - (Player.Character and Player.Character:FindFirstChild("HumanoidRootPart").Position or Vector3.new())).Magnitude
+            if mag < dist then
+                dist, closest = mag, plr
+            end
+        end
+    end
+    return closest
+end
 
-function features.ToggleKillAura(on)
-    if on then
-        if features._aura then features._aura:Disconnect() end
-        features._aura = RunService.Heartbeat:Connect(function()
-            local myChar = Player.Character
-            local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
-            local myHum  = myChar and myChar:FindFirstChildOfClass("Humanoid")
-            local tool   = myChar and myChar:FindFirstChildOfClass("Tool")
-
-            if not (myChar and myHRP and myHum and myHum.Health > 0) then return end
-
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= Player and plr.Character then
-                    local enemyHRP = plr.Character:FindFirstChild("HumanoidRootPart")
-                    local enemyHum = plr.Character:FindFirstChildOfClass("Humanoid")
-                    if enemyHRP and enemyHum and enemyHum.Health > 0 then
-                        local dist = (enemyHRP.Position - myHRP.Position).Magnitude
-                        if dist < 20 then -- 20 stud menzil
-                            -- 1) Tool varsa kullan
-                            if tool then
-                                pcall(function() tool:Activate() end)
-                            end
-
-                            -- 2) DamageRemote varsa hasar gönder
-                            if DamageRemote then
-                                pcall(function()
-                                    DamageRemote:FireServer({Target=enemy, Damage=features.DamageAmount})
-                                end)
-                            end
-                        end
-                    end
+--// Patch Args → hedefi kafaya kilitle
+local function PatchKillAuraArgs(args, headPos)
+    for i,v in ipairs(args) do
+        if typeof(v) == "Vector3" then
+            args[i] = headPos
+        elseif typeof(v) == "CFrame" then
+            args[i] = CFrame.new(v.Position, headPos)
+        elseif typeof(v) == "table" then
+            for k,val in pairs(v) do
+                if typeof(val) == "Vector3" then
+                    v[k] = headPos
+                elseif typeof(val) == "CFrame" then
+                    v[k] = CFrame.new(val.Position, headPos)
                 end
             end
-        end)
-        print("KillAura ON ✅")
-    else
-        if features._aura then features._aura:Disconnect(); features._aura=nil end
-        print("KillAura OFF ❌")
+        end
     end
+    return args
+end
+
+--// __namecall
+local function HookNamecall()
+    if KillAuraHooks.namecall then return end
+    KillAuraHooks.namecall = true
+
+    local old
+    old = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}
+
+        if KillAuraActive 
+        and (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+        and (method == "FireServer" or method == "InvokeServer") then
+            local enemy = getClosestEnemy()
+            if enemy and enemy.Character and enemy.Character:FindFirstChild("Head") then
+                args = PatchKillAuraArgs(args, enemy.Character.Head.Position)
+                return old(self, table.unpack(args))
+            end
+        end
+        return old(self, ...)
+    end))
+end
+
+--// __index / __newindex (cooldownları sıfırla)
+local function HookIndex()
+    if KillAuraHooks.index then return end
+    KillAuraHooks.index = true
+
+    local old
+    old = hookmetamethod(game, "__index", newcclosure(function(self, key)
+        if KillAuraActive and type(key) == "string" then
+            local k = key:lower()
+            if k:find("attack") or k:find("cooldown") or k:find("delay") then
+                return 0
+            end
+        end
+        return old(self, key)
+    end))
+end
+
+local function HookNewIndex()
+    if KillAuraHooks.newindex then return end
+    KillAuraHooks.newindex = true
+
+    local old
+    old = hookmetamethod(game, "__newindex", newcclosure(function(self, key, val)
+        if KillAuraActive and type(key) == "string" then
+            local k = key:lower()
+            if k:find("attack") or k:find("cooldown") or k:find("delay") then
+                val = 0
+            end
+        end
+        return old(self, key, val)
+    end))
+end
+
+--// wait / task.wait override
+local function HookWait()
+    if KillAuraHooks.wait then return end
+    KillAuraHooks.wait = true
+
+    local old = wait
+    getgenv().wait = newcclosure(function(t)
+        if KillAuraActive then return old(0) end
+        return old(t)
+    end)
+
+    local taskWait = task.wait
+    task.wait = newcclosure(function(t)
+        if KillAuraActive then return taskWait(0) end
+        return taskWait(t)
+    end)
+end
+
+--// Heartbeat
+local function HookHeartbeat()
+    if KillAuraHooks.heartbeat then return end
+    KillAuraHooks.heartbeat = true
+
+    RunService.Heartbeat:Connect(function()
+        if KillAuraActive then
+            -- debounce timer reset gibi davranır
+        end
+    end)
+end
+
+--// Toggle
+function ToggleKillAura(on)
+    KillAuraActive = (on == true)
+    HookNamecall()
+    HookIndex()
+    HookNewIndex()
+    HookWait()
+    HookHeartbeat()
+    print("[KillAura] "..(KillAuraActive and "ON" or "OFF"))
 end
 
 
