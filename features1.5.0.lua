@@ -299,11 +299,7 @@ function features.ToggleFly(on)
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        -- Oto-dönüş kapansın
-        local hum = ch:FindFirstChildOfClass("Humanoid")
-        if hum then hum.AutoRotate = false end
-
-        -- İtiş kuvveti
+        -- Itiş
         local bv = hrp:FindFirstChildOfClass("BodyVelocity")
         if not bv then
             bv = Instance.new("BodyVelocity")
@@ -312,7 +308,7 @@ function features.ToggleFly(on)
             bv.Velocity = Vector3.zero
         end
 
-        -- Kameraya kilitli smooth dönüş
+        -- Kamera yönüne KALICI bakış için (yaw+pitch) smooth gyro
         local bg = hrp:FindFirstChildOfClass("BodyGyro")
         if not bg then
             bg = Instance.new("BodyGyro")
@@ -322,35 +318,46 @@ function features.ToggleFly(on)
             bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
             bg.CFrame    = hrp.CFrame
         end
-        return bv, hrp, hum, bg
+
+        -- Humanoid oto-rotate kapalı kalsın ki geri dönmesin
+        local hum = ch:FindFirstChildOfClass("Humanoid")
+        if hum then hum.AutoRotate = false end
+
+        return bv, hrp, bg, hum
     end
 
     if on then
         if features._fly then features._fly:Disconnect() end
         features._fly = RunService.RenderStepped:Connect(function()
-            local bv, hrp, hum, bg = ensureBV()
+            local bv, hrp, bg = ensureBV()
             if not (bv and hrp and bg) then return end
 
-            local camCF = workspace.CurrentCamera.CFrame
+            local camCF   = workspace.CurrentCamera.CFrame
+            local look    = camCF.LookVector             -- W/S için pitch dahil
+            local right3D = camCF.RightVector
+            local right   = Vector3.new(right3D.X, 0, right3D.Z) -- A/D için Y sıfır: zigzag fix
+            if right.Magnitude > 0 then right = right.Unit end
 
-            -- ✨ KARAKTER YÖNÜ = KAMERA YÖNÜ (yaw + pitch)
-            -- Kamera nereye bakıyorsa karakter de oraya baksın (roll dahil etmemek istersen UpVector yerine Vector3.yAxis kullan).
-            local targetCF  = CFrame.new(hrp.Position, hrp.Position + camCF.LookVector, camCF.UpVector)
-            bg.CFrame       = bg.CFrame:Lerp(targetCF, 0.45)  -- smooth dönüş; daha “snap” istersen 0.85 yap
+            -- ✨ Karakter her zaman kameranın baktığı yöne (yaw+pitch) dönsün, kalıcı:
+            local targetCF = CFrame.new(hrp.Position, hrp.Position + camCF.LookVector, camCF.UpVector)
+            bg.CFrame = bg.CFrame:Lerp(targetCF, 0.45) -- daha sert istersen 0.7 yap
 
-            -- Hareket yalnızca tuşlarla (WASD + Space/LCtrl). Tuş yoksa hız = 0
-            local dir   = Vector3.zero
-            local look  = camCF.LookVector
-            local right = camCF.RightVector
-
+            -- Hareket vektörü (WASD + Space/LCtrl). Yumuşak ve düzgün.
+            local dir = Vector3.zero
             if UIS:IsKeyDown(Enum.KeyCode.W) then dir += look end
             if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= look end
             if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= right end
             if UIS:IsKeyDown(Enum.KeyCode.D) then dir += right end
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0, 1, 0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0, 1, 0) end
 
-            bv.Velocity = (dir.Magnitude > 0) and dir.Unit * (features._flySpeed or 60) or Vector3.zero
+            -- Zigzag’ı kes: tek seferde normalize + hız; tuş yoksa sıfır
+            if dir.Magnitude > 0 then
+                dir = dir.Unit
+                bv.Velocity = dir * (features._flySpeed or 60)
+            else
+                bv.Velocity = Vector3.zero
+            end
         end)
 
         Player.CharacterAdded:Connect(function()
@@ -359,7 +366,7 @@ function features.ToggleFly(on)
         end)
     else
         local ch  = Player.Character
-        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        local hrp = ch and Player.Character:FindFirstChild("HumanoidRootPart")
         local hum = ch and ch:FindFirstChildOfClass("Humanoid")
 
         if hrp then
@@ -368,8 +375,8 @@ function features.ToggleFly(on)
             local bg = hrp:FindFirstChildOfClass("BodyGyro")
             if bg then bg:Destroy() end
         end
-        if hum then hum.AutoRotate = true end
 
+        if hum then hum.AutoRotate = true end
         if features._fly then features._fly:Disconnect() end
     end
 end
