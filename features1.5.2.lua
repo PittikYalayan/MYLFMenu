@@ -301,32 +301,24 @@ function features.ToggleFly(on)
 
         local bv = hrp:FindFirstChildOfClass("BodyVelocity")
         if not bv then
-            bv = Instance.new("BodyVelocity")
-            bv.Parent   = hrp
-            bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+            bv = Instance.new("BodyVelocity", hrp)
+            bv.MaxForce = Vector3.new(4000,4000,4000)
             bv.Velocity = Vector3.zero
         end
-
-        -- Humanoid rotasyonu kapat ki geri dönmesin
-        local hum = ch:FindFirstChildOfClass("Humanoid")
-        if hum then hum.AutoRotate = false end
-
-        return bv, hrp, hum
+        return bv, hrp, ch
     end
 
     if on then
         if features._fly then features._fly:Disconnect() end
+
         features._fly = RunService.RenderStepped:Connect(function()
-            local bv, hrp, hum = ensureBV()
-            if not (bv and hrp) then return end
+            local bv, hrp, ch = ensureBV()
+            if not bv then return end
 
             local camCF = workspace.CurrentCamera.CFrame
+            local dir   = Vector3.zero
 
-            -- Karakterin yönü her frame kameranın yönü ile aynı
-            hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + camCF.LookVector)
-
-            -- Tuşlara göre hareket yönü
-            local dir = Vector3.zero
+            -- WASD + Space + Ctrl input
             if UIS:IsKeyDown(Enum.KeyCode.W) then dir += camCF.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= camCF.LookVector end
             if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= camCF.RightVector end
@@ -334,6 +326,16 @@ function features.ToggleFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
+            -- Kamera yönüne bak (yaw + pitch dahil)
+            if hrp then
+                hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + camCF.LookVector)
+            end
+
+            -- Anim drift fix
+            local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+            if hum then hum:Move(Vector3.zero, false) end
+
+            -- Smooth velocity (zigzag engellendi)
             if dir.Magnitude > 0 then
                 bv.Velocity = dir.Unit * (features._flySpeed or 60)
             else
@@ -346,15 +348,11 @@ function features.ToggleFly(on)
             if on then features.ToggleFly(true) end
         end)
     else
-        local ch  = Player.Character
-        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-
+        local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
             local bv = hrp:FindFirstChildOfClass("BodyVelocity")
             if bv then bv:Destroy() end
         end
-        if hum then hum.AutoRotate = true end
         if features._fly then features._fly:Disconnect() end
     end
 end
