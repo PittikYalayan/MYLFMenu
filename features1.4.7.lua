@@ -291,7 +291,6 @@ end
 ----------------------------------------------------------------
 -- Ultra Fly (Server correction bypass + Camera yönlü)
 ----------------------------------------------------------------
--- Varsayılan değer
 features._flySpeed = features._flySpeed or 60
 
 function features.ToggleFly(on)
@@ -300,7 +299,6 @@ function features.ToggleFly(on)
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        -- humanoid al ve autorotate'i uçuşta kapat
         local hum = ch:FindFirstChildOfClass("Humanoid")
         if hum then hum.AutoRotate = false end
 
@@ -320,11 +318,18 @@ function features.ToggleFly(on)
             local bv, hrp, hum = ensureBV()
             if not bv or not hrp then return end
 
-            local cf  = workspace.CurrentCamera.CFrame
-            local dir = Vector3.zero
+            local cam = workspace.CurrentCamera
+            local cf  = cam.CFrame
 
-            -- Kameranın eksenleri (pitch/dikey bileşenler dahil)
-            local look = cf.LookVector
+            -- mouse ile çevirdiğin yönü direkt karaktere uygula (pitch+dikey dahil)
+            -- aşırı keskin olmasın diye hafif slerp ile yumuşatıyoruz
+            local lookAt = CFrame.new(hrp.Position, hrp.Position + cf.LookVector)
+            local turnAlpha = 0.35 -- 0-1 arası; daha yumuşak istersen düşür (örn: 0.2)
+            hrp.CFrame = hrp.CFrame:Lerp(lookAt, turnAlpha)
+
+            -- hareket: W/A/S/D + Space/LCtrl
+            local dir   = Vector3.zero
+            local look  = cf.LookVector
             local right = cf.RightVector
             local up    = Vector3.new(0,1,0)
 
@@ -335,13 +340,7 @@ function features.ToggleFly(on)
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += up end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= up end
 
-            if dir.Magnitude > 0 then
-                dir = dir.Unit
-                -- Karakteri kameranın baktığı yöne döndür (pitch dahil)
-                -- (rol yok, sadece kameranın yönüne bakacak)
-                hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + look)
-            end
-
+            if dir.Magnitude > 0 then dir = dir.Unit end
             bv.Velocity = dir * (features._flySpeed or 60)
         end)
 
