@@ -299,11 +299,11 @@ function features.ToggleFly(on)
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
-        -- Humanoid autorotate kapat
+        -- Oto-dönüş kapansın
         local hum = ch:FindFirstChildOfClass("Humanoid")
         if hum then hum.AutoRotate = false end
 
-        -- itiş: BodyVelocity
+        -- İtiş kuvveti
         local bv = hrp:FindFirstChildOfClass("BodyVelocity")
         if not bv then
             bv = Instance.new("BodyVelocity")
@@ -312,12 +312,12 @@ function features.ToggleFly(on)
             bv.Velocity = Vector3.zero
         end
 
-        -- smooth dönüş: BodyGyro
+        -- Kameraya kilitli smooth dönüş
         local bg = hrp:FindFirstChildOfClass("BodyGyro")
         if not bg then
             bg = Instance.new("BodyGyro")
             bg.Parent    = hrp
-            bg.P         = 8000
+            bg.P         = 9000
             bg.D         = 300
             bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
             bg.CFrame    = hrp.CFrame
@@ -333,37 +333,24 @@ function features.ToggleFly(on)
 
             local camCF = workspace.CurrentCamera.CFrame
 
-            -- Yalnızca YAW: kameranın ileri ve sağ vektörlerini XZ düzlemine projekte et
-            local camLook  = camCF.LookVector
-            local camRight = camCF.RightVector
-            local forward  = Vector3.new(camLook.X, 0, camLook.Z)
-            local right    = Vector3.new(camRight.X, 0, camRight.Z)
+            -- ✨ KARAKTER YÖNÜ = KAMERA YÖNÜ (yaw + pitch)
+            -- Kamera nereye bakıyorsa karakter de oraya baksın (roll dahil etmemek istersen UpVector yerine Vector3.yAxis kullan).
+            local targetCF  = CFrame.new(hrp.Position, hrp.Position + camCF.LookVector, camCF.UpVector)
+            bg.CFrame       = bg.CFrame:Lerp(targetCF, 0.45)  -- smooth dönüş; daha “snap” istersen 0.85 yap
 
-            if forward.Magnitude < 1e-4 then
-                local cur = hrp.CFrame.LookVector
-                forward = Vector3.new(cur.X, 0, cur.Z)
-            end
-            forward = forward.Unit
-            right   = right.Unit
+            -- Hareket yalnızca tuşlarla (WASD + Space/LCtrl). Tuş yoksa hız = 0
+            local dir   = Vector3.zero
+            local look  = camCF.LookVector
+            local right = camCF.RightVector
 
-            -- karakteri kameranın baktığı yöne (yaw) smooth döndür
-            local targetCF  = CFrame.lookAt(hrp.Position, hrp.Position + forward, Vector3.new(0,1,0))
-            bg.CFrame       = bg.CFrame:Lerp(targetCF, 0.35)
-
-            -- hareket sadece tuşlarla; tuş yoksa hız 0
-            local dir = Vector3.zero
-            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += forward end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= forward end
+            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += look end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= look end
             if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= right end
             if UIS:IsKeyDown(Enum.KeyCode.D) then dir += right end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-            if dir.Magnitude > 0 then
-                bv.Velocity = dir.Unit * (features._flySpeed or 60)
-            else
-                bv.Velocity = Vector3.zero
-            end
+            bv.Velocity = (dir.Magnitude > 0) and dir.Unit * (features._flySpeed or 60) or Vector3.zero
         end)
 
         Player.CharacterAdded:Connect(function()
