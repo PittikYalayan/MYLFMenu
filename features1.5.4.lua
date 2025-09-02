@@ -318,20 +318,24 @@ function features.ToggleFly(on)
             local camCF = workspace.CurrentCamera.CFrame
             local dir   = Vector3.zero
 
-            -- WASD + Space + Ctrl input (yalnızca input olduğunda hareket)
-            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += camCF.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= camCF.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= camCF.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then dir += camCF.RightVector end
+            -- input yönü: sadece XZ düzleminde (yukarı-aşağı bakış hareketi etkilemesin)
+            local lookXZ = Vector3.new(camCF.LookVector.X, 0, camCF.LookVector.Z).Unit
+            local right  = camCF.RightVector
+
+            -- WASD + Space + Ctrl input
+            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += lookXZ end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= lookXZ end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= right end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then dir += right end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-            -- Karakteri kameraya %100 kilitle (yaw + pitch)
+            -- Karakteri kameranın baktığı yöne tam çevir (yaw + pitch)
             if hrp then
                 hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + camCF.LookVector)
             end
 
-            -- Animasyon drift fix
+            -- Anim drift fix
             local hum = ch and ch:FindFirstChildOfClass("Humanoid")
             if hum then hum:Move(Vector3.zero, false) end
 
@@ -361,6 +365,7 @@ function features.SetFlySpeed(val)
     features._flySpeed = tonumber(val) or 60
     print("[MYLF] FlySpeed set to", features._flySpeed)
 end
+
 
 
 
