@@ -296,43 +296,70 @@ features._flySpeed = features._flySpeed or 60
 
 function features.ToggleFly(on)
     local function ensureBV()
-        local ch = Player.Character
+        local ch  = Player.Character
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
+
+        -- humanoid al ve autorotate'i uçuşta kapat
+        local hum = ch:FindFirstChildOfClass("Humanoid")
+        if hum then hum.AutoRotate = false end
+
         local bv = hrp:FindFirstChildOfClass("BodyVelocity")
         if not bv then
-            bv = Instance.new("BodyVelocity", hrp)
-            bv.MaxForce = Vector3.new(4000,4000,4000)
+            bv = Instance.new("BodyVelocity")
+            bv.Parent   = hrp
+            bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
             bv.Velocity = Vector3.zero
         end
-        return bv, hrp
+        return bv, hrp, hum
     end
 
     if on then
         if features._fly then features._fly:Disconnect() end
         features._fly = RunService.RenderStepped:Connect(function()
-            local bv = ensureBV()
-            if not bv then return end
-            local dir = Vector3.zero
+            local bv, hrp, hum = ensureBV()
+            if not bv or not hrp then return end
+
             local cf  = workspace.CurrentCamera.CFrame
-            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cf.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cf.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cf.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cf.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+            local dir = Vector3.zero
+
+            -- Kameranın eksenleri (pitch/dikey bileşenler dahil)
+            local look = cf.LookVector
+            local right = cf.RightVector
+            local up    = Vector3.new(0,1,0)
+
+            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += look end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= look end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= right end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then dir += right end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += up end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= up end
+
+            if dir.Magnitude > 0 then
+                dir = dir.Unit
+                -- Karakteri kameranın baktığı yöne döndür (pitch dahil)
+                -- (rol yok, sadece kameranın yönüne bakacak)
+                hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + look)
+            end
+
             bv.Velocity = dir * (features._flySpeed or 60)
         end)
+
         Player.CharacterAdded:Connect(function()
             task.wait(0.5)
             if on then features.ToggleFly(true) end
         end)
     else
-        local hrp = Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+        local ch  = Player.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+
         if hrp then
             local bv = hrp:FindFirstChildOfClass("BodyVelocity")
             if bv then bv:Destroy() end
         end
+        if hum then hum.AutoRotate = true end
+
         if features._fly then features._fly:Disconnect() end
     end
 end
