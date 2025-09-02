@@ -299,9 +299,11 @@ function features.ToggleFly(on)
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
 
+        -- Humanoid autorotate kapat
         local hum = ch:FindFirstChildOfClass("Humanoid")
         if hum then hum.AutoRotate = false end
 
+        -- itiş: BodyVelocity
         local bv = hrp:FindFirstChildOfClass("BodyVelocity")
         if not bv then
             bv = Instance.new("BodyVelocity")
@@ -309,39 +311,59 @@ function features.ToggleFly(on)
             bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
             bv.Velocity = Vector3.zero
         end
-        return bv, hrp, hum
+
+        -- smooth dönüş: BodyGyro
+        local bg = hrp:FindFirstChildOfClass("BodyGyro")
+        if not bg then
+            bg = Instance.new("BodyGyro")
+            bg.Parent    = hrp
+            bg.P         = 8000
+            bg.D         = 300
+            bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+            bg.CFrame    = hrp.CFrame
+        end
+        return bv, hrp, hum, bg
     end
 
     if on then
         if features._fly then features._fly:Disconnect() end
         features._fly = RunService.RenderStepped:Connect(function()
-            local bv, hrp, hum = ensureBV()
-            if not bv or not hrp then return end
+            local bv, hrp, hum, bg = ensureBV()
+            if not (bv and hrp and bg) then return end
 
-            local cam = workspace.CurrentCamera
-            local cf  = cam.CFrame
+            local camCF = workspace.CurrentCamera.CFrame
 
-            -- mouse ile çevirdiğin yönü direkt karaktere uygula (pitch+dikey dahil)
-            -- aşırı keskin olmasın diye hafif slerp ile yumuşatıyoruz
-            local lookAt = CFrame.new(hrp.Position, hrp.Position + cf.LookVector)
-            local turnAlpha = 0.35 -- 0-1 arası; daha yumuşak istersen düşür (örn: 0.2)
-            hrp.CFrame = hrp.CFrame:Lerp(lookAt, turnAlpha)
+            -- Yalnızca YAW: kameranın ileri ve sağ vektörlerini XZ düzlemine projekte et
+            local camLook  = camCF.LookVector
+            local camRight = camCF.RightVector
+            local forward  = Vector3.new(camLook.X, 0, camLook.Z)
+            local right    = Vector3.new(camRight.X, 0, camRight.Z)
 
-            -- hareket: W/A/S/D + Space/LCtrl
-            local dir   = Vector3.zero
-            local look  = cf.LookVector
-            local right = cf.RightVector
-            local up    = Vector3.new(0,1,0)
+            if forward.Magnitude < 1e-4 then
+                local cur = hrp.CFrame.LookVector
+                forward = Vector3.new(cur.X, 0, cur.Z)
+            end
+            forward = forward.Unit
+            right   = right.Unit
 
-            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += look end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= look end
+            -- karakteri kameranın baktığı yöne (yaw) smooth döndür
+            local targetCF  = CFrame.lookAt(hrp.Position, hrp.Position + forward, Vector3.new(0,1,0))
+            bg.CFrame       = bg.CFrame:Lerp(targetCF, 0.35)
+
+            -- hareket sadece tuşlarla; tuş yoksa hız 0
+            local dir = Vector3.zero
+            if UIS:IsKeyDown(Enum.KeyCode.W) then dir += forward end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= forward end
             if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= right end
             if UIS:IsKeyDown(Enum.KeyCode.D) then dir += right end
-            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += up end
-            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= up end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
 
-            if dir.Magnitude > 0 then dir = dir.Unit end
-            bv.Velocity = dir * (features._flySpeed or 60)
+            if dir.Magnitude > 0 then
+                bv.Velocity = dir.Unit * (features._flySpeed or 60)
+            else
+                bv.Velocity = Vector3.zero
+            end
         end)
 
         Player.CharacterAdded:Connect(function()
@@ -356,6 +378,8 @@ function features.ToggleFly(on)
         if hrp then
             local bv = hrp:FindFirstChildOfClass("BodyVelocity")
             if bv then bv:Destroy() end
+            local bg = hrp:FindFirstChildOfClass("BodyGyro")
+            if bg then bg:Destroy() end
         end
         if hum then hum.AutoRotate = true end
 
