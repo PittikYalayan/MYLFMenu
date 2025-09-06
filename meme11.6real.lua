@@ -153,6 +153,76 @@ registerThemeUpdater("TitleBar", function(th)
     BindBtn.TextColor3  = th.Text; BindBtn.BackgroundColor3  = th.Hover; bindStroke.Color = th.Stroke
 end)
 
+
+
+-- ========== MYLF Live Counter (non-invasive) ==========
+do
+    local HttpService = game:GetService("HttpService")
+    local req = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
+
+    -- LIVE worker tabanı (ayrıysa burayı değiştir)
+    local LIVE_BASE = "https://mylfkey.bythekyol.workers.dev"  -- örn: "https://mylf-live.yourname.workers.dev"
+
+    -- PC HWID (exec + gerçek hwid)
+    local _exec    = (identifyexecutor and identifyexecutor()) or "UnknownExec"
+    local _real    = (gethwid and gethwid()) or "UnknownHWID"
+    local _PC_HWID = HttpService:UrlEncode(_exec .. "_" .. _real)
+
+    -- Güvenli Title erişimi (mevcut Title Label'ını kullanıyoruz)
+    local function setTitleSuffix(txt)
+        if Title and Title.Parent then
+            Title.Text = "⚡ MYLF | PREMIUM " .. txt
+        end
+    end
+
+    local function heartbeat()
+        if not req then return end
+        pcall(function()
+            req({
+                Url = LIVE_BASE .. "/heartbeat",
+                Method = "POST",
+                Headers = {["Content-Type"]="application/json"},
+                Body = HttpService:JSONEncode({ hwid = _PC_HWID })
+            })
+        end)
+    end
+
+    local function refreshActive()
+        if not req then
+            setTitleSuffix("[?]")
+            return
+        end
+        local ok, res = pcall(function()
+            return req({ Url = LIVE_BASE .. "/active", Method = "GET" })
+        end)
+        if ok and res and res.StatusCode == 200 then
+            local data = HttpService:JSONDecode(res.Body)
+            local n = tonumber(data.active) or tonumber(data.active_users)
+            setTitleSuffix("[" .. tostring(n or "?") .. "]")
+        else
+            setTitleSuffix("[?]")
+        end
+    end
+
+    -- DIŞA AÇIK: menü hazır olduğunda 1 kez çağır
+    function MYLF_StartLiveCounter()
+        -- anında göster + heartbeat
+        refreshActive()
+        heartbeat()
+        -- periyodik güncelleme
+        task.spawn(function()
+            while Title and Title.Parent do
+                heartbeat()
+                refreshActive()
+                task.wait(20)
+            end
+        end)
+    end
+end
+-- ========== /MYLF Live Counter ==========
+
+
+
 -- Drag only TitleBar (aynen)
 do
     local dragStart, startPos
