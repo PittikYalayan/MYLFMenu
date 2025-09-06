@@ -155,71 +155,7 @@ end)
 
 
 
--- ========== MYLF Live Counter (non-invasive) ==========
-do
-    local HttpService = game:GetService("HttpService")
-    local req = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
 
-    -- LIVE worker tabanı (ayrıysa burayı değiştir)
-    local LIVE_BASE = "https://mylflive.bythekyol.workers.dev"  -- örn: "https://mylf-live.yourname.workers.dev"
-
-    -- PC HWID (exec + gerçek hwid)
-    local _exec    = (identifyexecutor and identifyexecutor()) or "UnknownExec"
-    local _real    = (gethwid and gethwid()) or "UnknownHWID"
-    local _PC_HWID = HttpService:UrlEncode(_exec .. "_" .. _real)
-
-    -- Güvenli Title erişimi (mevcut Title Label'ını kullanıyoruz)
-    local function setTitleSuffix(txt)
-        if Title and Title.Parent then
-            Title.Text = "⚡ MYLF | PREMIUM " .. txt
-        end
-    end
-
-    local function heartbeat()
-        if not req then return end
-        pcall(function()
-            req({
-                Url = LIVE_BASE .. "/heartbeat",
-                Method = "POST",
-                Headers = {["Content-Type"]="application/json"},
-                Body = HttpService:JSONEncode({ hwid = _PC_HWID })
-            })
-        end)
-    end
-
-    local function refreshActive()
-        if not req then
-            setTitleSuffix("[?]")
-            return
-        end
-        local ok, res = pcall(function()
-            return req({ Url = LIVE_BASE .. "/active", Method = "GET" })
-        end)
-        if ok and res and res.StatusCode == 200 then
-            local data = HttpService:JSONDecode(res.Body)
-            local n = tonumber(data.active) or tonumber(data.active_users)
-            setTitleSuffix("[" .. tostring(n or "?") .. "]")
-        else
-            setTitleSuffix("[?]")
-        end
-    end
-
-    -- DIŞA AÇIK: menü hazır olduğunda 1 kez çağır
-    function MYLF_StartLiveCounter()
-        -- anında göster + heartbeat
-        refreshActive()
-        heartbeat()
-        -- periyodik güncelleme
-        task.spawn(function()
-            while Title and Title.Parent do
-                heartbeat()
-                refreshActive()
-                task.wait(20)
-            end
-        end)
-    end
-end
--- ========== /MYLF Live Counter ==========
 
 
 
@@ -412,6 +348,61 @@ RunService.RenderStepped:Connect(function(dt)
         ColorSequenceKeypoint.new(0.50, Color3.fromHSV((os.clock()*0.7+0.33)%1,1,1)),
         ColorSequenceKeypoint.new(1.00, Color3.fromHSV((os.clock()*0.7+0.66)%1,1,1)),
     }
+
+   -- >>> MYLF LIVE COUNTER (Cloudflare) — KEY'DEN BAĞIMSIZ <<<
+local HttpRequest = request or http_request or (syn and syn.request) or (fluxus and fluxus.request) or nil
+local LIVE_BASE   = "https://mylflive.bythekyol.workers.dev"  -- <-- BURAYA kendi LIVE worker URL'ini yaz
+
+-- HWID (PC bazlı; executor + gerçek hwid)
+local exec     = (identifyexecutor and identifyexecutor()) or "UnknownExec"
+local realHWID = (gethwid and gethwid()) or "UnknownHWID"
+local PC_HWID  = HttpService:UrlEncode(exec .. "_" .. realHWID)
+
+-- Güvenli request wrapper (çökmeyi engeller)
+local function safeRequest(t)
+    if not HttpRequest then return nil end
+    local ok, res = pcall(HttpRequest, t)
+    if ok and res and res.StatusCode then return res end
+    return nil
+end
+
+-- Ekranda kullanılacak sayaç
+local LiveActiveCount = 0
+
+-- 120s TTL'li heartbeat (biz 60s'te bir yolluyoruz)
+local function LiveHeartbeatLoop()
+    while task.wait(60) do
+        if not LIVE_BASE or LIVE_BASE == "" then break end
+        local body = HttpService:JSONEncode({ hwid = PC_HWID })
+        safeRequest({
+            Url = LIVE_BASE .. "/heartbeat",
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = body
+        })
+    end
+end
+
+-- Aktif kullanıcı sayısını çek (10s aralık)
+local function LivePollActiveLoop()
+    while task.wait(10) do
+        if not LIVE_BASE or LIVE_BASE == "" then break end
+        local res = safeRequest({ Url = LIVE_BASE .. "/active", Method = "GET" })
+        if res and res.StatusCode == 200 then
+            local ok, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
+            if ok and type(data) == "table" and tonumber(data.active) then
+                LiveActiveCount = tonumber(data.active)
+            end
+        end
+    end
+end
+
+-- Başlat
+task.spawn(LiveHeartbeatLoop)
+task.spawn(LivePollActiveLoop)
+-- <<< MYLF LIVE COUNTER END <<<
+
+        
     if halfA >= 0.5 then
         local fps=round(frameCount/halfA,0); frameCount=0; halfA=0
         local ping = "?"
@@ -419,7 +410,7 @@ RunService.RenderStepped:Connect(function(dt)
             local it = Stats.Network.ServerStatsItem["Data Ping"]
             if it then ping = tostring(it:GetValueString()):gsub(" RTT","") end
         end)
-        CrownText.Text=("FPS: %s | Ping: %s | CPU: %s ms | GPU: %s ms"):format(fps, ping, round(hbAvg*1000,1), round(rsAvg*1000,1))
+        CrownText.Text = ("FPS: %s | Ping: %s | CPU: %s ms | GPU: %s ms | Live: %d"):format(fps, ping, round(hbAvg*1000,1), round(rsAvg*1000,1), LiveActiveCount or 0)
         local need=CrownText.TextBounds.X + 40; CrownPanel.Size=UDim2.fromOffset(math.clamp(need, 260, 680), 26)
     end
 end)
