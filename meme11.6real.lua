@@ -161,7 +161,7 @@ do
     local req = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
 
     -- LIVE worker tabanı (ayrıysa burayı değiştir)
-    local LIVE_BASE = "https://mylfkey.bythekyol.workers.dev"  -- örn: "https://mylf-live.yourname.workers.dev"
+    local LIVE_BASE = "https://mylflive.bythekyol.workers.dev"  -- örn: "https://mylf-live.yourname.workers.dev"
 
     -- PC HWID (exec + gerçek hwid)
     local _exec    = (identifyexecutor and identifyexecutor()) or "UnknownExec"
