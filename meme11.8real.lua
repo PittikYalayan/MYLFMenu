@@ -349,58 +349,48 @@ RunService.RenderStepped:Connect(function(dt)
         ColorSequenceKeypoint.new(1.00, Color3.fromHSV((os.clock()*0.7+0.66)%1,1,1)),
     }
 
-   -- >>> MYLF LIVE COUNTER (Cloudflare) — KEY'DEN BAĞIMSIZ <<<
-local HttpRequest = request or http_request or (syn and syn.request) or (fluxus and fluxus.request) or nil
-local LIVE_BASE   = "https://mylflive.bythekyol.workers.dev"  -- <-- BURAYA kendi LIVE worker URL'ini yaz
+  local HttpService = game:GetService("HttpService")
 
--- HWID (PC bazlı; executor + gerçek hwid)
-local exec     = (identifyexecutor and identifyexecutor()) or "UnknownExec"
-local realHWID = (gethwid and gethwid()) or "UnknownHWID"
-local PC_HWID  = HttpService:UrlEncode(exec .. "_" .. realHWID)
+-- ✅ Sadece LIVE için (KEY’den ayrı)
+local LIVE_BASE = "https://mylflive.bythekyol.workers.dev"
 
--- Güvenli request wrapper (çökmeyi engeller)
-local function safeRequest(t)
-    if not HttpRequest then return nil end
-    local ok, res = pcall(HttpRequest, t)
-    if ok and res and res.StatusCode then return res end
-    return nil
+-- ✅ HWID (Solara uyumlu)
+local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
+local realHWID = gethwid and gethwid() or "UnknownHWID"
+local PC_HWID = HttpService:UrlEncode(exec .. "_" .. realHWID)
+
+-- ✅ request wrapper (Solara/Script-Ware/Fluxus vs.)
+local http = (syn and syn.request) or request or http_request or (http and http.request)
+local function httpJSON(method, url, bodyTable)
+    local opt = {Url = url, Method = method, Headers = {["Content-Type"]="application/json"}}
+    if bodyTable then opt.Body = HttpService:JSONEncode(bodyTable) end
+    local ok, res = pcall(function() return http(opt) end)
+    return ok and res or nil
 end
-
--- Ekranda kullanılacak sayaç
+-- Global sayaç (HUD buradan okuyacak)
 local LiveActiveCount = 0
 
--- 120s TTL'li heartbeat (biz 60s'te bir yolluyoruz)
-local function LiveHeartbeatLoop()
-    while task.wait(60) do
-        if not LIVE_BASE or LIVE_BASE == "" then break end
-        local body = HttpService:JSONEncode({ hwid = PC_HWID })
-        safeRequest({
-            Url = LIVE_BASE .. "/heartbeat",
-            Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body = body
-        })
+-- 60s’de bir heartbeat
+task.spawn(function()
+    while true do
+        httpJSON("POST", LIVE_BASE .. "/heartbeat", { hwid = PC_HWID })
+        task.wait(60)
     end
-end
+end)
 
--- Aktif kullanıcı sayısını çek (10s aralık)
-local function LivePollActiveLoop()
-    while task.wait(10) do
-        if not LIVE_BASE or LIVE_BASE == "" then break end
-        local res = safeRequest({ Url = LIVE_BASE .. "/active", Method = "GET" })
+-- 10s’de bir /active sayımı çek
+task.spawn(function()
+    while true do
+        local res = httpJSON("GET", LIVE_BASE .. "/active")
         if res and res.StatusCode == 200 then
             local ok, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
-            if ok and type(data) == "table" and tonumber(data.active) then
-                LiveActiveCount = tonumber(data.active)
+            if ok and type(data)=="table" then
+                LiveActiveCount = tonumber(data.active) or 0
             end
         end
+        task.wait(10)
     end
-end
-
--- Başlat
-task.spawn(LiveHeartbeatLoop)
-task.spawn(LivePollActiveLoop)
--- <<< MYLF LIVE COUNTER END <<<
+end)
 
         
     if halfA >= 0.5 then
@@ -410,7 +400,7 @@ task.spawn(LivePollActiveLoop)
             local it = Stats.Network.ServerStatsItem["Data Ping"]
             if it then ping = tostring(it:GetValueString()):gsub(" RTT","") end
         end)
-        CrownText.Text = ("FPS: %s | Ping: %s | CPU: %s ms | GPU: %s ms | Live: %d"):format(fps, ping, round(hbAvg*1000,1), round(rsAvg*1000,1), LiveActiveCount or 0)
+        CrownText.Text = ("FPS: %s | Ping: %s | CPU: %s ms | GPU: %s ms | Live: %d"):format(fps, ping, round(hbAvg*1000,1), round(rsAvg*1000,1), LiveActiveCount)
         local need=CrownText.TextBounds.X + 40; CrownPanel.Size=UDim2.fromOffset(math.clamp(need, 260, 680), 26)
     end
 end)
