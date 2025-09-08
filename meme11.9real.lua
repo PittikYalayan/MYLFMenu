@@ -1010,22 +1010,51 @@ do
         local r_st=makeStroke(row,1,.0); makeCorner(row,6)
         registerThemeUpdater("scanner_row_"..text, function(th) row.TextColor3=th.Text; row.BackgroundColor3=th.Panel; r_st.Color=th.Stroke end)
         row.MouseButton1Click:Connect(function()
-            clearRight()
-            local head = Instance.new("TextLabel"); head.BackgroundTransparency=1; head.Font=Enum.Font.GothamBold; head.TextSize=14; head.Text="Details"; head.Size=UDim2.new(1,0,0,20); head.Parent=right
-            registerThemeUpdater("scanner_details_head", function(th) head.TextColor3=th.Text end)
+    clearRight()
+    local head = Instance.new("TextLabel"); head.BackgroundTransparency=1; head.Font=Enum.Font.GothamBold; head.TextSize=14; head.Text="Details"; head.Size=UDim2.new(1,0,0,20); head.Parent=right
+    registerThemeUpdater("scanner_details_head", function(th) head.TextColor3=th.Text end)
 
-            local tags = {}
-            local okTags, tagList = pcall(function() return CollectionService:GetTags(ref) end)
-            if okTags and tagList then tags = tagList end
-            local attrCount = 0; local attrsStr=""
-            local okAttr, attrs = pcall(function() return ref:GetAttributes() end)
-            if okAttr and attrs then for k,v in pairs(attrs) do attrCount += 1; attrsStr = attrsStr..tostring(k)..": "..tostring(v).."\n" end end
+    local tags = {}
+    local okTags, tagList = pcall(function() return CollectionService:GetTags(ref) end)
+    if okTags and tagList then tags = tagList end
+    local attrCount = 0; local attrsStr=""
+    local okAttr, attrs = pcall(function() return ref:GetAttributes() end)
+    if okAttr and attrs then 
+        for k,v in pairs(attrs) do 
+            attrCount += 1
+            attrsStr = attrsStr..tostring(k)..": "..tostring(v).."\n" 
+        end 
+    end
 
-            labelRight("Name: "..tostring(ref.Name), 12)
-            labelRight("Class: "..tostring(ref.ClassName), 12)
-            labelRight("Path: "..getFullPath(ref), 12)
-            labelRight("Tags: "..( (#tags>0) and table.concat(tags,", ") or "-" ), 12)
-            labelRight("Attributes ("..attrCount.."):\n"..(attrsStr ~= "" and attrsStr or "-"), 12)
+    labelRight("Name: "..tostring(ref.Name), 12)
+    labelRight("Class: "..tostring(ref.ClassName), 12)
+    labelRight("Path: "..getFullPath(ref), 12)
+    labelRight("Tags: "..( (#tags>0) and table.concat(tags,", ") or "-" ), 12)
+    labelRight("Attributes ("..attrCount.."):\n"..(attrsStr ~= "" and attrsStr or "-"), 12)
+
+    -- ✅ Fix: Children listesi
+    local okChildren, children = pcall(function() return ref:GetChildren() end)
+    if okChildren and #children > 0 then
+        local childNames = {}
+        for _,c in ipairs(children) do
+            table.insert(childNames, string.format("[%s] %s", c.ClassName, c.Name))
+        end
+        labelRight("Children ("..#children.."):\n"..table.concat(childNames, "\n"), 12)
+    end
+
+    -- ✅ Fix: Parts listesi (Descendants içinde BasePart’ler)
+    local okDesc, desc = pcall(function() return ref:GetDescendants() end)
+    if okDesc and #desc > 1 then
+        local parts = {}
+        for _,d in ipairs(desc) do
+            if d:IsA("BasePart") then
+                table.insert(parts, d.Name)
+            end
+        end
+        if #parts > 0 then
+            labelRight("Parts ("..#parts.."):\n"..table.concat(parts, ", "), 12)
+        end
+    end
 
             local bp = findAnyBasePart(ref)
             buttonRight("Highlight", function() if bp or ref:IsA("Model") then SelHL.Adornee = ref; SelHL.Enabled=true else SelHL.Enabled=false end end)
