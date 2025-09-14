@@ -80,14 +80,14 @@ local Themes = {
     Midnight ={Bg=Color3.fromRGB(12,14,24),   Panel=Color3.fromRGB(18,20,34),   Accent=Color3.fromRGB(80,180,255),  AccentSoft=Color3.fromRGB(60,140,210),
                Text=Color3.fromRGB(228,232,240), SubText=Color3.fromRGB(150,158,172), Stroke=Color3.fromRGB(40,48,66), Hover=Color3.fromRGB(26,30,46),
                Green=Color3.fromRGB(90,205,140),  Red=Color3.fromRGB(230,90,110),  Yellow=Color3.fromRGB(245,209,66)},
-    Neon     ={Bg=Color3.fromRGB(18,18,22),   Panel=Color3.fromRGB(22,22,28),   Accent=Color3.fromRGB(255,80,200),  AccentSoft=Color3.fromRGB(210,60,160),
+    Neon     ={Bg=Color3.fromRGB(18,18,22),   Panel=Color3.fromRGB(22,22,28),   Accent=Color3.fromRGB(255,80,),  AccentSoft=Color3.fromRGB(210,60,160),
                Text=Color3.fromRGB(245,245,255), SubText=Color3.fromRGB(172,170,190), Stroke=Color3.fromRGB(70,60,90), Hover=Color3.fromRGB(40,34,60),
-               Green=Color3.fromRGB(110,240,200), Red=Color3.fromRGB(255,100,140), Yellow=Color3.fromRGB(255,230,120)},
+               Green=Color3.fromRGB(110,240,), Red=Color3.fromRGB(255,100,140), Yellow=Color3.fromRGB(255,230,120)},
     Black    ={Bg=Color3.fromRGB(6,6,8),      Panel=Color3.fromRGB(14,14,18),   Accent=Color3.fromRGB(220,220,230), AccentSoft=Color3.fromRGB(190,190,210),
                Text=Color3.fromRGB(240,240,245), SubText=Color3.fromRGB(160,162,170), Stroke=Color3.fromRGB(38,38,48),  Hover=Color3.fromRGB(24,24,30),
                Green=Color3.fromRGB(120,220,150), Red=Color3.fromRGB(230,80,100),  Yellow=Color3.fromRGB(235,210,110)},
     Red      ={Bg=Color3.fromRGB(24,8,10),    Panel=Color3.fromRGB(32,10,12),   Accent=Color3.fromRGB(230,66,80),   AccentSoft=Color3.fromRGB(190,46,60),
-               Text=Color3.fromRGB(250,240,242), SubText=Color3.fromRGB(200,150,156), Stroke=Color3.fromRGB(70,30,34),  Hover=Color3.fromRGB(46,16,20),
+               Text=Color3.fromRGB(250,240,242), SubText=Color3.fromRGB(,150,156), Stroke=Color3.fromRGB(70,30,34),  Hover=Color3.fromRGB(46,16,20),
                Green=Color3.fromRGB(120,220,150), Red=Color3.fromRGB(255,90,120),  Yellow=Color3.fromRGB(255,220,120)},
 }
 local CurrentTheme = Themes.Dark
@@ -382,7 +382,7 @@ end)
 task.spawn(function()
     while true do
         local res = httpJSON("GET", LIVE_BASE .. "/active")
-        if res and res.StatusCode == 200 then
+        if res and res.StatusCode ==  then
             local ok, data = pcall(function() return HttpService:JSONDecode(res.Body) end)
             if ok and type(data)=="table" then
                 LiveActiveCount = tonumber(data.active) or 0
@@ -631,10 +631,10 @@ Controls.Toggle(left, "⚡ Speed Boost (50)", false, function(on)
 
    
 
-    gright:AddSlider("walkSpeed", {Text="Walk Speed", Min=1, Max=200, Default=features._walkSpeed, Rounding=0})
+    gright:AddSlider("walkSpeed", {Text="Walk Speed", Min=1, Max=10000, Default=features._walkSpeed, Rounding=0})
     Options.walkSpeed:OnChanged(function(val) features.SetWalkSpeed(val) end)
 
-    gright:AddSlider("flySpeed", {Text="Fly Speed", Min=1, Max=200, Default=features._flySpeed, Rounding=0})
+    gright:AddSlider("flySpeed", {Text="Fly Speed", Min=1, Max=10000, Default=features._flySpeed, Rounding=0})
     Options.flySpeed:OnChanged(function(val) features.SetFlySpeed(val) end)
 
 
