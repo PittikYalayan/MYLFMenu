@@ -799,15 +799,205 @@ end
 -- Hard Hook Invisible (Multi-Hook)
 ----------------------------------------------------------------
 -- Invisible Remote (dummy)
-function features.ToggleHardInvisible(on)
-    InvisibleRemote:FireServer(on) -- server'a isteği gönder
+-- Hard Invisible Feature - Standalone Function (GUI Uyumlu)
+local features = features or {}  -- Eğer yoksa oluştur
 
-    if on then
-        print("[MYLF] Hard Invisible: ON (herkes seni göremeyecek)")
+-- Global değişkenler (persist için)
+local ScriptStarted = false
+local Keybind = "E"
+local Transparency = true
+local NoClip = false
+local Player = game:GetService("Players").LocalPlayer
+local RealCharacter, FakeCharacter, Part, PseudoAnchor
+local IsInvisible = false
+local CanInvis = true
+local StartedNotification = false  -- Mesajı bir kere çıksın
+local RenderSteppedConn  -- Loop bağlantısı
+
+-- Setup Fonksiyonu (iç kullanım)
+local function setupInvisible()
+    if ScriptStarted then return end  -- Zaten setup ise atla
+    
+    RealCharacter = Player.Character or Player.CharacterAdded:Wait()
+    RealCharacter.Archivable = true
+    FakeCharacter = RealCharacter:Clone()
+    Part = Instance.new("Part", workspace)
+    Part.Anchored = true
+    Part.Size = Vector3.new(200, 1, 200)
+    Part.CFrame = CFrame.new(0, -500, 0)
+    Part.CanCollide = true
+    FakeCharacter.Parent = workspace
+    FakeCharacter.HumanoidRootPart.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
+    
+    for i, v in pairs(RealCharacter:GetChildren()) do
+        if v:IsA("LocalScript") then
+            local clone = v:Clone()
+            clone.Disabled = true
+            clone.Parent = FakeCharacter
+        end
+    end
+    
+    if Transparency then
+        for i, v in pairs(FakeCharacter:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Transparency = 0.7
+            end
+        end
+    end
+    
+    -- Died event'leri
+    local function RealCharacterDied()
+        CanInvis = false
+        if RealCharacter then RealCharacter:Destroy() end
+        RealCharacter = Player.Character
+        CanInvis = true
+        IsInvisible = false
+        if FakeCharacter then FakeCharacter:Destroy() end
+        if Part then Part:Destroy() end
+        workspace.CurrentCamera.CameraSubject = RealCharacter.Humanoid
+        RealCharacter.Archivable = true
+        FakeCharacter = RealCharacter:Clone()
+        Part = Instance.new("Part", workspace)
+        Part.Anchored = true
+        Part.Size = Vector3.new(200, 1, 200)
+        Part.CFrame = CFrame.new(9999, 9999, 9999)
+        Part.CanCollide = true
+        FakeCharacter.Parent = workspace
+        FakeCharacter.HumanoidRootPart.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
+        
+        for i, v in pairs(RealCharacter:GetChildren()) do
+            if v:IsA("LocalScript") then
+                local clone = v:Clone()
+                clone.Disabled = true
+                clone.Parent = FakeCharacter
+            end
+        end
+        
+        if Transparency then
+            for i, v in pairs(FakeCharacter:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.Transparency = 0.7
+                end
+            end
+        end
+        
+        -- Died bağlantısını yenile
+        RealCharacter.Humanoid.Died:Connect(function()
+            if RealCharacter then RealCharacter:Destroy() end
+            if FakeCharacter then FakeCharacter:Destroy() end
+        end)
+        Player.CharacterAppearanceLoaded:Connect(RealCharacterDied)
+    end
+    
+    RealCharacter.Humanoid.Died:Connect(function()
+        if RealCharacter then RealCharacter:Destroy() end
+        if FakeCharacter then FakeCharacter:Destroy() end
+    end)
+    Player.CharacterAppearanceLoaded:Connect(RealCharacterDied)
+    
+    -- RenderStepped loop (eğer yoksa bağla)
+    if not RenderSteppedConn then
+        RenderSteppedConn = game:GetService("RunService").RenderStepped:Connect(function()
+            if PseudoAnchor ~= nil and Part then
+                PseudoAnchor.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
+            end
+            if NoClip and FakeCharacter then
+                FakeCharacter.Humanoid:ChangeState(11)
+            end
+        end)
+    end
+    
+    PseudoAnchor = FakeCharacter.HumanoidRootPart
+    
+    -- Input toggle (E tuşu)
+    game:GetService("UserInputService").InputBegan:Connect(function(key, gamep)
+        if gamep then return end
+        if key.KeyCode.Name:lower() == Keybind:lower() and CanInvis and RealCharacter and FakeCharacter then
+            if RealCharacter:FindFirstChild("HumanoidRootPart") and FakeCharacter:FindFirstChild("HumanoidRootPart") then
+                toggleInvisible()  -- Aşağıdaki fonksiyonu çağır
+            end
+        end
+    end)
+    
+    -- Ses ve mesaj (sadece ilk sefer)
+    if not StartedNotification then
+        local Sound = Instance.new("Sound", game:GetService("SoundService"))
+        Sound.SoundId = "rbxassetid://232127604"
+        Sound:Play()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            ["Title"] = "Hard Invisible Loaded",
+            ["Text"] = "Press E to toggle visibility.",
+            ["Duration"] = 20,
+            ["Button1"] = "Okay."
+        })
+        StartedNotification = true
+    end
+    
+    ScriptStarted = true
+end
+
+-- Toggle Fonksiyonu (iç kullanım)
+function toggleInvisible()
+    if not RealCharacter or not FakeCharacter then return end
+    
+    if IsInvisible == false then
+        local StoredCF = RealCharacter.HumanoidRootPart.CFrame
+        RealCharacter.HumanoidRootPart.CFrame = FakeCharacter.HumanoidRootPart.CFrame
+        FakeCharacter.HumanoidRootPart.CFrame = StoredCF
+        RealCharacter.Humanoid:UnequipTools()
+        Player.Character = FakeCharacter
+        workspace.CurrentCamera.CameraSubject = FakeCharacter.Humanoid
+        PseudoAnchor = RealCharacter.HumanoidRootPart
+        for i, v in pairs(FakeCharacter:GetChildren()) do
+            if v:IsA("LocalScript") then
+                v.Disabled = false
+            end
+        end
+        IsInvisible = true
+        print("Hard Invisible ON! 👻")
     else
-        print("[MYLF] Hard Invisible: OFF (geri görünürsün)")
+        local StoredCF = FakeCharacter.HumanoidRootPart.CFrame
+        FakeCharacter.HumanoidRootPart.CFrame = RealCharacter.HumanoidRootPart.CFrame
+        RealCharacter.HumanoidRootPart.CFrame = StoredCF
+        FakeCharacter.Humanoid:UnequipTools()
+        Player.Character = RealCharacter
+        workspace.CurrentCamera.CameraSubject = RealCharacter.Humanoid
+        PseudoAnchor = FakeCharacter.HumanoidRootPart
+        for i, v in pairs(FakeCharacter:GetChildren()) do
+            if v:IsA("LocalScript") then
+                v.Disabled = true
+            end
+        end
+        IsInvisible = false
+        print("Hard Invisible OFF.")
     end
 end
+
+-- Ana Fonksiyon: features.ToggleHardInvisible(on)
+features.ToggleHardInvisible = function(on)
+    if on then
+        setupInvisible()  -- Setup'ı çalıştır
+        if not IsInvisible then
+            toggleInvisible()  -- Doğrudan ON yap
+        end
+        print("Hard Invisible aktive edildi! (E ile toggle et)")
+    else
+        if IsInvisible then
+            toggleInvisible()  -- OFF yap
+        end
+        -- Cleanup (hafıza temizle)
+        if Part then Part:Destroy() end
+        if FakeCharacter then FakeCharacter:Destroy() end
+        if RenderSteppedConn then RenderSteppedConn:Disconnect() end
+        ScriptStarted = false
+        StartedNotification = false
+        IsInvisible = false
+        CanInvis = true
+        print("Hard Invisible devre dışı bırakıldı.")
+    end
+end
+
+print("Hard Invisible fonksiyonu yüklendi! GUI'den features.ToggleHardInvisible(true) ile aç.")
 ----------------------------------------------------------------
 -- AutoTeleportToEnemy (Her zaman düşmanın arkasına)
 ----------------------------------------------------------------
