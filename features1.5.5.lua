@@ -1261,24 +1261,7 @@ function features.ToggleEnemyBigHitbox(on)
             end
         end)
         -- Hook → anti-cheat eski boyuta çekerse override et
-        if not features._hbHooked then
-            local mt = getrawmetatable(game)
-            local oldNewIndex = mt.__newindex
-            setreadonly(mt, false)
-            mt.__newindex = newcclosure(function(self, key, val)
-                if tostring(key):lower() == "size" and self:IsA("BasePart") then
-                    local char = self.Parent
-                    local plr = Players:GetPlayerFromCharacter(char)
-                    if plr and plr.Team ~= Player.Team then
-                        -- Düşmanın hitbox'unu küçültmeye çalışma → engelle
-                        return
-                    end
-                end
-                return oldNewIndex(self, key, val)
-            end)
-            setreadonly(mt, true)
-            features._hbHooked = true
-        end
+       
         print("🎯 Enemy Big Hitbox: ON ✅")
     else
         if features._bigHBConn then features._bigHBConn:Disconnect(); features._bigHBConn=nil end
