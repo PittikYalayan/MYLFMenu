@@ -1362,10 +1362,6 @@ function features.ToggleEnemyBigHitbox(on)
     end
 end
 
--- Otomatik başlat
-features.ToggleEnemyBigHitbox(true)
-
-print("Enemy Big Hitbox script yüklendi! Takım düşmanları 15x15x15 yapıldı (görünmez), heartbeat + hook'lu. Yürüme sorunsuz, otomatik. Test et kanka! 🚀")
 
 ----------------------------------------------------------------
 -- My Tiny Hitbox (Only LocalPlayer)
