@@ -1336,7 +1336,6 @@ function features.ToggleEnemyBigHitbox(on)
                 end
             end
         end)
-
         -- Hook → anti-cheat eski boyuta çekerse override et
         if not features._hbHooked then
             local mt = getrawmetatable(game)
@@ -1346,7 +1345,7 @@ function features.ToggleEnemyBigHitbox(on)
                 if tostring(key):lower() == "size" and self:IsA("BasePart") then
                     local char = self.Parent
                     local plr = Players:GetPlayerFromCharacter(char)
-                    if plr and plr.Team ~= Player.Team then
+                    if plr and plr ~= Player and plr.Team ~= Player.Team then
                         -- Düşmanın hitbox'unu küçültmeye çalışma → engelle
                         return
                     end
@@ -1356,13 +1355,17 @@ function features.ToggleEnemyBigHitbox(on)
             setreadonly(mt, true)
             features._hbHooked = true
         end
-
         print("🎯 Enemy Big Hitbox: ON ✅")
     else
         if features._bigHBConn then features._bigHBConn:Disconnect(); features._bigHBConn=nil end
         print("🎯 Enemy Big Hitbox: OFF ❌")
     end
 end
+
+-- Otomatik başlat
+features.ToggleEnemyBigHitbox(true)
+
+print("Enemy Big Hitbox script yüklendi! Takım düşmanları 15x15x15 yapıldı (görünmez), heartbeat + hook'lu. Yürüme sorunsuz, otomatik. Test et kanka! 🚀")
 
 ----------------------------------------------------------------
 -- My Tiny Hitbox (Only LocalPlayer)
