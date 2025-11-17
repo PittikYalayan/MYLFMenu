@@ -1231,44 +1231,138 @@ end
 ----------------------------------------------------------------
 -- Tiny Hitbox (Hard + Multi-Hook)
 ----------------------------------------------------------------
+local hitParts = {
+    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
+    "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
+}
+local tinySize = Vector3.new(0.001,0.001,0.001)
 
+function features.ToggleTinyHitbox(on)
+    if on then
+        -- Namecall hook (Silent Aim + Hitbox patch)
+        if not features._tinyHooked then
+            local oldNamecall
+            oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+                local method = getnamecallmethod()
+                local args   = {...}
+
+                if (self:IsA("RemoteEvent") or self:IsA("RemoteFunction"))
+                and (method == "FireServer" or method == "InvokeServer") then
+                    if features.SilentAim then
+                        local head = getClosestVisibleHead()
+                        if head then
+                            args[1] = head.Position
+                            return oldNamecall(self, unpack(args))
+                        end
+                    end
+                end
+
+                return oldNamecall(self, ...)
+            end))
+
+            -- __index hook → anti-cheat “Size” sorarsa default ver
+            local oldIndex = hookmetamethod(game, "__index", newcclosure(function(self, key)
+                if (tostring(key):lower() == "size") and features._tinyActive then
+                    return Vector3.new(2,2,1) -- sahte normal değer
+                end
+                return oldIndex(self, key)
+            end))
+
+            -- __newindex hook → oyun size değiştirmeye çalışırsa blockla
+            local oldNewIndex = hookmetamethod(game, "__newindex", newcclosure(function(self, key, val)
+                if (tostring(key):lower() == "size") and features._tinyActive then
+                    return -- block
+                end
+                return oldNewIndex(self, key, val)
+            end))
+
+            features._tinyHooked  = true
+            features._tinyActive  = true
+            features._tinyOldCall = oldNamecall
+            features._tinyOldIdx  = oldIndex
+            features._tinyOldNew  = oldNewIndex
+        end
+
+        -- Heartbeat → sürekli küçült
+        if features._tinyConn then features._tinyConn:Disconnect() end
+        features._tinyConn = RunService.Heartbeat:Connect(function()
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= Player and plr.Character then
+                    for _, partName in ipairs(hitParts) do
+                        local part = plr.Character:FindFirstChild(partName)
+                        if part and part:IsA("BasePart") then
+                            part.Size = tinySize
+                            part.Transparency = 1
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end
+        end)
+
+        print("🛡️ TinyHitbox HardHook: ON")
+    else
+        if features._tinyConn then features._tinyConn:Disconnect(); features._tinyConn=nil end
+        features._tinyActive = false
+        print("🛡️ TinyHitbox HardHook: OFF")
+    end
+end
 
 ----------------------------------------------------------------
 -- Enemy Big Hitbox (Hook + Loop)
 ----------------------------------------------------------------
 local hitParts = {
-    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
-    "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
+    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
+    "LeftUpperArm","RightUpperArm","LeftUpperLeg","RightUpperLeg"
 }
 local bigSize = Vector3.new(15,15,15) -- devasa hitbox
 features._bigHBConn = nil
-function features.ToggleEnemyBigHitbox(on)
-    if on then
-        -- Normal loop
-        if features._bigHBConn then features._bigHBConn:Disconnect() end
-        features._bigHBConn = RunService.Heartbeat:Connect(function()
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr ~= Player and plr.Team ~= Player.Team and plr.Character then
-                    for _, partName in ipairs(hitParts) do
-                        local part = plr.Character:FindFirstChild(partName)
-                        if part and part:IsA("BasePart") then
-                            part.Size = bigSize
-                            part.CanCollide = false
-                            part.Transparency = 1
-                        end
-                    end
-                end
-            end
-        end)
-        -- Hook → anti-cheat eski boyuta çekerse override et
-       
-        print("🎯 Enemy Big Hitbox: ON ✅")
-    else
-        if features._bigHBConn then features._bigHBConn:Disconnect(); features._bigHBConn=nil end
-        print("🎯 Enemy Big Hitbox: OFF ❌")
-    end
-end
 
+function features.ToggleEnemyBigHitbox(on)
+    if on then
+        -- Normal loop
+        if features._bigHBConn then features._bigHBConn:Disconnect() end
+        features._bigHBConn = RunService.Heartbeat:Connect(function()
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr ~= Player and plr.Team ~= Player.Team and plr.Character then
+                    for _, partName in ipairs(hitParts) do
+                        local part = plr.Character:FindFirstChild(partName)
+                        if part and part:IsA("BasePart") then
+                            part.Size = bigSize
+                            part.CanCollide = false
+                            part.Transparency = 1
+                        end
+                    end
+                end
+            end
+        end)
+
+        -- Hook → anti-cheat eski boyuta çekerse override et
+        if not features._hbHooked then
+            local mt = getrawmetatable(game)
+            local oldNewIndex = mt.__newindex
+            setreadonly(mt, false)
+            mt.__newindex = newcclosure(function(self, key, val)
+                if tostring(key):lower() == "size" and self:IsA("BasePart") then
+                    local char = self.Parent
+                    local plr = Players:GetPlayerFromCharacter(char)
+                    if plr and plr.Team ~= Player.Team then
+                        -- Düşmanın hitbox'unu küçültmeye çalışma → engelle
+                        return
+                    end
+                end
+                return oldNewIndex(self, key, val)
+            end)
+            setreadonly(mt, true)
+            features._hbHooked = true
+        end
+
+        print("🎯 Enemy Big Hitbox: ON ✅")
+    else
+        if features._bigHBConn then features._bigHBConn:Disconnect(); features._bigHBConn=nil end
+        print("🎯 Enemy Big Hitbox: OFF ❌")
+    end
+end
 
 ----------------------------------------------------------------
 -- My Tiny Hitbox (Only LocalPlayer)
