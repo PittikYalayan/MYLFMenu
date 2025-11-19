@@ -5,16 +5,6 @@
 -- Features scriptini yukle
 local features = loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features%2B%2B.lua"))()
 
--- Features ayarlarını menü ile senkronize et (default'lar)
-features.TeamCheck = getgenv().AimbotSettings.TeamCheck or true
-features.AimRequireLOS = not getgenv().AimbotSettings.WallCheck or false -- tersine cevir
-features.AimUseFOV = true -- FOV kullansin
-features.AimMaxAngleDeg = getgenv().AimbotSettings.FOV or 120
-features.Prediction = getgenv().AimbotSettings.Prediction or true
-features.PredictionAmount = getgenv().AimbotSettings.PredictionAmount or 0.135
-features.Smoothness = getgenv().AimbotSettings.Smoothness or 0.1
-features.TriggerOnAim = getgenv().AimbotSettings.Triggerbot or false
-
 -- Kavo UI yukle
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 local Window = Library.CreateLib("CENESENSE | PREMIUM v1.2.95", "DarkTheme")
@@ -119,6 +109,16 @@ getgenv().AimbotSettings = {
     Prediction = true,
     PredictionAmount = 0.135
 }
+
+-- Features ayarlarını menü ile senkronize et
+features.TeamCheck = getgenv().AimbotSettings.TeamCheck or true
+features.AimRequireLOS = not getgenv().AimbotSettings.WallCheck or false -- tersine cevir
+features.AimUseFOV = true -- FOV kullansin
+features.AimMaxAngleDeg = getgenv().AimbotSettings.FOV or 120
+features.Prediction = getgenv().AimbotSettings.Prediction or true
+features.PredictionAmount = getgenv().AimbotSettings.PredictionAmount or 0.135
+features.Smoothness = getgenv().AimbotSettings.Smoothness or 0.1
+features.TriggerOnAim = getgenv().AimbotSettings.Triggerbot or false
 
 AimSec:NewToggle("Enable Aimbot", "Activates aimbot and shows sub-settings", function(state)
     getgenv().AimbotSettings.Enabled = state
