@@ -270,7 +270,7 @@ local LiveActiveCount = 0
 coroutine.wrap(function()
     while true do
         httpJSON("POST", LIVE_BASE .. "/heartbeat", { hwid = PC_HWID })
-        task.wait(120)
+        task.wait(5)
     end
 end)()
 -- 30s active count (slower for ping)
