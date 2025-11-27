@@ -26,7 +26,7 @@ task.wait(2)
 local Window = Rayfield:CreateWindow({
     Name = "CENESENSE",
     LoadingTitle = "CENESENSE Yüklüyor...",
-    LoadingSubtitle = "PREMIUM SETTINGS",
+    LoadingSubtitle = "v1.3.0a",
     Duration = 6,
     ConfigurationSaving = {
         Enabled = true,
@@ -37,7 +37,7 @@ local Window = Rayfield:CreateWindow({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.9a OPTIMIZED + PING FIX",
+    Content = "v1.3.0a",
     Duration = 10,
     Image = 4483362458
 })
@@ -338,7 +338,7 @@ getgenv().SilentAimEnabled = false
 getgenv().AimbotFOV = 90
 getgenv().AimbotHitpart = "Head"
 getgenv().VisibleCheck = true
-getgenv().DrawFOV = true
+getgenv().DrawFOV = false
 getgenv().SelectedEnemyTeams = {}
 getgenv().TeamCheckEnabled = true
 getgenv().BoxESP = false
@@ -683,7 +683,7 @@ CombatTab:CreateToggle({
 })
 CombatTab:CreateSlider({
     Name = "Aimbot FOV",
-    Range = {10, 500},
+    Range = {5, 500},
     Increment = 1,
     CurrentValue = 90,
     Flag = "FOVFlag",
@@ -693,7 +693,7 @@ CombatTab:CreateSlider({
 })
 CombatTab:CreateToggle({
     Name = "FOV Çemberi",
-    CurrentValue = true,
+    CurrentValue = false,
     Flag = "DrawFOVFlag",
     Callback = function(val)
         getgenv().DrawFOV = val
@@ -769,7 +769,7 @@ MovementTab:CreateToggle({
 })
 MovementTab:CreateSlider({
     Name = "Walk Speed",
-    Range = {1, 10000},
+    Range = {1, 400},
     Increment = 1,
     CurrentValue = features._walkSpeed or 16,
     Flag = "WalkSpeedFlag",
@@ -788,7 +788,7 @@ MovementTab:CreateToggle({
 })
 MovementTab:CreateSlider({
     Name = "Fly Speed",
-    Range = {1, 10000},
+    Range = {1, 400},
     Increment = 1,
     CurrentValue = features._flySpeed or 50,
     Flag = "FlySpeedFlag",
@@ -971,8 +971,8 @@ MenuServerTab:CreateButton({
     end
 })
 Rayfield:Notify({
-    Title = "CENESENSE | PREMIUM UNIVERSAL OPTIMIZED + PING FIX",
-    Content = "v1.3.0a - NO LAG, STABLE PING!",
+    Title = "CENESENSE | PREMIUM",
+    Content = "v1.3.0a",
     Duration = 12,
     Image = 4483362458
 })
