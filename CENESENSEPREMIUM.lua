@@ -301,7 +301,7 @@ Services.RunService.RenderStepped:Connect(function(dt)
     frameCount = frameCount + 1
     -- Yavaş Rainbow (os.clock() ile, 0.7 hız) - Only update every 1s for ping
     gradTime = gradTime + dt
-    if gradTime >= 1 then
+    if gradTime >= 0.033 then
         gradTime = 0
         local t = os.clock() * 0.7
         grad.Color = ColorSequence.new{
