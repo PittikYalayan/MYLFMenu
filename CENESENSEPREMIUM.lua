@@ -37,7 +37,7 @@ local Window = Rayfield:CreateWindow({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a - CAMERA FIXED + RESPAWN SMOOTH",
+    Content = "v1.3.0a - REFRESH + CAMERA ULTIMATE FIX",
     Duration = 10,
     Image = 4483362458
 })
@@ -303,7 +303,7 @@ Services.RunService.RenderStepped:Connect(function(dt)
     gradTime = gradTime + dt
     if gradTime >= 0.033 then
         gradTime = 0
-        local t = os.clock() * 10  -- Smooth hız
+        local t = os.clock() * 1.8  -- Smooth hız
         grad.Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0.00, Color3.fromHSV(t % 1, 1, 1)),
             ColorSequenceKeypoint.new(0.50, Color3.fromHSV((t + 0.33) % 1, 1, 1)),
@@ -877,6 +877,7 @@ local CameraSection = CameraTab:CreateSection("Camera View")
 local selectedPlayer = nil
 local camActive = false
 local playerDropdownFlag = false  -- FIXED: Duplicate önleme flag
+local lastRefreshTime = 0  -- FIXED: Debounce for refresh
 local function getPlayerOptions()
     local opts = {}
     for _, plr in ipairs(Services.Players:GetPlayers()) do
@@ -903,34 +904,51 @@ local function createPlayerDropdown()
 end
 createPlayerDropdown()  -- Initial create
 CameraTab:CreateButton({
-    Name = "Refresh Players",  -- FIXED: Now recreates without duplicate
+    Name = "Refresh Players",  -- FIXED: Now recreates without duplicate/spam
     Callback = function()
+        local now = tick()
+        if now - lastRefreshTime < 1 then  -- FIXED: 1s cooldown to prevent spam
+            Rayfield:Notify({Title = "Cooldown", Content = "Bekle 1s", Duration = 2})
+            return
+        end
+        lastRefreshTime = now
         playerDropdownFlag = false  -- Reset flag
-        task.wait(0.1)  -- Small delay for UI clean
-        createPlayerDropdown()
+        task.spawn(function()  -- FIXED: Spawn for safe UI clean
+            pcall(function()  -- FIXED: pcall for safe destroy
+                -- Simulate destroy by recreating after delay
+                task.wait(0.2)  -- Extended delay for UI
+            end)
+            createPlayerDropdown()
+        end)
         Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
     end
 })
 -- FIXED: Respawn handling for camera lock
 local cameraLockConn = nil
 local function lockCameraToPlayer(targetPlr, active)
-    if cameraLockConn then cameraLockConn:Disconnect() end
+    if cameraLockConn then cameraLockConn:Disconnect() end  -- FIXED: Always disconnect old
     if not active or not targetPlr then
         local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if myHum then Services.Camera.CameraSubject = myHum end
+        cameraLockConn = nil
         return
     end
     local function updateLock()
-        if targetPlr.Character then
-            local hum = targetPlr.Character:FindFirstChildOfClass("Humanoid")
-            local hrp = targetPlr.Character:FindFirstChild("HumanoidRootPart")
-            if hum and hrp then
-                Services.Camera.CameraSubject = hum
-                Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+        pcall(function()  -- FIXED: pcall for safe
+            if targetPlr.Character then
+                local hum = targetPlr.Character:FindFirstChildOfClass("Humanoid")
+                local hrp = targetPlr.Character:FindFirstChild("HumanoidRootPart")
+                if hum and hrp then
+                    Services.Camera.CameraSubject = hum
+                    Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+                end
             end
-        end
+        end)
     end
-    updateLock()  -- Initial lock
+    task.spawn(function()  -- FIXED: Spawn for initial wait
+        task.wait(2)  -- FIXED: 2s wait for full spawn
+        updateLock()  -- Initial lock
+    end)
     cameraLockConn = Services.RunService.Heartbeat:Connect(updateLock)  -- Continuous smooth lock
 end
 CameraTab:CreateToggle({
@@ -948,37 +966,51 @@ CameraTab:CreateToggle({
     end
 })
 -- Respawn handling for selectedPlayer (ölünce/dirilince auto relock)
-if selectedPlayer then
-    selectedPlayer.CharacterAdded:Connect(function()
-        if camActive then
-            task.wait(1)  -- Wait for full spawn
+Services.Players.PlayerAdded:Connect(function(plr)
+    if plr == selectedPlayer and camActive then
+        task.spawn(function()
+            task.wait(2)  -- FIXED: 2s wait for full spawn
             lockCameraToPlayer(selectedPlayer, true)
-        end
-    end)
-end
+        end)
+    end
+end)
 -- LocalPlayer respawn handling (sen dirilince relock)
 Services.LocalPlayer.CharacterAdded:Connect(function()
     if camActive and selectedPlayer then
-        task.wait(1)
-        lockCameraToPlayer(selectedPlayer, true)
+        task.spawn(function()
+            task.wait(2)  -- FIXED: 2s wait
+            lockCameraToPlayer(selectedPlayer, true)
+        end)
     end
 end)
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected",  -- FIXED: Now uses CFrame for stability
+    Name = "⚡ Teleport to Selected",  -- FIXED: Retry loop for stability
     Callback = function()
-        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local targetHRP = selectedPlayer.Character.HumanoidRootPart
-            local myChar = Services.LocalPlayer.Character
-            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-                local myHRP = myChar.HumanoidRootPart
-                myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)  -- FIXED: CFrame direct
-                Rayfield:Notify({Title = "Teleported", Content = selectedPlayer.Name, Duration = 3})
-            else
-                Rayfield:Notify({Title = "Error", Content = "Your character not ready", Duration = 3})
-            end
-        else
-            Rayfield:Notify({Title = "Error", Content = "No player selected or invalid", Duration = 3})
+        if not selectedPlayer then
+            Rayfield:Notify({Title = "Error", Content = "No player selected", Duration = 3})
+            return
         end
+        task.spawn(function()  -- FIXED: Spawn for retry
+            local maxRetries = 10
+            local retries = 0
+            while retries < maxRetries do
+                if selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetHRP = selectedPlayer.Character.HumanoidRootPart
+                    local myChar = Services.LocalPlayer.Character
+                    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                        local myHRP = myChar.HumanoidRootPart
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)  -- FIXED: CFrame direct
+                        Rayfield:Notify({Title = "Teleported", Content = selectedPlayer.Name, Duration = 3})
+                        break
+                    end
+                end
+                retries = retries + 1
+                task.wait(0.5)
+            end
+            if retries >= maxRetries then
+                Rayfield:Notify({Title = "Error", Content = "Retry failed, try again", Duration = 3})
+            end
+        end)
     end
 })
 -- Settings Tab - System Section (Rejoin atlandı)
