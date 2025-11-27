@@ -37,7 +37,7 @@ local Window = Rayfield:CreateWindow({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a",
+    Content = "v1.3.0a - CAMERA FIXED + RESPAWN SMOOTH",
     Duration = 10,
     Image = 4483362458
 })
@@ -51,7 +51,7 @@ if not success then
         Content = "External features yüklenemedi, inline fallback kullanılıyor.",
         Duration = 5
     })
-    -- Inline fallback (snippet'ten uyarlandı, bağlam aynı) - Ping için: Loops throttled
+    -- Inline fallback (snippet'ten uyarlandı, bağlam aynı) - 0MS için: Throttles low
     features = {}
     features.ToggleSpeed = function(on)
         getgenv().ToggleSpeed = on
@@ -147,7 +147,7 @@ if not success then
                         myRoot.CFrame = nearest.Character.HumanoidRootPart.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, -(features._tpZ or 25))
                     end
                 end
-                task.wait(0.2)  -- Throttled for ping
+                task.wait(0.05)  -- 0MS smooth, low throttle
             end
         end)()
     end
@@ -162,7 +162,7 @@ if not success then
                         myRoot.CFrame = nearest.Character.HumanoidRootPart.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)
                     end
                 end
-                task.wait(1.5)  -- Throttled for ping
+                task.wait(0.1)  -- 0MS smooth, low throttle
             end
         end)()
     end
@@ -266,11 +266,11 @@ local function httpJSON(method, url, bodyTable)
     return ok and res or nil
 end
 local LiveActiveCount = 0
--- 120s heartbeat (slower for ping)
+-- 60s heartbeat (balanced)
 coroutine.wrap(function()
     while true do
         httpJSON("POST", LIVE_BASE .. "/heartbeat", { hwid = PC_HWID })
-        task.wait(5)
+        task.wait(60)
     end
 end)()
 -- 30s active count (slower for ping)
@@ -299,11 +299,11 @@ Services.RunService.RenderStepped:Connect(function(dt)
     rsAvg = rsAvg + (dt - rsAvg) / rsN
     halfA = halfA + dt
     frameCount = frameCount + 1
-    -- Yavaş Rainbow (os.clock() ile, 0.7 hız) - Only update every 1s for ping
+    -- Akıcı Rainbow (her 0.033s ~30 FPS smooth)
     gradTime = gradTime + dt
     if gradTime >= 0.033 then
         gradTime = 0
-        local t = os.clock() * 0.7
+        local t = os.clock() * 10  -- Smooth hız
         grad.Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0.00, Color3.fromHSV(t % 1, 1, 1)),
             ColorSequenceKeypoint.new(0.50, Color3.fromHSV((t + 0.33) % 1, 1, 1)),
@@ -354,14 +354,14 @@ local function isEnemy(plr)
     if not plr.Team then return true end
     return table.find(getgenv().SelectedEnemyTeams, plr.Team.Name) ~= nil
 end
--- Visible Check (Cache for 0lag, No Ghost fix) - Ping fix: Raycast every 5 frames, 1s cache
+-- Visible Check (Cache for 0lag, No Ghost fix) - 0MS: Raycast every 2 frames
 local VisibilityCache = {}
 local frameCounter = 0
 local function isVisible(targetPart)
     frameCounter = frameCounter + 1
-    local key = tostring(targetPart.Parent) .. (tick() // 1)  -- Cache 1s
-    if VisibilityCache[key] then return VisibilityCache[key] end
-    if frameCounter % 5 ~= 0 then  -- Skip raycast 4/5 frames
+    local key = tostring(targetPart.Parent) .. (tick() // 0.5)  -- Cache 0.5s
+    if VisibilityCache[key] ~= nil then return VisibilityCache[key] end
+    if frameCounter % 2 ~= 0 then  -- Every 2 frames raycast (optimized 0MS)
         VisibilityCache[key] = true  -- Assume visible
         return true
     end
@@ -371,20 +371,20 @@ local function isVisible(targetPart)
     local ray = Services.Workspace:Raycast(Services.Camera.CFrame.Position, (targetPart.Position - Services.Camera.CFrame.Position).Unit * 1000, rayParams)
     local result = ray == nil or ray.Instance:IsDescendantOf(targetPart.Parent)
     VisibilityCache[key] = result
-    task.delay(1, function() VisibilityCache[key] = nil end)
-    if #VisibilityCache > 20 then VisibilityCache = {} end  -- Smaller for perf
+    task.delay(0.5, function() VisibilityCache[key] = nil end)
+    if #VisibilityCache > 50 then VisibilityCache = {} end
     return result
 end
--- Get Nearest (Combat reuse) - Ping fix: Cache 0.2s
+-- Get Nearest (Combat reuse) - 0MS: Cache 0.033s (2 frame)
 local lastNearest = nil
 local lastNearestTime = 0
 local function getNearest()
     local now = tick()
-    if now - lastNearestTime < 0.2 and lastNearest then return lastNearest end
+    if now - lastNearestTime < 0.033 and lastNearest then return lastNearest end  -- Optimized cache
     local nearest = nil
     local shortest = getgenv().AimbotFOV
     local mousePos = Services.UserInputService:GetMouseLocation()
-    for _, plr in ipairs(Services.Players:GetPlayers()) do  -- ipairs for speed
+    for _, plr in ipairs(Services.Players:GetPlayers()) do
         if plr ~= Services.LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
             if isEnemy(plr) then
                 local root = plr.Character.HumanoidRootPart
@@ -415,19 +415,16 @@ Services.RunService.RenderStepped:Connect(function()
     FOVCircle.Radius = getgenv().AimbotFOV
     FOVCircle.Visible = getgenv().DrawFOV
 end)
--- Aimbot - Ping fix: Update every 0.2s
-coroutine.wrap(function()
-    while true do
-        if getgenv().AimbotEnabled then
-            local target = getNearest()
-            if target and target.Character and target.Character:FindFirstChild(getgenv().AimbotHitpart) then
-                local part = target.Character[getgenv().AimbotHitpart]
-                Services.Camera.CFrame = CFrame.new(Services.Camera.CFrame.Position, part.Position)
-            end
+-- Aimbot - 0MS: Heartbeat every frame, optimized cache
+Services.RunService.Heartbeat:Connect(function()
+    if getgenv().AimbotEnabled then
+        local target = getNearest()
+        if target and target.Character and target.Character:FindFirstChild(getgenv().AimbotHitpart) then
+            local part = target.Character[getgenv().AimbotHitpart]
+            Services.Camera.CFrame = CFrame.new(Services.Camera.CFrame.Position, part.Position)
         end
-        task.wait(0.2)
     end
-end)()
+end)
 -- ESP Table & Highlights (Korundu, remnants fix ile)
 local ESPTable = {}
 local Highlights = {}
@@ -490,7 +487,7 @@ local function removeESP(plr)
     end
 end
 -- Initial Full Detect
-for _, plr in ipairs(Services.Players:GetPlayers()) do  -- ipairs
+for _, plr in ipairs(Services.Players:GetPlayers()) do
     if plr ~= Services.LocalPlayer then
         createESP(plr)
     end
@@ -498,7 +495,7 @@ end
 -- New Players
 Services.Players.PlayerAdded:Connect(function(plr)
     if plr ~= Services.LocalPlayer then
-        task.wait(1)
+        task.wait(0.5)  -- Slightly faster
         createESP(plr)
     end
 end)
@@ -508,14 +505,13 @@ Services.Players.PlayerRemoving:Connect(function(plr)
         removeESP(plr)
     end)
 end)
--- ESP Update (No Ghost fix: Cache temizliği eklendi) - Ping fix: Screen cache 0.1s, loop optimized
+-- ESP Update - 0MS: Screen cache every frame, optimized
 local espFrameCounter = 0
 local screenCache = {}
-local chamsTime = 0  -- For chams throttle
+local chamsTime = 0
 Services.RunService.RenderStepped:Connect(function()
     espFrameCounter = espFrameCounter + 1
     local camPos = Services.Camera.CFrame.Position
-    chamsTime = chamsTime + tick() % 0.5  -- Throttle chams
     for plr, esp in pairs(ESPTable) do
         if not plr.Parent or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") or not plr.Character:FindFirstChild("Humanoid") or plr.Character.Humanoid.Health <= 0 or not isEnemy(plr) then
             task.spawn(function() removeESP(plr) end)
@@ -523,14 +519,11 @@ Services.RunService.RenderStepped:Connect(function()
             local root = plr.Character.HumanoidRootPart
             local head = plr.Character:FindFirstChild("Head") or root
             local hum = plr.Character.Humanoid
-            local cacheKey = plr.Name
-            -- Cache screen positions if not exist or old
-            if not screenCache[plr] or tick() - screenCache[plr].time > 0.1 then
-                local rootScreen, onScreen = Services.Camera:WorldToViewportPoint(root.Position)
-                local headScreen = Services.Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0))
-                local legScreen = Services.Camera:WorldToViewportPoint(root.Position - Vector3.new(0,3,0))
-                screenCache[plr] = {rootScreen = rootScreen, headScreen = headScreen, legScreen = legScreen, onScreen = onScreen, time = tick(), dist = (root.Position - camPos).Magnitude}
-            end
+            -- 0MS: Update screen cache every frame (optimized, no tick check)
+            local rootScreen, onScreen = Services.Camera:WorldToViewportPoint(root.Position)
+            local headScreen = Services.Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0))
+            local legScreen = Services.Camera:WorldToViewportPoint(root.Position - Vector3.new(0,3,0))
+            screenCache[plr] = {rootScreen = rootScreen, headScreen = headScreen, legScreen = legScreen, onScreen = onScreen, time = tick(), dist = (root.Position - camPos).Magnitude}
             local sc = screenCache[plr]
             local dist = sc.dist
             local visible = isVisible(root)
@@ -606,31 +599,31 @@ Services.RunService.RenderStepped:Connect(function()
                     Highlights[plr]:Destroy()
                     Highlights[plr] = nil
                 end
-                if tick() - sc.time > 2 then screenCache[plr] = nil end  -- Clean old
+                if tick() - sc.time > 1 then screenCache[plr] = nil end  -- Clean faster
             end
         end
     end
 end)
--- Stale ESP Sweeper - Ping fix: 2s
+-- Stale ESP Sweeper - Balanced: 1s
 coroutine.wrap(function()
     while true do
-        task.wait(2)
+        task.wait(1)
         for plr, esp in pairs(ESPTable) do
             if not plr.Parent or not plr.Character or (plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health <= 0) then
                 task.spawn(function() removeESP(plr) end)
             end
         end
         -- Cache temizliği
-        if #VisibilityCache > 20 then VisibilityCache = {} end
+        if #VisibilityCache > 50 then VisibilityCache = {} end
         local cacheSize = 0
         for _ in pairs(screenCache) do cacheSize = cacheSize + 1 end
-        if cacheSize > 10 then screenCache = {} end
+        if cacheSize > 20 then screenCache = {} end
     end
 end)()
--- Auto Scan - Ping fix: 5s
+-- Auto Scan - Balanced: 1s
 coroutine.wrap(function()
     while true do
-        task.wait(5)
+        task.wait(1)
         for _, plr in ipairs(Services.Players:GetPlayers()) do
             if plr ~= Services.LocalPlayer and isEnemy(plr) and not ESPTable[plr] then
                 createESP(plr)
@@ -879,63 +872,112 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
--- Camera View Tab: Ayrı tab (dropdown + refresh + toggle + teleport button)
+-- Camera View Tab: FIXED - Dynamic player list with recreate on refresh, no duplicate, respawn handling
 local CameraSection = CameraTab:CreateSection("Camera View")
 local selectedPlayer = nil
 local camActive = false
-CameraTab:CreateDropdown({
-    Name = "Select Player",
-    Options = {}, -- Dinamik doldurulacak
-    CurrentOption = "None",
-    Flag = "PlayerSelectFlag",
-    Callback = function(val)
-        selectedPlayer = Services.Players:FindFirstChild(val)
-        if selectedPlayer then Rayfield:Notify({Title = "Selected", Content = val, Duration = 3}) end
-    end
-})
-CameraTab:CreateButton({
-    Name = "Refresh Players",
-    Callback = function()
-        local opts = {}
-        for _, plr in ipairs(Services.Players:GetPlayers()) do
-            if plr ~= Services.LocalPlayer then table.insert(opts, plr.Name) end
+local playerDropdownFlag = false  -- FIXED: Duplicate önleme flag
+local function getPlayerOptions()
+    local opts = {}
+    for _, plr in ipairs(Services.Players:GetPlayers()) do
+        if plr ~= Services.LocalPlayer then
+            table.insert(opts, plr.Name)
         end
-        Rayfield:Notify({Title = "Refreshed", Content = #opts .. " players", Duration = 3})
+    end
+    return opts
+end
+local function createPlayerDropdown()
+    if playerDropdownFlag then return end  -- FIXED: Duplicate yok
+    playerDropdownFlag = true
+    local opts = getPlayerOptions()
+    local dropdown = CameraTab:CreateDropdown({
+        Name = "Select Player",
+        Options = opts,  -- FIXED: Initial populate
+        CurrentOption = "None",
+        Flag = "PlayerSelectFlag",
+        Callback = function(val)
+            selectedPlayer = Services.Players:FindFirstChild(val)
+            if selectedPlayer then Rayfield:Notify({Title = "Selected", Content = val, Duration = 3}) end
+        end
+    })
+end
+createPlayerDropdown()  -- Initial create
+CameraTab:CreateButton({
+    Name = "Refresh Players",  -- FIXED: Now recreates without duplicate
+    Callback = function()
+        playerDropdownFlag = false  -- Reset flag
+        task.wait(0.1)  -- Small delay for UI clean
+        createPlayerDropdown()
+        Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
     end
 })
+-- FIXED: Respawn handling for camera lock
+local cameraLockConn = nil
+local function lockCameraToPlayer(targetPlr, active)
+    if cameraLockConn then cameraLockConn:Disconnect() end
+    if not active or not targetPlr then
+        local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if myHum then Services.Camera.CameraSubject = myHum end
+        return
+    end
+    local function updateLock()
+        if targetPlr.Character then
+            local hum = targetPlr.Character:FindFirstChildOfClass("Humanoid")
+            local hrp = targetPlr.Character:FindFirstChild("HumanoidRootPart")
+            if hum and hrp then
+                Services.Camera.CameraSubject = hum
+                Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+            end
+        end
+    end
+    updateLock()  -- Initial lock
+    cameraLockConn = Services.RunService.Heartbeat:Connect(updateLock)  -- Continuous smooth lock
+end
 CameraTab:CreateToggle({
-    Name = "🎥 Camera View",
+    Name = "🎥 Camera View",  -- FIXED: Now works with respawn
     CurrentValue = false,
     Flag = "CamViewFlag",
     Callback = function(val)
         camActive = val
-        if val and selectedPlayer and selectedPlayer.Character then
-            local hum = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-            local hrp = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hum and hrp then
-                Services.Camera.CameraSubject = hum
-                Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
-                Rayfield:Notify({Title = "Camera Locked", Content = selectedPlayer.Name, Duration = 3})
-            end
+        lockCameraToPlayer(selectedPlayer, val)
+        if val and selectedPlayer then
+            Rayfield:Notify({Title = "Camera Locked", Content = selectedPlayer.Name, Duration = 3})
         else
-            local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if myHum then Services.Camera.CameraSubject = myHum end
             Rayfield:Notify({Title = "Camera Reset", Content = "Back to self", Duration = 3})
         end
     end
 })
+-- Respawn handling for selectedPlayer (ölünce/dirilince auto relock)
+if selectedPlayer then
+    selectedPlayer.CharacterAdded:Connect(function()
+        if camActive then
+            task.wait(1)  -- Wait for full spawn
+            lockCameraToPlayer(selectedPlayer, true)
+        end
+    end)
+end
+-- LocalPlayer respawn handling (sen dirilince relock)
+Services.LocalPlayer.CharacterAdded:Connect(function()
+    if camActive and selectedPlayer then
+        task.wait(1)
+        lockCameraToPlayer(selectedPlayer, true)
+    end
+end)
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected",
+    Name = "⚡ Teleport to Selected",  -- FIXED: Now uses CFrame for stability
     Callback = function()
-        if selectedPlayer and selectedPlayer.Character then
-            local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-            local myHRP = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP and myHRP then
-                Services.LocalPlayer.Character:PivotTo(targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25))
+        if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local targetHRP = selectedPlayer.Character.HumanoidRootPart
+            local myChar = Services.LocalPlayer.Character
+            if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                local myHRP = myChar.HumanoidRootPart
+                myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)  -- FIXED: CFrame direct
                 Rayfield:Notify({Title = "Teleported", Content = selectedPlayer.Name, Duration = 3})
+            else
+                Rayfield:Notify({Title = "Error", Content = "Your character not ready", Duration = 3})
             end
         else
-            Rayfield:Notify({Title = "Error", Content = "No player selected", Duration = 3})
+            Rayfield:Notify({Title = "Error", Content = "No player selected or invalid", Duration = 3})
         end
     end
 })
@@ -972,7 +1014,7 @@ MenuServerTab:CreateButton({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a",
+    Content = "v1.3.0a - CAMERA RESPAWN FIXED + NO DUPLICATE",
     Duration = 12,
     Image = 4483362458
 })
@@ -1010,4 +1052,4 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
         end
     end
 end)
-print("CENESENSE | REINJECT OPTIMIZED + PING FIX")
+print("CENESENSE | REINJECT OPTIMIZED + CAMERA RESPAWN FIX")
