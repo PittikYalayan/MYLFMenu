@@ -318,13 +318,13 @@ Services.RunService.RenderStepped:Connect(function(dt)
     end
 end)
 local TeamTab = Window:CreateTab("Team Selection", 4483362458)
-local CombatTab = Window:CreateTab("Combat", 4483362458)
-local VisualTab = Window:CreateTab("Visual", 4483362458)
+local CombatTab = Window:CreateTab("AimBot", 4483362458)
+local VisualTab = Window:CreateTab("ESP", 4483362458)
 local MovementTab = Window:CreateTab("Movement", 4483362458)
 local TeleportTab = Window:CreateTab("Teleport", 4483362458)
 local CameraTab = Window:CreateTab("Camera View", 4483362458)
-local SettingsTab = Window:CreateTab("Settings", 4483362458)
-local MenuServerTab = Window:CreateTab("Menu & Server", 4483362458)
+local SettingsTab = Window:CreateTab("Info", 4483362458)
+local MenuServerTab = Window:CreateTab("Settings", 4483362458)
 -- Global Variables (Aimbot/ESP korundu, features external ile uyumlu)
 getgenv().AimbotEnabled = false
 getgenv().SilentAimEnabled = false
