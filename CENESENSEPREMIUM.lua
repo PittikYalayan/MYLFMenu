@@ -251,7 +251,7 @@ RainbowBar.Position = UDim2.new(0.5, 0, 1, 0)
 RainbowBar.Size = UDim2.new(1, -6, 0, 3)
 RainbowBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 RainbowBar.Parent = CrownPanel
-makeCorner(RainbowBar, 2)
+makeCorner(RainbowBar, 0.01)
 local grad = Instance.new("UIGradient", RainbowBar)
 -- Live API (Örnekten tam alındı – HWID'li, heartbeat/active) - Ping fix: Slower intervals
 local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
