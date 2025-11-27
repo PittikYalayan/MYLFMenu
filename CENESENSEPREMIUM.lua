@@ -230,10 +230,10 @@ CrownPanel.Position = UDim2.new(0.5, 0, 0, 8)
 CrownPanel.Size = UDim2.fromOffset(300, 26)
 CrownPanel.BackgroundColor3 = getgenv().ThemeColor -- Theme'e bağlandı
 CrownPanel.Parent = Overlay
-pad(CrownPanel, 4)
+pad(CrownPanel, 0)
 local cps = makeStroke(CrownPanel, 1, 0.15)
 cps.Color = getgenv().ThemeColor -- Stroke'u theme'e eşle
-makeCorner(CrownPanel, 8)
+makeCorner(CrownPanel, 0)
 local CrownText = Instance.new("TextLabel")
 CrownText.BackgroundTransparency = 1
 CrownText.Font = Enum.Font.GothamSemibold
@@ -251,7 +251,7 @@ RainbowBar.Position = UDim2.new(0.5, 0, 1, 0)
 RainbowBar.Size = UDim2.new(1, -6, 0, 3)
 RainbowBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 RainbowBar.Parent = CrownPanel
-makeCorner(RainbowBar, 0.01)
+makeCorner(RainbowBar, 0)
 local grad = Instance.new("UIGradient", RainbowBar)
 -- Live API (Örnekten tam alındı – HWID'li, heartbeat/active) - Ping fix: Slower intervals
 local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
