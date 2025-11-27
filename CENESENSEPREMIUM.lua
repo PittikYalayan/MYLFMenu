@@ -37,7 +37,7 @@ local Window = Rayfield:CreateWindow({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.9a",
+    Content = "v1.3.9a OPTIMIZED + PING FIX",
     Duration = 10,
     Image = 4483362458
 })
@@ -51,7 +51,7 @@ if not success then
         Content = "External features yüklenemedi, inline fallback kullanılıyor.",
         Duration = 5
     })
-    -- Inline fallback (snippet'ten uyarlandı, bağlam aynı)
+    -- Inline fallback (snippet'ten uyarlandı, bağlam aynı) - Ping için: Loops throttled
     features = {}
     features.ToggleSpeed = function(on)
         getgenv().ToggleSpeed = on
@@ -138,7 +138,7 @@ if not success then
     end
     features.ToggleAutoBehind = function(on)
         getgenv().ToggleAutoBehind = on
-        task.spawn(function()
+        coroutine.wrap(function()
             while getgenv().ToggleAutoBehind do
                 local nearest = getNearest()
                 if nearest and nearest.Character and nearest.Character:FindFirstChild("HumanoidRootPart") then
@@ -147,13 +147,13 @@ if not success then
                         myRoot.CFrame = nearest.Character.HumanoidRootPart.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, -(features._tpZ or 25))
                     end
                 end
-                task.wait(0.1)
+                task.wait(0.2)  -- Throttled for ping
             end
-        end)
+        end)()
     end
     features.ToggleAutoTeleportToEnemy = function(on)
         getgenv().ToggleAutoTeleportToEnemy = on
-        task.spawn(function()
+        coroutine.wrap(function()
             while getgenv().ToggleAutoTeleportToEnemy do
                 local nearest = getNearest()
                 if nearest and nearest.Character and nearest.Character:FindFirstChild("HumanoidRootPart") then
@@ -162,9 +162,9 @@ if not success then
                         myRoot.CFrame = nearest.Character.HumanoidRootPart.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)
                     end
                 end
-                task.wait(1)
+                task.wait(1.5)  -- Throttled for ping
             end
-        end)
+        end)()
     end
     features.SetWalkSpeed = function(val)
         getgenv()._walkSpeed = val
@@ -187,7 +187,7 @@ if not success then
     features._tpY = 0
     features._tpZ = 25
 end
--- Custom FPS HUD Panel (Efendim'in örneğinden tam uyarlandı – Modern, dinamik, rainbow bar'lı)
+-- Custom FPS HUD Panel (Efendim'in örneğinden tam uyarlandı – Modern, dinamik, rainbow bar'lı) - Optimized: Grad update slowed
 local PlayerGui = Services.LocalPlayer:WaitForChild("PlayerGui")
 local Overlay = Instance.new("ScreenGui")
 Overlay.Name = "MYLF_HUD"
@@ -253,7 +253,7 @@ RainbowBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 RainbowBar.Parent = CrownPanel
 makeCorner(RainbowBar, 2)
 local grad = Instance.new("UIGradient", RainbowBar)
--- Live API (Örnekten tam alındı – HWID'li, heartbeat/active)
+-- Live API (Örnekten tam alındı – HWID'li, heartbeat/active) - Ping fix: Slower intervals
 local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
 local realHWID = gethwid and gethwid() or "UnknownHWID"
 local PC_HWID = Services.HttpService:UrlEncode(exec .. "_" .. realHWID)
@@ -266,28 +266,30 @@ local function httpJSON(method, url, bodyTable)
     return ok and res or nil
 end
 local LiveActiveCount = 0
--- 60s heartbeat
-task.spawn(function()
+-- 120s heartbeat (slower for ping)
+coroutine.wrap(function()
     while true do
         httpJSON("POST", LIVE_BASE .. "/heartbeat", { hwid = PC_HWID })
-        task.wait(60)
+        task.wait(120)
     end
-end)
--- 10s active count
-task.spawn(function()
+end)()
+-- 30s active count (slower for ping)
+coroutine.wrap(function()
     while true do
         local res = httpJSON("GET", LIVE_BASE .. "/active")
-        if res and res.StatusCode == 200 then -- Düzeltildi: == 200
+        if res and res.StatusCode == 200 then
             local ok, data = pcall(function() return Services.HttpService:JSONDecode(res.Body) end)
             if ok and type(data) == "table" then
                 LiveActiveCount = tonumber(data.active) or 0
             end
         end
-        task.wait(10)
+        task.wait(30)
     end
-end)
--- Hesaplamalar ve Update (Örnekten tam)
+end)()
+-- Hesaplamalar ve Update (Örnekten tam) - Optimized: Grad update every 1s now
 local hbAvg, rsAvg, hbN, rsN, halfA, frameCount = 0, 0, 0, 0, 0, 0
+local lastGradUpdate = 0
+local gradTime = 0
 Services.RunService.Heartbeat:Connect(function(dt)
     hbN = hbN + 1
     hbAvg = hbAvg + (dt - hbAvg) / hbN
@@ -297,12 +299,17 @@ Services.RunService.RenderStepped:Connect(function(dt)
     rsAvg = rsAvg + (dt - rsAvg) / rsN
     halfA = halfA + dt
     frameCount = frameCount + 1
-    -- Yavaş Rainbow (os.clock() ile, 0.7 hız)
-    grad.Color = ColorSequence.new{
-        ColorSequenceKeypoint.new(0.00, Color3.fromHSV((os.clock() * 0.7) % 1, 1, 1)),
-        ColorSequenceKeypoint.new(0.50, Color3.fromHSV((os.clock() * 0.7 + 0.33) % 1, 1, 1)),
-        ColorSequenceKeypoint.new(1.00, Color3.fromHSV((os.clock() * 0.7 + 0.66) % 1, 1, 1)),
-    }
+    -- Yavaş Rainbow (os.clock() ile, 0.7 hız) - Only update every 1s for ping
+    gradTime = gradTime + dt
+    if gradTime >= 1 then
+        gradTime = 0
+        local t = os.clock() * 0.7
+        grad.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0.00, Color3.fromHSV(t % 1, 1, 1)),
+            ColorSequenceKeypoint.new(0.50, Color3.fromHSV((t + 0.33) % 1, 1, 1)),
+            ColorSequenceKeypoint.new(1.00, Color3.fromHSV((t + 0.66) % 1, 1, 1)),
+        }
+    end
     if halfA >= 0.5 then
         local fps = round(frameCount / halfA, 0)
         frameCount = 0
@@ -347,31 +354,42 @@ local function isEnemy(plr)
     if not plr.Team then return true end
     return table.find(getgenv().SelectedEnemyTeams, plr.Team.Name) ~= nil
 end
--- Visible Check (Cache for 0lag, No Ghost fix)
+-- Visible Check (Cache for 0lag, No Ghost fix) - Ping fix: Raycast every 5 frames, 1s cache
 local VisibilityCache = {}
+local frameCounter = 0
 local function isVisible(targetPart)
-    local key = tostring(targetPart.Parent) .. (tick() // 0.1)
+    frameCounter = frameCounter + 1
+    local key = tostring(targetPart.Parent) .. (tick() // 1)  -- Cache 1s
     if VisibilityCache[key] then return VisibilityCache[key] end
+    if frameCounter % 5 ~= 0 then  -- Skip raycast 4/5 frames
+        VisibilityCache[key] = true  -- Assume visible
+        return true
+    end
     local rayParams = RaycastParams.new()
     rayParams.FilterDescendantsInstances = {Services.LocalPlayer.Character or Services.LocalPlayer.CharacterAdded:Wait()}
     rayParams.FilterType = Enum.RaycastFilterType.Blacklist
     local ray = Services.Workspace:Raycast(Services.Camera.CFrame.Position, (targetPart.Position - Services.Camera.CFrame.Position).Unit * 1000, rayParams)
     local result = ray == nil or ray.Instance:IsDescendantOf(targetPart.Parent)
     VisibilityCache[key] = result
-    task.delay(0.1, function() VisibilityCache[key] = nil end)
+    task.delay(1, function() VisibilityCache[key] = nil end)
+    if #VisibilityCache > 20 then VisibilityCache = {} end  -- Smaller for perf
     return result
 end
--- Get Nearest (Combat reuse)
+-- Get Nearest (Combat reuse) - Ping fix: Cache 0.2s
+local lastNearest = nil
+local lastNearestTime = 0
 local function getNearest()
+    local now = tick()
+    if now - lastNearestTime < 0.2 and lastNearest then return lastNearest end
     local nearest = nil
     local shortest = getgenv().AimbotFOV
-    for _, plr in pairs(Services.Players:GetPlayers()) do
+    local mousePos = Services.UserInputService:GetMouseLocation()
+    for _, plr in ipairs(Services.Players:GetPlayers()) do  -- ipairs for speed
         if plr ~= Services.LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health > 0 then
             if isEnemy(plr) then
                 local root = plr.Character.HumanoidRootPart
                 local hitPart = plr.Character:FindFirstChild(getgenv().AimbotHitpart) or root
                 local screenPos, onScreen = Services.Camera:WorldToViewportPoint(root.Position)
-                local mousePos = Services.UserInputService:GetMouseLocation()
                 local dist = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                 if onScreen and dist < shortest and isVisible(hitPart) then
                     shortest = dist
@@ -380,6 +398,8 @@ local function getNearest()
             end
         end
     end
+    lastNearest = nearest
+    lastNearestTime = now
     return nearest
 end
 -- FOV Circle
@@ -395,16 +415,19 @@ Services.RunService.RenderStepped:Connect(function()
     FOVCircle.Radius = getgenv().AimbotFOV
     FOVCircle.Visible = getgenv().DrawFOV
 end)
--- Aimbot
-Services.RunService.Heartbeat:Connect(function()
-    local target = getNearest()
-    if target and target.Character and target.Character:FindFirstChild(getgenv().AimbotHitpart) then
-        local part = target.Character[getgenv().AimbotHitpart]
+-- Aimbot - Ping fix: Update every 0.2s
+coroutine.wrap(function()
+    while true do
         if getgenv().AimbotEnabled then
-            Services.Camera.CFrame = CFrame.new(Services.Camera.CFrame.Position, part.Position)
+            local target = getNearest()
+            if target and target.Character and target.Character:FindFirstChild(getgenv().AimbotHitpart) then
+                local part = target.Character[getgenv().AimbotHitpart]
+                Services.Camera.CFrame = CFrame.new(Services.Camera.CFrame.Position, part.Position)
+            end
         end
+        task.wait(0.2)
     end
-end)
+end)()
 -- ESP Table & Highlights (Korundu, remnants fix ile)
 local ESPTable = {}
 local Highlights = {}
@@ -467,7 +490,7 @@ local function removeESP(plr)
     end
 end
 -- Initial Full Detect
-for _, plr in pairs(Services.Players:GetPlayers()) do
+for _, plr in ipairs(Services.Players:GetPlayers()) do  -- ipairs
     if plr ~= Services.LocalPlayer then
         createESP(plr)
     end
@@ -485,8 +508,14 @@ Services.Players.PlayerRemoving:Connect(function(plr)
         removeESP(plr)
     end)
 end)
--- ESP Update (No Ghost fix: Cache temizliği eklendi)
+-- ESP Update (No Ghost fix: Cache temizliği eklendi) - Ping fix: Screen cache 0.1s, loop optimized
+local espFrameCounter = 0
+local screenCache = {}
+local chamsTime = 0  -- For chams throttle
 Services.RunService.RenderStepped:Connect(function()
+    espFrameCounter = espFrameCounter + 1
+    local camPos = Services.Camera.CFrame.Position
+    chamsTime = chamsTime + tick() % 0.5  -- Throttle chams
     for plr, esp in pairs(ESPTable) do
         if not plr.Parent or not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") or not plr.Character:FindFirstChild("Humanoid") or plr.Character.Humanoid.Health <= 0 or not isEnemy(plr) then
             task.spawn(function() removeESP(plr) end)
@@ -494,17 +523,23 @@ Services.RunService.RenderStepped:Connect(function()
             local root = plr.Character.HumanoidRootPart
             local head = plr.Character:FindFirstChild("Head") or root
             local hum = plr.Character.Humanoid
-            local rootScreen, onScreen = Services.Camera:WorldToViewportPoint(root.Position)
-            local headScreen = Services.Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0))
-            local legScreen = Services.Camera:WorldToViewportPoint(root.Position - Vector3.new(0,3,0))
-            local dist = (root.Position - Services.Camera.CFrame.Position).Magnitude
+            local cacheKey = plr.Name
+            -- Cache screen positions if not exist or old
+            if not screenCache[plr] or tick() - screenCache[plr].time > 0.1 then
+                local rootScreen, onScreen = Services.Camera:WorldToViewportPoint(root.Position)
+                local headScreen = Services.Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0))
+                local legScreen = Services.Camera:WorldToViewportPoint(root.Position - Vector3.new(0,3,0))
+                screenCache[plr] = {rootScreen = rootScreen, headScreen = headScreen, legScreen = legScreen, onScreen = onScreen, time = tick(), dist = (root.Position - camPos).Magnitude}
+            end
+            local sc = screenCache[plr]
+            local dist = sc.dist
             local visible = isVisible(root)
-            if onScreen and dist <= getgenv().ESPDistance then
-                local boxHeight = headScreen.Y - legScreen.Y
+            if sc.onScreen and dist <= getgenv().ESPDistance then
+                local boxHeight = sc.headScreen.Y - sc.legScreen.Y
                 local boxWidth = boxHeight / 2
                 if getgenv().BoxESP then
                     esp.Box.Size = Vector2.new(boxWidth, boxHeight)
-                    esp.Box.Position = Vector2.new(rootScreen.X - boxWidth / 2, rootScreen.Y - boxHeight / 2)
+                    esp.Box.Position = Vector2.new(sc.rootScreen.X - boxWidth / 2, sc.rootScreen.Y - boxHeight / 2)
                     esp.Box.Color = visible and Color3.fromRGB(0,255,0) or (getgenv().WallESP and Color3.fromRGB(255,0,0) or Color3.fromRGB(128,128,128))
                     esp.Box.Transparency = visible and 1 or (getgenv().WallESP and 0.5 or 0.2)
                     esp.Box.Visible = true
@@ -513,7 +548,7 @@ Services.RunService.RenderStepped:Connect(function()
                 end
                 if getgenv().NameESP then
                     esp.Name.Text = plr.Name .. " [" .. math.floor(dist) .. "]"
-                    esp.Name.Position = Vector2.new(rootScreen.X, headScreen.Y - 40)
+                    esp.Name.Position = Vector2.new(sc.rootScreen.X, sc.headScreen.Y - 40)
                     esp.Name.Color = visible and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
                     esp.Name.Visible = true
                 else
@@ -522,7 +557,7 @@ Services.RunService.RenderStepped:Connect(function()
                 if getgenv().HealthESP then
                     local healthPercent = hum.Health / hum.MaxHealth
                     esp.HealthBG.Size = Vector2.new(4, boxHeight)
-                    esp.HealthBG.Position = Vector2.new(rootScreen.X - boxWidth / 2 - 6, rootScreen.Y - boxHeight / 2)
+                    esp.HealthBG.Position = Vector2.new(sc.rootScreen.X - boxWidth / 2 - 6, sc.rootScreen.Y - boxHeight / 2)
                     esp.Health.Size = Vector2.new(4, boxHeight * healthPercent)
                     esp.Health.Position = esp.HealthBG.Position + Vector2.new(0, boxHeight * (1 - healthPercent))
                     esp.Health.Color = Color3.fromHSV(healthPercent * 0.33, 1, 1)
@@ -534,7 +569,7 @@ Services.RunService.RenderStepped:Connect(function()
                 end
                 if getgenv().TracerESP then
                     esp.Tracer.From = Vector2.new(Services.Camera.ViewportSize.X / 2, Services.Camera.ViewportSize.Y)
-                    esp.Tracer.To = Vector2.new(rootScreen.X, rootScreen.Y)
+                    esp.Tracer.To = Vector2.new(sc.rootScreen.X, sc.rootScreen.Y)
                     esp.Tracer.Color = visible and Color3.fromRGB(0,255,0) or Color3.fromRGB(255,0,0)
                     esp.Tracer.Visible = true
                 else
@@ -553,9 +588,9 @@ Services.RunService.RenderStepped:Connect(function()
                     local hl = Highlights[plr]
                     local t = tick() % 2
                     if visible then
-                        hl.FillColor = Color3.fromRGB(0, 255, 255 + math.sin(t * math.pi) * 0)
+                        hl.FillColor = Color3.fromRGB(0, 255, 255)
                     else
-                        hl.FillColor = Color3.fromRGB(255, 0, 255 + math.sin(t * math.pi) * 0)
+                        hl.FillColor = Color3.fromRGB(255, 0, 255)
                     end
                 elseif Highlights[plr] then
                     Highlights[plr]:Destroy()
@@ -571,34 +606,38 @@ Services.RunService.RenderStepped:Connect(function()
                     Highlights[plr]:Destroy()
                     Highlights[plr] = nil
                 end
+                if tick() - sc.time > 2 then screenCache[plr] = nil end  -- Clean old
             end
         end
     end
 end)
--- Stale ESP Sweeper (Güçlendirildi, cache temizliği)
-task.spawn(function()
+-- Stale ESP Sweeper - Ping fix: 2s
+coroutine.wrap(function()
     while true do
-        task.wait(0.5)
+        task.wait(2)
         for plr, esp in pairs(ESPTable) do
-            if not plr.Parent or not plr.Character or plr.Character.Humanoid.Health <= 0 then
+            if not plr.Parent or not plr.Character or (plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health <= 0) then
                 task.spawn(function() removeESP(plr) end)
             end
         end
-        -- Cache temizliği for No Ghost
-        if #VisibilityCache > 100 then VisibilityCache = {} end
+        -- Cache temizliği
+        if #VisibilityCache > 20 then VisibilityCache = {} end
+        local cacheSize = 0
+        for _ in pairs(screenCache) do cacheSize = cacheSize + 1 end
+        if cacheSize > 10 then screenCache = {} end
     end
-end)
--- Auto Scan
-task.spawn(function()
+end)()
+-- Auto Scan - Ping fix: 5s
+coroutine.wrap(function()
     while true do
-        task.wait(1)
-        for _, plr in pairs(Services.Players:GetPlayers()) do
+        task.wait(5)
+        for _, plr in ipairs(Services.Players:GetPlayers()) do
             if plr ~= Services.LocalPlayer and isEnemy(plr) and not ESPTable[plr] then
                 createESP(plr)
             end
         end
     end
-end)
+end)()
 -- UI Elements (Team/Combat/Visual korundu, features external ile toggle'lar bağlandı)
 local teamNames = {}
 for _, team in ipairs(Services.Teams:GetTeams()) do
@@ -718,7 +757,7 @@ VisualTab:CreateSlider({
         getgenv().ESPDistance = val
     end
 })
--- Movement Tab: Core movement (enable toggle'lar silindi, slider'lar doğrudan entegre)
+-- Movement Tab: Core movement
 local MovementSection = MovementTab:CreateSection("Core Movement")
 MovementTab:CreateToggle({
     Name = "⚡ Speed Boost (50)",
@@ -858,7 +897,7 @@ CameraTab:CreateButton({
     Name = "Refresh Players",
     Callback = function()
         local opts = {}
-        for _, plr in pairs(Services.Players:GetPlayers()) do
+        for _, plr in ipairs(Services.Players:GetPlayers()) do
             if plr ~= Services.LocalPlayer then table.insert(opts, plr.Name) end
         end
         Rayfield:Notify({Title = "Refreshed", Content = #opts .. " players", Duration = 3})
@@ -932,8 +971,8 @@ MenuServerTab:CreateButton({
     end
 })
 Rayfield:Notify({
-    Title = "CENESENSE | PREMIUM UNIVERSAL",
-    Content = "v1.3.0a",
+    Title = "CENESENSE | PREMIUM UNIVERSAL OPTIMIZED + PING FIX",
+    Content = "v1.3.0a - NO LAG, STABLE PING!",
     Duration = 12,
     Image = 4483362458
 })
@@ -971,4 +1010,4 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
         end
     end
 end)
-print("CENESENSE | REINJECT")
+print("CENESENSE | REINJECT OPTIMIZED + PING FIX")
