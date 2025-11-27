@@ -2,6 +2,11 @@
 -- ═════════════════════════════════════════════ --
 -- AUTO RE-INJECT SISTEMI (INFINITE YIELD GIBI)
 -- ═════════════════════════════════════════════ --
+if getgenv().CENESENSE_LOADED then
+    print("CENESENSE zaten yüklü, tekrar yüklenmedi.")
+    return
+end
+getgenv().CENESENSE_LOADED = true
 local queue_on_teleport = (queue_on_teleport or syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport) or (queueonteleport)
 if queue_on_teleport then
     spawn(function()
