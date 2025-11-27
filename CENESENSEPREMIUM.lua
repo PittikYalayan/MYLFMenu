@@ -1,5 +1,39 @@
 
+-- ═════════════════════════════════════════════ --
+-- AUTO RE-INJECT SISTEMI (INFINITE YIELD GIBI)
+-- ═════════════════════════════════════════════ --
+local queue_on_teleport = (queue_on_teleport or syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport) or (queueonteleport)
+if queue_on_teleport then
+    spawn(function()
+        while wait(1) do
+            queue_on_teleport([[
+                if not getgenv().CENESENSE_LOADED then
+                    getgenv().CENESENSE_LOADED = true
+                    loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEPREMIUM.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
+                end
+            ]])
+        end
+    end)
+end
+game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
+    if State == Enum.TeleportState.Started then
+        if queue_on_teleport then
+            queue_on_teleport([[
+                if not getgenv().CENESENSE_LOADED then
+                    getgenv().CENESENSE_LOADED = true
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEPREMIUM.lua"))()
+                end
+            ]])
+        end
+    end
+end)
+print("CENESENSE v1.3.9b | AUTO RE-INJECT AKTIF - Artık kalıcı! (Efendim için optimize edildi)")
+
 -- memesense31.lua - MYLF MENU ESP FULL DETECT + REMNANTS FIX | Efendim için özel, Tüm Oyuncular + No Ghost <3
+
+
+
 local Services = {
     RunService = game:GetService("RunService"),
     UserInputService = game:GetService("UserInputService"),
@@ -15,7 +49,7 @@ local Services = {
 }
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Yüklenme ekranını 15 saniye uzat (efendim için özel gecikme)
-task.wait(15)
+task.wait(2)
 local Window = Rayfield:CreateWindow({
     Name = "CENESENSE",
     LoadingTitle = "CENESENSE Yüklüyor...",
