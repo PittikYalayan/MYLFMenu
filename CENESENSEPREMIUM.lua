@@ -303,7 +303,7 @@ Services.RunService.RenderStepped:Connect(function(dt)
     gradTime = gradTime + dt
     if gradTime >= 0.033 then
         gradTime = 0
-        local t = os.clock() * 9  -- Smooth hız
+        local t = os.clock() * 0.33  -- Smooth hız
         grad.Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0.00, Color3.fromHSV(t % 1, 1, 1)),
             ColorSequenceKeypoint.new(0.50, Color3.fromHSV((t + 0.33) % 1, 1, 1)),
