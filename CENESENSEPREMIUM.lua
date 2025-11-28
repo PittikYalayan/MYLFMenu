@@ -37,7 +37,7 @@ local Window = Rayfield:CreateWindow({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a - REFRESH + CAMERA ULTIMATE FIX",
+    Content = "v1.3.0a - REFRESH + CAMERA ULTIMATE FIX + EMOTES TAB",
     Duration = 10,
     Image = 4483362458
 })
@@ -303,7 +303,7 @@ Services.RunService.RenderStepped:Connect(function(dt)
     gradTime = gradTime + dt
     if gradTime >= 0.033 then
         gradTime = 0
-        local t = os.clock() * 1.8  -- Smooth hız
+        local t = os.clock() * 9  -- Smooth hız
         grad.Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0.00, Color3.fromHSV(t % 1, 1, 1)),
             ColorSequenceKeypoint.new(0.50, Color3.fromHSV((t + 0.33) % 1, 1, 1)),
@@ -330,6 +330,7 @@ local VisualTab = Window:CreateTab("ESP", 4483362458)
 local MovementTab = Window:CreateTab("Movement", 4483362458)
 local TeleportTab = Window:CreateTab("Teleport", 4483362458)
 local CameraTab = Window:CreateTab("Camera View", 4483362458)
+local EmotesTab = Window:CreateTab("Emotes", 4483362458)  -- YENİ EMOTES TAB
 local SettingsTab = Window:CreateTab("Info", 4483362458)
 local MenuServerTab = Window:CreateTab("Settings", 4483362458)
 -- Global Variables (Aimbot/ESP korundu, features external ile uyumlu)
@@ -348,6 +349,53 @@ getgenv().TracerESP = false
 getgenv().ChamsEnabled = false
 getgenv().WallESP = false
 getgenv().ESPDistance = 2000
+-- Emotes Global (YENİ: Loop mode ve current track)
+getgenv().EmotesLoopMode = false
+getgenv().CurrentEmoteTrack = nil
+-- Emotes Listesi (Efendimin Verdiği Tam Liste!)
+local emotes = {
+    {name = "GanGam Style", id = "rbxassetid://14618196485"},
+    {name = "Twice", id = "rbxassetid://14899980745"},
+    {name = "Anime", id = "rbxassetid://114774556469581"},
+    {name = "Aşkını İtiraf Et", id = "rbxassetid://108873777157620"},
+    {name = "Billy Zıplaması", id = "rbxassetid://115607052226647"},
+    {name = "Boksör", id = "rbxassetid://80933111363555"},
+    {name = "DJ Bekleme Pozu", id = "rbxassetid://114486154887764"},
+    {name = "Dougle Dansı", id = "rbxassetid://87574738912971"},
+    {name = "Elektro Dansı", id = "rbxassetid://138785676658772"},
+    {name = "Eller Yukarı", id = "rbxassetid://135395608251521"},
+    {name = "Garry Dansı", id = "rbxassetid://124896171012585"},
+    {name = "Gürültücü", id = "rbxassetid://136095999219650"},
+    {name = "Havalı Tokat", id = "rbxassetid://118552217459650"},
+    {name = "Horeg Dansı", id = "rbxassetid://110204898807330"},
+    {name = "Jackpot Dansı", id = "rbxassetid://126041249033925"},
+    {name = "Kadın Dansı", id = "rbxassetid://76240950459288"},
+    {name = "Kafa Sallama", id = "rbxassetid://15517864808"},
+    {name = "Kalça Dansı", id = "rbxassetid://138671912289772"},
+    {name = "Kalça Döndürme", id = "rbxassetid://88593312682192"},
+    {name = "Kalça Zıplaması", id = "rbxassetid://103606174140721"},
+    {name = "Kedi Dansı", id = "rbxassetid://122639636262924"},
+    {name = "Kendine Çekme", id = "rbxassetid://115605836623904"},
+    {name = "Koşma Dansı", id = "rbxassetid://96147994216119"},
+    {name = "Kıvırma", id = "rbxassetid://133551169796944"},
+    {name = "Michael Myers Dansı", id = "rbxassetid://130628312209858"},
+    {name = "Mutlu", id = "rbxassetid://4841405708"},
+    {name = "NYC Dansı", id = "rbxassetid://140333103929828"},
+    {name = "Nika Dansı", id = "rbxassetid://132930994178862"},
+    {name = "Oryantal", id = "rbxassetid://136494657202841"},
+    {name = "Otur", id = "rbxassetid://93120341268524"},
+    {name = "Parti", id = "rbxassetid://113052435813981"},
+    {name = "Popüler", id = "rbxassetid://93062298566806"},
+    {name = "Rick Roll", id = "rbxassetid://133608432421494"},
+    {name = "Sağlam Dans", id = "rbxassetid://99558490932154"},
+    {name = "Umursamaz", id = "rbxassetid://97086109091396"},
+    {name = "Uykucu", id = "rbxassetid://10714360343"},
+    {name = "Yat", id = "rbxassetid://92747295139963"},
+    {name = "Zafer Dansı", id = "rbxassetid://15505456446"},
+    {name = "Zıplama", id = "rbxassetid://15609995579"},
+    {name = "İmza Dansı", id = "rbxassetid://112931882473990"},
+    {name = "Şapşal Dans", id = "rbxassetid://85062238386196"}
+}
 -- Team Check
 local function isEnemy(plr)
     if not getgenv().TeamCheckEnabled then return true end
@@ -872,195 +920,106 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
--- Camera View Tab: ENTEGRE - Custom rainbow list + respawn fix, Rayfield uyumlu
+-- Camera View Tab: FIXED - Dynamic player list with recreate on refresh, no duplicate, respawn handling
 local CameraSection = CameraTab:CreateSection("Camera View")
 local selectedPlayer = nil
 local camActive = false
-local rainbowLabels = {}
-local btnRecords = {} -- { [plr]= {btn=..., stroke=...} }
-local selectedBtn = nil
-local cameraUpdateConn = nil  -- Continuous update connection
-local charAddedConn = nil  -- Dynamic respawn connection for selected
-local respawnWaitTime = 2  -- Wait time after respawn for full load
--- Custom ScrollingFrame for player list (Rayfield tab'ine parent, anti-break pcall)
-pcall(function()
-    local playerListFrame = Instance.new("Frame")
-    playerListFrame.Name = "CustomPlayerList"
-    playerListFrame.Size = UDim2.new(1, 0, 0, 200)  -- Fixed height for Rayfield integration
-    playerListFrame.BackgroundTransparency = 1
-    playerListFrame.Parent = CameraTab  -- Rayfield tab container'a parent (uyumlu)
-    local playerList = Instance.new("ScrollingFrame")
-    playerList.Size = UDim2.new(1, 0, 1, 0)
-    playerList.BackgroundTransparency = 1
-    playerList.BorderSizePixel = 0
-    playerList.ScrollBarThickness = 6
-    playerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    playerList.Parent = playerListFrame
-    local listLayout = Instance.new("UIListLayout", playerList)
-    listLayout.Padding = UDim.new(0, 4)
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-end)
--- Helper functions (theme uyumlu, getgenv().ThemeColor ile simüle)
-local function paintBtn(btn, stroke, isSelected)
-    if not btn or not btn.Parent then return end
-    local th = {AccentSoft = getgenv().ThemeColor, Hover = Color3.fromRGB(50, 50, 50), Stroke = getgenv().ThemeColor}
-    btn.BackgroundColor3 = isSelected and th.AccentSoft or th.Hover
-    if stroke then stroke.Color = th.Stroke end
-end
-local function reapplyThemeForList()
-    for _, rec in pairs(btnRecords) do
-        paintBtn(rec.btn, rec.stroke, rec.btn == selectedBtn)
+local playerDropdown = nil  -- FIXED: Global dropdown ref for destroy
+local lastRefreshTime = 0  -- FIXED: Debounce for refresh
+local function getPlayerOptions()
+    local opts = {}
+    for _, plr in ipairs(Services.Players:GetPlayers()) do
+        if plr ~= Services.LocalPlayer then
+            table.insert(opts, plr.Name)
+        end
     end
+    return opts
 end
--- Continuous camera lock (Scriptable + Heartbeat, respawn safe)
-local function lockCameraToPlayer(active)
-    if cameraUpdateConn then
-        cameraUpdateConn:Disconnect()
-        cameraUpdateConn = nil
+local function createPlayerDropdown()
+    if playerDropdown then playerDropdown:Destroy() end  -- FIXED: Eski dropdown'ı yok et, duplicate yok
+    local opts = getPlayerOptions()
+    playerDropdown = CameraTab:CreateDropdown({
+        Name = "Select Player",
+        Options = opts,  -- FIXED: Initial populate
+        CurrentOption = "None",
+        Flag = "PlayerSelectFlag",
+        Callback = function(val)
+            selectedPlayer = Services.Players:FindFirstChild(val)
+            if selectedPlayer then Rayfield:Notify({Title = "Selected", Content = val, Duration = 3}) end
+        end
+    })
+end
+createPlayerDropdown()  -- Initial create
+CameraTab:CreateButton({
+    Name = "Refresh Players",  -- FIXED: Now recreates without duplicate/spam
+    Callback = function()
+        local now = tick()
+        if now - lastRefreshTime < 1 then  -- FIXED: 1s cooldown to prevent spam
+            Rayfield:Notify({Title = "Cooldown", Content = "Bekle 1s", Duration = 2})
+            return
+        end
+        lastRefreshTime = now
+        createPlayerDropdown()  -- FIXED: Direkt recreate, destroy handles cleanup
+        Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
     end
-    if not active or not selectedPlayer then
-        Services.Camera.CameraType = Enum.CameraType.Custom
+})
+-- FIXED: Respawn handling for camera lock (Scriptable mod for smooth follow)
+local cameraLockConn = nil
+local function lockCameraToPlayer(targetPlr, active)
+    if cameraLockConn then cameraLockConn:Disconnect() cameraLockConn = nil end  -- FIXED: Always disconnect old
+    if not active or not targetPlr then
+        Services.Camera.CameraType = Enum.CameraType.Custom  -- FIXED: Reset to normal
         local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if myHum then Services.Camera.CameraSubject = myHum end
         return
     end
-    Services.Camera.CameraType = Enum.CameraType.Scriptable
-    local function updateLock()
-        pcall(function()
-            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = selectedPlayer.Character.HumanoidRootPart
-                local cf = CFrame.new(hrp.Position + Vector3.new(0, 5, -10), hrp.Position)
+    Services.Camera.CameraType = Enum.CameraType.Scriptable  -- FIXED: Scriptable for custom behind follow
+    cameraLockConn = Services.RunService.Heartbeat:Connect(function()  -- FIXED: Loop only for CFrame, no subject conflict
+        pcall(function()  -- FIXED: pcall for safe
+            if targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = targetPlr.Character.HumanoidRootPart
+                local cf = CFrame.new(hrp.Position + Vector3.new(0, 5, -10), hrp.Position)  -- Behind view
                 Services.Camera.CFrame = cf
             end
         end)
-    end
-    cameraUpdateConn = Services.RunService.Heartbeat:Connect(updateLock)
-end
-local function goToSelectedIfActive()
-    if not camActive then return end
-    lockCameraToPlayer(true)
-end
--- Respawn handler
-local function onPlayerRespawn(plr)
-    if plr == selectedPlayer and camActive then
-        task.spawn(function()
-            task.wait(respawnWaitTime)
-            goToSelectedIfActive()
-        end)
-    end
-end
--- Dynamic setup for selected
-local function setupCharAddedForSelected()
-    if charAddedConn then charAddedConn:Disconnect() end
-    if selectedPlayer then
-        charAddedConn = selectedPlayer.CharacterAdded:Connect(function()
-            onPlayerRespawn(selectedPlayer)
-        end)
-    end
-end
-local function refreshPlayers()
-    -- Temizle (Rayfield uyumlu, pcall safe)
-    pcall(function()
-        local playerListFrame = CameraTab:FindFirstChild("CustomPlayerList")
-        if playerListFrame then
-            local playerList = playerListFrame:FindFirstChildOfClass("ScrollingFrame")
-            if playerList then
-                for _, child in ipairs(playerList:GetChildren()) do
-                    if child:IsA("TextButton") then child:Destroy() end
-                end
-            end
-        end
-    end)
-    rainbowLabels = {}
-    btnRecords = {}
-    selectedBtn = nil
-    -- Yeniden doldur
-    pcall(function()
-        local playerListFrame = CameraTab:FindFirstChild("CustomPlayerList")
-        if playerListFrame then
-            local playerList = playerListFrame:FindFirstChildOfClass("ScrollingFrame")
-            if playerList then
-                for _, plr in ipairs(Services.Players:GetPlayers()) do
-                    if plr ~= Services.LocalPlayer then
-                        local btn = Instance.new("TextButton")
-                        btn.Size = UDim2.new(1, 0, 0, 24)
-                        btn.Text = "👤 " .. plr.Name
-                        btn.Font = Enum.Font.GothamSemibold
-                        btn.TextSize = 12
-                        btn.AutoButtonColor = false
-                        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-                        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-                        btn.Parent = playerList
-                        makeCorner(btn, 6)
-                        local st = makeStroke(btn, 1, 0.1)
-                        table.insert(rainbowLabels, btn)
-                        btnRecords[plr] = {btn = btn, stroke = st}
-                        -- Click handler
-                        btn.MouseButton1Click:Connect(function()
-                            selectedPlayer = plr
-                            selectedBtn = btn
-                            Rayfield:Notify({Title = "Seçildi", Content = plr.Name, Duration = 3})
-                            reapplyThemeForList()
-                            setupCharAddedForSelected()
-                            goToSelectedIfActive()
-                        end)
-                    end
-                end
-                reapplyThemeForList()
-            end
-        end
     end)
 end
-refreshPlayers()
-Services.Players.PlayerAdded:Connect(refreshPlayers)
-Services.Players.PlayerRemoving:Connect(refreshPlayers)
--- LocalPlayer respawn
-Services.LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(respawnWaitTime)
-    if camActive and selectedPlayer then
-        goToSelectedIfActive()
-    else
-        lockCameraToPlayer(false)
-    end
-end)
--- Rainbow akışı (RenderStepped)
-Services.RunService.RenderStepped:Connect(function()
-    local t = tick() * 0.35
-    for i, lbl in ipairs(rainbowLabels) do
-        if lbl and lbl.Parent then
-            lbl.TextColor3 = Color3.fromHSV((t + i * 0.08) % 1, 1, 1)
-        end
-    end
-end)
--- Camera Toggle (entegre)
 CameraTab:CreateToggle({
-    Name = "🎥 Camera View",
+    Name = "🎥 Camera View",  -- FIXED: Now works with respawn, smooth Scriptable follow
     CurrentValue = false,
     Flag = "CamViewFlag",
     Callback = function(val)
         camActive = val
-        lockCameraToPlayer(val)
-        setupCharAddedForSelected()
-        if val then
-            if selectedPlayer and selectedPlayer.Character then
-                Rayfield:Notify({Title = "Camera Kilitlendi", Content = selectedPlayer.Name, Duration = 3})
-            else
-                Rayfield:Notify({Title = "Uyarı", Content = "Player seçilmedi, listeden seç.", Duration = 3})
-            end
+        lockCameraToPlayer(selectedPlayer, val)
+        if val and selectedPlayer then
+            Rayfield:Notify({Title = "Camera Locked", Content = selectedPlayer.Name, Duration = 3})
         else
-            Rayfield:Notify({Title = "Reset", Content = "Camera eski haline döndü.", Duration = 3})
+            Rayfield:Notify({Title = "Camera Reset", Content = "Back to self", Duration = 3})
         end
     end
 })
--- Teleport Button (entegre, retry loop)
+-- Respawn handling for selectedPlayer (ölünce/dirilince auto relock) - Loop handles, but extra safety
+Services.Players.PlayerAdded:Connect(function(plr)
+    if plr == selectedPlayer and camActive then
+        task.wait(1)  -- FIXED: Shorter wait, loop picks up
+        lockCameraToPlayer(selectedPlayer, true)
+    end
+end)
+-- LocalPlayer respawn handling (sen dirilince relock)
+Services.LocalPlayer.CharacterAdded:Connect(function()
+    if camActive and selectedPlayer then
+        task.wait(1)  -- FIXED: Shorter wait
+        lockCameraToPlayer(selectedPlayer, true)
+    end
+end)
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected",
+    Name = "⚡ Teleport to Selected",  -- FIXED: Retry loop for stability, longer waits
     Callback = function()
         if not selectedPlayer then
-            Rayfield:Notify({Title = "Hata", Content = "No player selected", Duration = 3})
+            Rayfield:Notify({Title = "Error", Content = "No player selected", Duration = 3})
             return
         end
-        task.spawn(function()
+        task.spawn(function()  -- FIXED: Spawn for retry
             local maxRetries = 10
             local retries = 0
             while retries < maxRetries do
@@ -1069,27 +1028,127 @@ CameraTab:CreateButton({
                     local myChar = Services.LocalPlayer.Character
                     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
                         local myHRP = myChar.HumanoidRootPart
-                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)  -- FIXED: CFrame direct
                         Rayfield:Notify({Title = "Teleported", Content = selectedPlayer.Name, Duration = 3})
                         break
                     end
                 end
                 retries = retries + 1
-                task.wait(1)
+                task.wait(1)  -- FIXED: 1s wait for stability (dead/respawn)
             end
             if retries >= maxRetries then
-                Rayfield:Notify({Title = "Hata", Content = "Retry failed, try again", Duration = 3})
+                Rayfield:Notify({Title = "Error", Content = "Retry failed, try again", Duration = 3})
             end
         end)
     end
 })
-CameraTab:CreateButton({
-    Name = "Refresh Players",
-    Callback = function()
-        refreshPlayers()
-        Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
+-- YENİ EMOTES TAB: Emotes logic entegre (standalone GUI olmadan, Rayfield buttons ile)
+local EmotesSection = EmotesTab:CreateSection("Loop Danslar 🔥💃")
+-- Loop Mode Toggle
+EmotesTab:CreateToggle({
+    Name = "🔄 Sonsuz Loop Modu",
+    CurrentValue = false,
+    Flag = "EmotesLoopFlag",
+    Callback = function(val)
+        getgenv().EmotesLoopMode = val
+        Rayfield:Notify({Title = "Loop Modu", Content = val and "AÇIK - Danslar sonsuz dönecek!" or "KAPALI - Tek seferlik", Duration = 3})
     end
 })
+-- Stop All Button
+EmotesTab:CreateButton({
+    Name = "⛔ STOP TÜM DANS!",
+    Callback = function()
+        pcall(function()
+            local char = Services.LocalPlayer.Character
+            if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+                    track:Stop(0.1)
+                end
+            end
+            local animate = char:FindFirstChild("Animate")
+            if animate then animate.Disabled = false end
+            getgenv().CurrentEmoteTrack = nil
+            Rayfield:Notify({Title = "Durduruldu", Content = "Tüm danslar durduruldu!", Duration = 3})
+        end)
+    end
+})
+-- Play Emote Function (Entegre)
+local function PlayEmote(animId, emoteName)
+    pcall(function()
+        local char = Services.LocalPlayer.Character
+        if not char or not char.Parent then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if not hum then return end
+        
+        -- Tüm animleri DURDUR
+        for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+            track:Stop(0.1)
+        end
+        
+        -- Animate DISABLE (Dans ezer!)
+        local animate = char:FindFirstChild("Animate")
+        if animate then animate.Disabled = true end
+        
+        local anim = Instance.new("Animation")
+        anim.AnimationId = animId
+        local track = hum:LoadAnimation(anim)
+        track.Priority = Enum.AnimationPriority.Action4
+        track.Looped = getgenv().EmotesLoopMode  -- Loop moduna göre sonsuz!
+        track:Play(0.1, 1, 1)
+        getgenv().CurrentEmoteTrack = track
+        
+        Rayfield:Notify({Title = "Dans Başladı", Content = emoteName .. " oynuyor! (Loop: " .. tostring(getgenv().EmotesLoopMode) .. ")", Duration = 3})
+    end)
+end
+-- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
+local emoteSections = {
+    {title = "Popüler Danslar", emotes = {{name = "GanGam Style", id = "rbxassetid://14618196485"}, {name = "Twice", id = "rbxassetid://14899980745"}, {name = "Anime", id = "rbxassetid://114774556469581"}}},
+    {title = "Havalı Pozlar", emotes = {{name = "Aşkını İtiraf Et", id = "rbxassetid://108873777157620"}, {name = "Billy Zıplaması", id = "rbxassetid://115607052226647"}, {name = "Boksör", id = "rbxassetid://80933111363555"}}},
+    {title = "DJ & Parti", emotes = {{name = "DJ Bekleme Pozu", id = "rbxassetid://114486154887764"}, {name = "Dougle Dansı", id = "rbxassetid://87574738912971"}, {name = "Elektro Dansı", id = "rbxassetid://138785676658772"}}},
+    {title = "Kalça & Zıplama", emotes = {{name = "Eller Yukarı", id = "rbxassetid://135395608251521"}, {name = "Garry Dansı", id = "rbxassetid://124896171012585"}, {name = "Gürültücü", id = "rbxassetid://136095999219650"}}},
+    {title = "Havalı & Horeg", emotes = {{name = "Havalı Tokat", id = "rbxassetid://118552217459650"}, {name = "Horeg Dansı", id = "rbxassetid://110204898807330"}, {name = "Jackpot Dansı", id = "rbxassetid://126041249033925"}}},
+    {title = "Kadın & Kafa", emotes = {{name = "Kadın Dansı", id = "rbxassetid://76240950459288"}, {name = "Kafa Sallama", id = "rbxassetid://15517864808"}, {name = "Kalça Dansı", id = "rbxassetid://138671912289772"}}},
+    {title = "Kedi & Koşma", emotes = {{name = "Kalça Döndürme", id = "rbxassetid://88593312682192"}, {name = "Kalça Zıplaması", id = "rbxassetid://103606174140721"}, {name = "Kedi Dansı", id = "rbxassetid://122639636262924"}}},
+    {title = "Kıvırma & Michael", emotes = {{name = "Kendine Çekme", id = "rbxassetid://115605836623904"}, {name = "Koşma Dansı", id = "rbxassetid://96147994216119"}, {name = "Kıvırma", id = "rbxassetid://133551169796944"}}},
+    {title = "Mutlu & NYC", emotes = {{name = "Michael Myers Dansı", id = "rbxassetid://130628312209858"}, {name = "Mutlu", id = "rbxassetid://4841405708"}, {name = "NYC Dansı", id = "rbxassetid://140333103929828"}}},
+    {title = "Oryantal & Otur", emotes = {{name = "Nika Dansı", id = "rbxassetid://132930994178862"}, {name = "Oryantal", id = "rbxassetid://136494657202841"}, {name = "Otur", id = "rbxassetid://93120341268524"}}},
+    {title = "Parti & Popüler", emotes = {{name = "Parti", id = "rbxassetid://113052435813981"}, {name = "Popüler", id = "rbxassetid://93062298566806"}, {name = "Rick Roll", id = "rbxassetid://133608432421494"}}},
+    {title = "Sağlam & Umursamaz", emotes = {{name = "Sağlam Dans", id = "rbxassetid://99558490932154"}, {name = "Umursamaz", id = "rbxassetid://97086109091396"}, {name = "Uykucu", id = "rbxassetid://10714360343"}}},
+    {title = "Yat & Zafer", emotes = {{name = "Yat", id = "rbxassetid://92747295139963"}, {name = "Zafer Dansı", id = "rbxassetid://15505456446"}, {name = "Zıplama", id = "rbxassetid://15609995579"}}},
+    {title = "İmza & Şapşal", emotes = {{name = "İmza Dansı", id = "rbxassetid://112931882473990"}, {name = "Şapşal Dans", id = "rbxassetid://85062238386196"}}}
+}
+for _, section in ipairs(emoteSections) do
+    local sec = EmotesTab:CreateSection(section.title)
+    for _, emote in ipairs(section.emotes) do
+        EmotesTab:CreateButton({
+            Name = emote.name .. " 💃",
+            Callback = function()
+                PlayEmote(emote.id, emote.name)
+            end
+        })
+    end
+end
+-- Respawn Güvenlik (Emotes için)
+Services.LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    -- Stop all emotes on respawn
+    pcall(function()
+        local char = Services.LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                for _, track in pairs(hum:GetPlayingAnimationTracks()) do
+                    track:Stop(0.1)
+                end
+            end
+            local animate = char:FindFirstChild("Animate")
+            if animate then animate.Disabled = false end
+        end
+        getgenv().CurrentEmoteTrack = nil
+    end)
+end)
 -- Settings Tab - System Section (Rejoin atlandı)
 local SystemSection = SettingsTab:CreateSection("System")
 SettingsTab:CreateParagraph({Title = "System", Content = "Rejoin atlandı efendim, istediğinde söyle ekleyeyim."})
@@ -1103,7 +1162,6 @@ MenuServerTab:CreateColorPicker({
         getgenv().ThemeColor = Color
         CrownPanel.BackgroundColor3 = Color
         cps.Color = Color
-        reapplyThemeForList()  -- ENTEGRE: List theme update
     end
 })
 -- Rejoin Button (Theme section altında)
@@ -1124,7 +1182,7 @@ MenuServerTab:CreateButton({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a - CAMERA RESPAWN FIXED + CUSTOM RAINBOW LIST ENTEGRASYON",
+    Content = "v1.3.0a - CAMERA RESPAWN FIXED + NO DUPLICATE + EMOTES TAB",
     Duration = 12,
     Image = 4483362458
 })
@@ -1162,4 +1220,4 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
         end
     end
 end)
-print("CENESENSE | REINJECT OPTIMIZED + CAMERA CUSTOM ENTEGRASYON FIX")
+print("CENESENSE | REINJECT OPTIMIZED + CAMERA RESPAWN FIX + EMOTES INTEGRASYON")
