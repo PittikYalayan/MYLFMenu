@@ -147,7 +147,7 @@ if not success then
                         myRoot.CFrame = nearest.Character.HumanoidRootPart.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, -(features._tpZ or 25))
                     end
                 end
-                task.wait(0.05)  -- 0MS smooth, low throttle
+                task.wait(0.05) -- 0MS smooth, low throttle
             end
         end)()
     end
@@ -162,7 +162,7 @@ if not success then
                         myRoot.CFrame = nearest.Character.HumanoidRootPart.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)
                     end
                 end
-                task.wait(0.1)  -- 0MS smooth, low throttle
+                task.wait(0.1) -- 0MS smooth, low throttle
             end
         end)()
     end
@@ -303,7 +303,7 @@ Services.RunService.RenderStepped:Connect(function(dt)
     gradTime = gradTime + dt
     if gradTime >= 0.033 then
         gradTime = 0
-        local t = os.clock() * 0.33  -- Smooth hız
+        local t = os.clock() * 0.33 -- Smooth hız
         grad.Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0.00, Color3.fromHSV(t % 1, 1, 1)),
             ColorSequenceKeypoint.new(0.50, Color3.fromHSV((t + 0.33) % 1, 1, 1)),
@@ -330,7 +330,7 @@ local VisualTab = Window:CreateTab("ESP", 4483362458)
 local MovementTab = Window:CreateTab("Movement", 4483362458)
 local TeleportTab = Window:CreateTab("Teleport", 4483362458)
 local CameraTab = Window:CreateTab("Camera View", 4483362458)
-local EmotesTab = Window:CreateTab("Emotes", 4483362458)  -- YENİ EMOTES TAB
+local EmotesTab = Window:CreateTab("Emotes", 4483362458) -- YENİ EMOTES TAB
 local SettingsTab = Window:CreateTab("Info", 4483362458)
 local MenuServerTab = Window:CreateTab("Settings", 4483362458)
 -- Global Variables (Aimbot/ESP korundu, features external ile uyumlu)
@@ -407,10 +407,10 @@ local VisibilityCache = {}
 local frameCounter = 0
 local function isVisible(targetPart)
     frameCounter = frameCounter + 1
-    local key = tostring(targetPart.Parent) .. (tick() // 0.5)  -- Cache 0.5s
+    local key = tostring(targetPart.Parent) .. (tick() // 0.5) -- Cache 0.5s
     if VisibilityCache[key] ~= nil then return VisibilityCache[key] end
-    if frameCounter % 2 ~= 0 then  -- Every 2 frames raycast (optimized 0MS)
-        VisibilityCache[key] = true  -- Assume visible
+    if frameCounter % 2 ~= 0 then -- Every 2 frames raycast (optimized 0MS)
+        VisibilityCache[key] = true -- Assume visible
         return true
     end
     local rayParams = RaycastParams.new()
@@ -428,7 +428,7 @@ local lastNearest = nil
 local lastNearestTime = 0
 local function getNearest()
     local now = tick()
-    if now - lastNearestTime < 0.033 and lastNearest then return lastNearest end  -- Optimized cache
+    if now - lastNearestTime < 0.033 and lastNearest then return lastNearest end -- Optimized cache
     local nearest = nil
     local shortest = getgenv().AimbotFOV
     local mousePos = Services.UserInputService:GetMouseLocation()
@@ -543,7 +543,7 @@ end
 -- New Players
 Services.Players.PlayerAdded:Connect(function(plr)
     if plr ~= Services.LocalPlayer then
-        task.wait(0.5)  -- Slightly faster
+        task.wait(0.5) -- Slightly faster
         createESP(plr)
     end
 end)
@@ -647,7 +647,7 @@ Services.RunService.RenderStepped:Connect(function()
                     Highlights[plr]:Destroy()
                     Highlights[plr] = nil
                 end
-                if tick() - sc.time > 1 then screenCache[plr] = nil end  -- Clean faster
+                if tick() - sc.time > 1 then screenCache[plr] = nil end -- Clean faster
             end
         end
     end
@@ -924,8 +924,8 @@ TeleportTab:CreateSlider({
 local CameraSection = CameraTab:CreateSection("Camera View")
 local selectedPlayer = nil
 local camActive = false
-local playerDropdown = nil  -- FIXED: Global dropdown ref for destroy
-local lastRefreshTime = 0  -- FIXED: Debounce for refresh
+local playerDropdown = nil -- FIXED: Global dropdown ref for destroy
+local lastRefreshTime = 0 -- FIXED: Debounce for refresh
 local function getPlayerOptions()
     local opts = {}
     for _, plr in ipairs(Services.Players:GetPlayers()) do
@@ -936,11 +936,11 @@ local function getPlayerOptions()
     return opts
 end
 local function createPlayerDropdown()
-    if playerDropdown then playerDropdown:Destroy() end  -- FIXED: Eski dropdown'ı yok et, duplicate yok
+    if playerDropdown then playerDropdown:Destroy() end -- FIXED: Eski dropdown'ı yok et, duplicate yok
     local opts = getPlayerOptions()
     playerDropdown = CameraTab:CreateDropdown({
         Name = "Select Player",
-        Options = opts,  -- FIXED: Initial populate
+        Options = opts, -- FIXED: Initial populate
         CurrentOption = "None",
         Flag = "PlayerSelectFlag",
         Callback = function(val)
@@ -949,43 +949,43 @@ local function createPlayerDropdown()
         end
     })
 end
-createPlayerDropdown()  -- Initial create
+createPlayerDropdown() -- Initial create
 CameraTab:CreateButton({
-    Name = "Refresh Players",  -- FIXED: Now recreates without duplicate/spam
+    Name = "Refresh Players", -- FIXED: Now recreates without duplicate/spam
     Callback = function()
         local now = tick()
-        if now - lastRefreshTime < 1 then  -- FIXED: 1s cooldown to prevent spam
+        if now - lastRefreshTime < 1 then -- FIXED: 1s cooldown to prevent spam
             Rayfield:Notify({Title = "Cooldown", Content = "Bekle 1s", Duration = 2})
             return
         end
         lastRefreshTime = now
-        createPlayerDropdown()  -- FIXED: Direkt recreate, destroy handles cleanup
+        createPlayerDropdown() -- FIXED: Direkt recreate, destroy handles cleanup
         Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
     end
 })
 -- FIXED: Respawn handling for camera lock (Scriptable mod for smooth follow)
 local cameraLockConn = nil
 local function lockCameraToPlayer(targetPlr, active)
-    if cameraLockConn then cameraLockConn:Disconnect() cameraLockConn = nil end  -- FIXED: Always disconnect old
+    if cameraLockConn then cameraLockConn:Disconnect() cameraLockConn = nil end -- FIXED: Always disconnect old
     if not active or not targetPlr then
-        Services.Camera.CameraType = Enum.CameraType.Custom  -- FIXED: Reset to normal
+        Services.Camera.CameraType = Enum.CameraType.Custom -- FIXED: Reset to normal
         local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if myHum then Services.Camera.CameraSubject = myHum end
         return
     end
-    Services.Camera.CameraType = Enum.CameraType.Scriptable  -- FIXED: Scriptable for custom behind follow
-    cameraLockConn = Services.RunService.Heartbeat:Connect(function()  -- FIXED: Loop only for CFrame, no subject conflict
-        pcall(function()  -- FIXED: pcall for safe
+    Services.Camera.CameraType = Enum.CameraType.Scriptable -- FIXED: Scriptable for custom behind follow
+    cameraLockConn = Services.RunService.Heartbeat:Connect(function() -- FIXED: Loop only for CFrame, no subject conflict
+        pcall(function() -- FIXED: pcall for safe
             if targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = targetPlr.Character.HumanoidRootPart
-                local cf = CFrame.new(hrp.Position + Vector3.new(0, 5, -10), hrp.Position)  -- Behind view
+                local cf = CFrame.new(hrp.Position + Vector3.new(0, 5, -10), hrp.Position) -- Behind view
                 Services.Camera.CFrame = cf
             end
         end)
     end)
 end
 CameraTab:CreateToggle({
-    Name = "🎥 Camera View",  -- FIXED: Now works with respawn, smooth Scriptable follow
+    Name = "🎥 Camera View", -- FIXED: Now works with respawn, smooth Scriptable follow
     CurrentValue = false,
     Flag = "CamViewFlag",
     Callback = function(val)
@@ -1001,25 +1001,25 @@ CameraTab:CreateToggle({
 -- Respawn handling for selectedPlayer (ölünce/dirilince auto relock) - Loop handles, but extra safety
 Services.Players.PlayerAdded:Connect(function(plr)
     if plr == selectedPlayer and camActive then
-        task.wait(1)  -- FIXED: Shorter wait, loop picks up
+        task.wait(1) -- FIXED: Shorter wait, loop picks up
         lockCameraToPlayer(selectedPlayer, true)
     end
 end)
 -- LocalPlayer respawn handling (sen dirilince relock)
 Services.LocalPlayer.CharacterAdded:Connect(function()
     if camActive and selectedPlayer then
-        task.wait(1)  -- FIXED: Shorter wait
+        task.wait(1) -- FIXED: Shorter wait
         lockCameraToPlayer(selectedPlayer, true)
     end
 end)
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected",  -- FIXED: Retry loop for stability, longer waits
+    Name = "⚡ Teleport to Selected", -- FIXED: Retry loop for stability, longer waits
     Callback = function()
         if not selectedPlayer then
             Rayfield:Notify({Title = "Error", Content = "No player selected", Duration = 3})
             return
         end
-        task.spawn(function()  -- FIXED: Spawn for retry
+        task.spawn(function() -- FIXED: Spawn for retry
             local maxRetries = 10
             local retries = 0
             while retries < maxRetries do
@@ -1028,13 +1028,13 @@ CameraTab:CreateButton({
                     local myChar = Services.LocalPlayer.Character
                     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
                         local myHRP = myChar.HumanoidRootPart
-                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)  -- FIXED: CFrame direct
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25) -- FIXED: CFrame direct
                         Rayfield:Notify({Title = "Teleported", Content = selectedPlayer.Name, Duration = 3})
                         break
                     end
                 end
                 retries = retries + 1
-                task.wait(1)  -- FIXED: 1s wait for stability (dead/respawn)
+                task.wait(1) -- FIXED: 1s wait for stability (dead/respawn)
             end
             if retries >= maxRetries then
                 Rayfield:Notify({Title = "Error", Content = "Retry failed, try again", Duration = 3})
@@ -1081,24 +1081,24 @@ local function PlayEmote(animId, emoteName)
         if not char or not char.Parent then return end
         local hum = char:FindFirstChildOfClass("Humanoid")
         if not hum then return end
-        
+       
         -- Tüm animleri DURDUR
         for _, track in pairs(hum:GetPlayingAnimationTracks()) do
             track:Stop(0.1)
         end
-        
+       
         -- Animate DISABLE (Dans ezer!)
         local animate = char:FindFirstChild("Animate")
         if animate then animate.Disabled = true end
-        
+       
         local anim = Instance.new("Animation")
         anim.AnimationId = animId
         local track = hum:LoadAnimation(anim)
         track.Priority = Enum.AnimationPriority.Action4
-        track.Looped = getgenv().EmotesLoopMode  -- Loop moduna göre sonsuz!
+        track.Looped = getgenv().EmotesLoopMode -- Loop moduna göre sonsuz!
         track:Play(0.1, 1, 1)
         getgenv().CurrentEmoteTrack = track
-        
+       
         Rayfield:Notify({Title = "Dans Başladı", Content = emoteName .. " oynuyor! (Loop: " .. tostring(getgenv().EmotesLoopMode) .. ")", Duration = 3})
     end)
 end
@@ -1190,21 +1190,6 @@ Rayfield:Notify({
 -- AUTO RE-INJECT SİSTEMİ (INFINITE YIELD GİBİ)
 -- ════════════════════════════════════════════════ --
 local queue_on_teleport = (queue_on_teleport or syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport) or (queueonteleport)
-if queue_on_teleport then
-    spawn(function()
-        while wait(1) do
-            queue_on_teleport([[
-                if getgenv().CENESENSE_LOADED then
-                    print("CENESENSE zaten yüklü, tekrar yüklenmedi.")
-                    return
-                end
-                loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEPREMIUM.lua"))()
-                getgenv().CENESENSE_LOADED = true
-            ]])
-        end
-    end)
-end
 game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
     if State == Enum.TeleportState.Started then
         if queue_on_teleport then
