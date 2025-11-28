@@ -1,6 +1,6 @@
--- ══════════════════════════════════════════════ --
+-- ═══════════════════════════════════════════════ --
 -- memesense31.lua - MYLF MENU ESP FULL DETECT + REMNANTS FIX | Efendim için özel, Tüm Oyuncular + No Ghost <3
--- ══════════════════════════════════════════════ --
+-- ═══════════════════════════════════════════════ --
 -- Zaten yüklendiyse tekrar yükleme (anti-duplicate)
 if getgenv().CENESENSE_LOADED then
     print("CENESENSE zaten yüklü, tekrar yüklenmedi.")
@@ -872,125 +872,195 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
--- Camera View Tab: FIXED - Dynamic player list with recreate on refresh, no duplicate, respawn handling
+-- Camera View Tab: ENTEGRE - Custom rainbow list + respawn fix, Rayfield uyumlu
 local CameraSection = CameraTab:CreateSection("Camera View")
 local selectedPlayer = nil
 local camActive = false
-local playerDropdownFlag = false  -- FIXED: Duplicate önleme flag
-local lastRefreshTime = 0  -- FIXED: Debounce for refresh
-local function getPlayerOptions()
-    local opts = {}
-    for _, plr in ipairs(Services.Players:GetPlayers()) do
-        if plr ~= Services.LocalPlayer then
-            table.insert(opts, plr.Name)
-        end
-    end
-    return opts
+local rainbowLabels = {}
+local btnRecords = {} -- { [plr]= {btn=..., stroke=...} }
+local selectedBtn = nil
+local cameraUpdateConn = nil  -- Continuous update connection
+local charAddedConn = nil  -- Dynamic respawn connection for selected
+local respawnWaitTime = 2  -- Wait time after respawn for full load
+-- Custom ScrollingFrame for player list (Rayfield tab'ine parent, anti-break pcall)
+pcall(function()
+    local playerListFrame = Instance.new("Frame")
+    playerListFrame.Name = "CustomPlayerList"
+    playerListFrame.Size = UDim2.new(1, 0, 0, 200)  -- Fixed height for Rayfield integration
+    playerListFrame.BackgroundTransparency = 1
+    playerListFrame.Parent = CameraTab  -- Rayfield tab container'a parent (uyumlu)
+    local playerList = Instance.new("ScrollingFrame")
+    playerList.Size = UDim2.new(1, 0, 1, 0)
+    playerList.BackgroundTransparency = 1
+    playerList.BorderSizePixel = 0
+    playerList.ScrollBarThickness = 6
+    playerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    playerList.Parent = playerListFrame
+    local listLayout = Instance.new("UIListLayout", playerList)
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+end)
+-- Helper functions (theme uyumlu, getgenv().ThemeColor ile simüle)
+local function paintBtn(btn, stroke, isSelected)
+    if not btn or not btn.Parent then return end
+    local th = {AccentSoft = getgenv().ThemeColor, Hover = Color3.fromRGB(50, 50, 50), Stroke = getgenv().ThemeColor}
+    btn.BackgroundColor3 = isSelected and th.AccentSoft or th.Hover
+    if stroke then stroke.Color = th.Stroke end
 end
-local function createPlayerDropdown()
-    if playerDropdownFlag then return end  -- FIXED: Duplicate yok
-    playerDropdownFlag = true
-    local opts = getPlayerOptions()
-    local dropdown = CameraTab:CreateDropdown({
-        Name = "Select Player",
-        Options = opts,  -- FIXED: Initial populate
-        CurrentOption = "None",
-        Flag = "PlayerSelectFlag",
-        Callback = function(val)
-            selectedPlayer = Services.Players:FindFirstChild(val)
-            if selectedPlayer then Rayfield:Notify({Title = "Selected", Content = val, Duration = 3}) end
-        end
-    })
-end
-createPlayerDropdown()  -- Initial create
-CameraTab:CreateButton({
-    Name = "Refresh Players",  -- FIXED: Now recreates without duplicate/spam
-    Callback = function()
-        local now = tick()
-        if now - lastRefreshTime < 1 then  -- FIXED: 1s cooldown to prevent spam
-            Rayfield:Notify({Title = "Cooldown", Content = "Bekle 1s", Duration = 2})
-            return
-        end
-        lastRefreshTime = now
-        playerDropdownFlag = false  -- Reset flag
-        task.spawn(function()  -- FIXED: Spawn for safe UI clean
-            pcall(function()  -- FIXED: pcall for safe destroy
-                -- Simulate destroy by recreating after delay
-                task.wait(0.2)  -- Extended delay for UI
-            end)
-            createPlayerDropdown()
-        end)
-        Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
+local function reapplyThemeForList()
+    for _, rec in pairs(btnRecords) do
+        paintBtn(rec.btn, rec.stroke, rec.btn == selectedBtn)
     end
-})
--- FIXED: Respawn handling for camera lock
-local cameraLockConn = nil
-local function lockCameraToPlayer(targetPlr, active)
-    if cameraLockConn then cameraLockConn:Disconnect() end  -- FIXED: Always disconnect old
-    if not active or not targetPlr then
+end
+-- Continuous camera lock (Scriptable + Heartbeat, respawn safe)
+local function lockCameraToPlayer(active)
+    if cameraUpdateConn then
+        cameraUpdateConn:Disconnect()
+        cameraUpdateConn = nil
+    end
+    if not active or not selectedPlayer then
+        Services.Camera.CameraType = Enum.CameraType.Custom
         local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if myHum then Services.Camera.CameraSubject = myHum end
-        cameraLockConn = nil
         return
     end
+    Services.Camera.CameraType = Enum.CameraType.Scriptable
     local function updateLock()
-        pcall(function()  -- FIXED: pcall for safe
-            if targetPlr.Character then
-                local hum = targetPlr.Character:FindFirstChildOfClass("Humanoid")
-                local hrp = targetPlr.Character:FindFirstChild("HumanoidRootPart")
-                if hum and hrp then
-                    Services.Camera.CameraSubject = hum
-                    Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
-                end
+        pcall(function()
+            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local hrp = selectedPlayer.Character.HumanoidRootPart
+                local cf = CFrame.new(hrp.Position + Vector3.new(0, 5, -10), hrp.Position)
+                Services.Camera.CFrame = cf
             end
         end)
     end
-    task.spawn(function()  -- FIXED: Spawn for initial wait
-        task.wait(2)  -- FIXED: 2s wait for full spawn
-        updateLock()  -- Initial lock
-    end)
-    cameraLockConn = Services.RunService.Heartbeat:Connect(updateLock)  -- Continuous smooth lock
+    cameraUpdateConn = Services.RunService.Heartbeat:Connect(updateLock)
 end
+local function goToSelectedIfActive()
+    if not camActive then return end
+    lockCameraToPlayer(true)
+end
+-- Respawn handler
+local function onPlayerRespawn(plr)
+    if plr == selectedPlayer and camActive then
+        task.spawn(function()
+            task.wait(respawnWaitTime)
+            goToSelectedIfActive()
+        end)
+    end
+end
+-- Dynamic setup for selected
+local function setupCharAddedForSelected()
+    if charAddedConn then charAddedConn:Disconnect() end
+    if selectedPlayer then
+        charAddedConn = selectedPlayer.CharacterAdded:Connect(function()
+            onPlayerRespawn(selectedPlayer)
+        end)
+    end
+end
+local function refreshPlayers()
+    -- Temizle (Rayfield uyumlu, pcall safe)
+    pcall(function()
+        local playerListFrame = CameraTab:FindFirstChild("CustomPlayerList")
+        if playerListFrame then
+            local playerList = playerListFrame:FindFirstChildOfClass("ScrollingFrame")
+            if playerList then
+                for _, child in ipairs(playerList:GetChildren()) do
+                    if child:IsA("TextButton") then child:Destroy() end
+                end
+            end
+        end
+    end)
+    rainbowLabels = {}
+    btnRecords = {}
+    selectedBtn = nil
+    -- Yeniden doldur
+    pcall(function()
+        local playerListFrame = CameraTab:FindFirstChild("CustomPlayerList")
+        if playerListFrame then
+            local playerList = playerListFrame:FindFirstChildOfClass("ScrollingFrame")
+            if playerList then
+                for _, plr in ipairs(Services.Players:GetPlayers()) do
+                    if plr ~= Services.LocalPlayer then
+                        local btn = Instance.new("TextButton")
+                        btn.Size = UDim2.new(1, 0, 0, 24)
+                        btn.Text = "👤 " .. plr.Name
+                        btn.Font = Enum.Font.GothamSemibold
+                        btn.TextSize = 12
+                        btn.AutoButtonColor = false
+                        btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                        btn.Parent = playerList
+                        makeCorner(btn, 6)
+                        local st = makeStroke(btn, 1, 0.1)
+                        table.insert(rainbowLabels, btn)
+                        btnRecords[plr] = {btn = btn, stroke = st}
+                        -- Click handler
+                        btn.MouseButton1Click:Connect(function()
+                            selectedPlayer = plr
+                            selectedBtn = btn
+                            Rayfield:Notify({Title = "Seçildi", Content = plr.Name, Duration = 3})
+                            reapplyThemeForList()
+                            setupCharAddedForSelected()
+                            goToSelectedIfActive()
+                        end)
+                    end
+                end
+                reapplyThemeForList()
+            end
+        end
+    end)
+end
+refreshPlayers()
+Services.Players.PlayerAdded:Connect(refreshPlayers)
+Services.Players.PlayerRemoving:Connect(refreshPlayers)
+-- LocalPlayer respawn
+Services.LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(respawnWaitTime)
+    if camActive and selectedPlayer then
+        goToSelectedIfActive()
+    else
+        lockCameraToPlayer(false)
+    end
+end)
+-- Rainbow akışı (RenderStepped)
+Services.RunService.RenderStepped:Connect(function()
+    local t = tick() * 0.35
+    for i, lbl in ipairs(rainbowLabels) do
+        if lbl and lbl.Parent then
+            lbl.TextColor3 = Color3.fromHSV((t + i * 0.08) % 1, 1, 1)
+        end
+    end
+end)
+-- Camera Toggle (entegre)
 CameraTab:CreateToggle({
-    Name = "🎥 Camera View",  -- FIXED: Now works with respawn
+    Name = "🎥 Camera View",
     CurrentValue = false,
     Flag = "CamViewFlag",
     Callback = function(val)
         camActive = val
-        lockCameraToPlayer(selectedPlayer, val)
-        if val and selectedPlayer then
-            Rayfield:Notify({Title = "Camera Locked", Content = selectedPlayer.Name, Duration = 3})
+        lockCameraToPlayer(val)
+        setupCharAddedForSelected()
+        if val then
+            if selectedPlayer and selectedPlayer.Character then
+                Rayfield:Notify({Title = "Camera Kilitlendi", Content = selectedPlayer.Name, Duration = 3})
+            else
+                Rayfield:Notify({Title = "Uyarı", Content = "Player seçilmedi, listeden seç.", Duration = 3})
+            end
         else
-            Rayfield:Notify({Title = "Camera Reset", Content = "Back to self", Duration = 3})
+            Rayfield:Notify({Title = "Reset", Content = "Camera eski haline döndü.", Duration = 3})
         end
     end
 })
--- Respawn handling for selectedPlayer (ölünce/dirilince auto relock)
-Services.Players.PlayerAdded:Connect(function(plr)
-    if plr == selectedPlayer and camActive then
-        task.spawn(function()
-            task.wait(2)  -- FIXED: 2s wait for full spawn
-            lockCameraToPlayer(selectedPlayer, true)
-        end)
-    end
-end)
--- LocalPlayer respawn handling (sen dirilince relock)
-Services.LocalPlayer.CharacterAdded:Connect(function()
-    if camActive and selectedPlayer then
-        task.spawn(function()
-            task.wait(2)  -- FIXED: 2s wait
-            lockCameraToPlayer(selectedPlayer, true)
-        end)
-    end
-end)
+-- Teleport Button (entegre, retry loop)
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected",  -- FIXED: Retry loop for stability
+    Name = "⚡ Teleport to Selected",
     Callback = function()
         if not selectedPlayer then
-            Rayfield:Notify({Title = "Error", Content = "No player selected", Duration = 3})
+            Rayfield:Notify({Title = "Hata", Content = "No player selected", Duration = 3})
             return
         end
-        task.spawn(function()  -- FIXED: Spawn for retry
+        task.spawn(function()
             local maxRetries = 10
             local retries = 0
             while retries < maxRetries do
@@ -999,18 +1069,25 @@ CameraTab:CreateButton({
                     local myChar = Services.LocalPlayer.Character
                     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
                         local myHRP = myChar.HumanoidRootPart
-                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)  -- FIXED: CFrame direct
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)
                         Rayfield:Notify({Title = "Teleported", Content = selectedPlayer.Name, Duration = 3})
                         break
                     end
                 end
                 retries = retries + 1
-                task.wait(0.5)
+                task.wait(1)
             end
             if retries >= maxRetries then
-                Rayfield:Notify({Title = "Error", Content = "Retry failed, try again", Duration = 3})
+                Rayfield:Notify({Title = "Hata", Content = "Retry failed, try again", Duration = 3})
             end
         end)
+    end
+})
+CameraTab:CreateButton({
+    Name = "Refresh Players",
+    Callback = function()
+        refreshPlayers()
+        Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
     end
 })
 -- Settings Tab - System Section (Rejoin atlandı)
@@ -1026,6 +1103,7 @@ MenuServerTab:CreateColorPicker({
         getgenv().ThemeColor = Color
         CrownPanel.BackgroundColor3 = Color
         cps.Color = Color
+        reapplyThemeForList()  -- ENTEGRE: List theme update
     end
 })
 -- Rejoin Button (Theme section altında)
@@ -1046,13 +1124,13 @@ MenuServerTab:CreateButton({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a - CAMERA RESPAWN FIXED + NO DUPLICATE",
+    Content = "v1.3.0a - CAMERA RESPAWN FIXED + CUSTOM RAINBOW LIST ENTEGRASYON",
     Duration = 12,
     Image = 4483362458
 })
--- ═════════════════════════════════════════════ --
--- AUTO RE-INJECT SISTEMI (INFINITE YIELD GİBİ)
--- ═════════════════════════════════════════════ --
+-- ════════════════════════════════════════════════ --
+-- AUTO RE-INJECT SİSTEMİ (INFINITE YIELD GİBİ)
+-- ════════════════════════════════════════════════ --
 local queue_on_teleport = (queue_on_teleport or syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport) or (queueonteleport)
 if queue_on_teleport then
     spawn(function()
@@ -1084,4 +1162,4 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
         end
     end
 end)
-print("CENESENSE | REINJECT OPTIMIZED + CAMERA RESPAWN FIX")
+print("CENESENSE | REINJECT OPTIMIZED + CAMERA CUSTOM ENTEGRASYON FIX")
