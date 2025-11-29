@@ -1105,7 +1105,7 @@ local function PlayEmote(animId, emoteName)
 end
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 local emoteSections = {
-    {title = "Popüler Danslar", emotes = {{name = "GanGam Style", id = "rbxassetid://14618196485"}, {name = "Twice", id = "rbxassetid://14899980745"}, {name = "Anime", id = "rbxassetid://114774556469581"}}},{name = "?", id = "rbxassetid://115781688996859"},
+    {title = "Popüler Danslar", emotes = {{name = "GanGam Style", id = "rbxassetid://14618196485"}, {name = "?", id = "rbxassetid://115781688996859"},{name = "Twice", id = "rbxassetid://14899980745"}, {name = "Anime", id = "rbxassetid://114774556469581"}}},{name = "?", id = "rbxassetid://115781688996859"},
     {title = "Havalı Pozlar", emotes = {{name = "Aşkını İtiraf Et", id = "rbxassetid://108873777157620"}, {name = "Billy Zıplaması", id = "rbxassetid://115607052226647"}, {name = "Boksör", id = "rbxassetid://80933111363555"}}},
     {title = "DJ & Parti", emotes = {{name = "DJ Bekleme Pozu", id = "rbxassetid://114486154887764"}, {name = "Dougle Dansı", id = "rbxassetid://87574738912971"}, {name = "Elektro Dansı", id = "rbxassetid://138785676658772"}}},
     {title = "Kalça & Zıplama", emotes = {{name = "Eller Yukarı", id = "rbxassetid://135395608251521"}, {name = "Garry Dansı", id = "rbxassetid://124896171012585"}, {name = "Gürültücü", id = "rbxassetid://136095999219650"}}},
