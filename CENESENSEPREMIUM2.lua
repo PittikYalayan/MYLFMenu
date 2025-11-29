@@ -399,6 +399,7 @@ local emotes = {
     {name = "??", id = "rbxassetid://112089880074848"},
     {name = "???", id = "rbxassetid://136491428712959"}, 
     {name = "????", id = "rbxassetid://96357779735687"},
+    {name = "?keko?", id = "rbxassetid://10789324219"},
     {name = "Şapşal Dans", id = "rbxassetid://85062238386196"}
 }
 -- Team Check
@@ -1109,7 +1110,7 @@ local function PlayEmote(animId, emoteName)
 end
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 local emoteSections = {
-    {title = "Developer Section", emotes = {{name = "?", id = "rbxassetid://121966805049108"},{name = "??", id = "rbxassetid://112089880074848"},{name = "???", id = "rbxassetid://136491428712959"}, {name = "????", id = "rbxassetid://96357779735687"}}},
+    {title = "Developer Section", emotes = {{name = "?", id = "rbxassetid://121966805049108"},{name = "??", id = "rbxassetid://112089880074848"},{name = "???", id = "rbxassetid://136491428712959"}, {name = "????", id = "rbxassetid://96357779735687"},{name = "?keko?", id = "rbxassetid://10789324219"}}},
     {title = "Popüler Danslar", emotes = {{name = "GanGam Style", id = "rbxassetid://14618196485"},{name = "?", id = "rbxassetid://115781688996859"},{name = "Twice", id = "rbxassetid://14899980745"}, {name = "Anime", id = "rbxassetid://114774556469581"}}},
     {title = "Havalı Pozlar", emotes = {{name = "Aşkını İtiraf Et", id = "rbxassetid://108873777157620"}, {name = "Billy Zıplaması", id = "rbxassetid://115607052226647"}, {name = "Boksör", id = "rbxassetid://80933111363555"}}},
     {title = "DJ & Parti", emotes = {{name = "DJ Bekleme Pozu", id = "rbxassetid://114486154887764"}, {name = "Dougle Dansı", id = "rbxassetid://87574738912971"}, {name = "Elektro Dansı", id = "rbxassetid://138785676658772"}}},
