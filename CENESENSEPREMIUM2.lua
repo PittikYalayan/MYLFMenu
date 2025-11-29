@@ -355,7 +355,6 @@ getgenv().CurrentEmoteTrack = nil
 -- Emotes Listesi (Efendimin Verdiği Tam Liste!)
 local emotes = {
     {name = "GanGam Style", id = "rbxassetid://122054032133957"},
-    {name = "?", id = "rbxassetid://115781688996859"},
     {name = "Twice", id = "rbxassetid://14899980745"},
     {name = "Anime", id = "rbxassetid://114774556469581"},
     {name = "Aşkını İtiraf Et", id = "rbxassetid://108873777157620"},
