@@ -408,33 +408,48 @@ local function isEnemy(plr)
     if not plr.Team then return true end
     return table.find(getgenv().SelectedEnemyTeams, plr.Team.Name) ~= nil
 end
--- Visible Check (Cache for 0lag, No Ghost fix) - 0MS: Raycast every 2 frames
+-- Visible Check (Cache for 0lag, No Ghost fix) - 0MS: Raycast every 2 frames, per-char track
 local VisibilityCache = {}
 local frameCounter = 0
+local lastRayFrame = {}
+Services.RunService.Heartbeat:Connect(function() frameCounter = frameCounter + 1 end)
 local function isVisible(targetPart)
-    frameCounter = frameCounter + 1
-    local key = tostring(targetPart.Parent) .. (tick() // 0.5) -- Cache 0.5s
+    local char = targetPart.Parent
+    if not char then return false end
+    local posHash = math.floor(targetPart.Position.X + targetPart.Position.Y + targetPart.Position.Z) % 1000
+    local key = tostring(char) .. (tick() // 0.5) .. "_" .. posHash
     if VisibilityCache[key] ~= nil then return VisibilityCache[key] end
-    if frameCounter % 2 ~= 0 then -- Every 2 frames raycast (optimized 0MS)
-        VisibilityCache[key] = true -- Assume visible
-        return true
+    local nowFrame = frameCounter
+    local lastFrame = lastRayFrame[char] or 0
+    local framesSince = nowFrame - lastFrame
+    local doRay = (framesSince % 2 == 0) or (framesSince > 3)
+    if doRay then
+        local rayParams = RaycastParams.new()
+        rayParams.FilterDescendantsInstances = {Services.LocalPlayer.Character or Services.LocalPlayer.CharacterAdded:Wait()}
+        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+        local ray = Services.Workspace:Raycast(Services.Camera.CFrame.Position, (targetPart.Position - Services.Camera.CFrame.Position).Unit * 1000, rayParams)
+        local result = ray == nil or ray.Instance:IsDescendantOf(char)
+        VisibilityCache[key] = result
+        lastRayFrame[char] = nowFrame
+    else
+        local prevKey = tostring(char) .. ((tick() - 0.5) // 0.5) .. "_" .. posHash
+        VisibilityCache[key] = VisibilityCache[prevKey] or false
+        lastRayFrame[char] = nowFrame
     end
-    local rayParams = RaycastParams.new()
-    rayParams.FilterDescendantsInstances = {Services.LocalPlayer.Character or Services.LocalPlayer.CharacterAdded:Wait()}
-    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-    local ray = Services.Workspace:Raycast(Services.Camera.CFrame.Position, (targetPart.Position - Services.Camera.CFrame.Position).Unit * 1000, rayParams)
-    local result = ray == nil or ray.Instance:IsDescendantOf(targetPart.Parent)
-    VisibilityCache[key] = result
-    task.delay(0.5, function() VisibilityCache[key] = nil end)
+    task.delay(0.5, function() VisibilityCache[key] = nil; lastRayFrame[char] = nil end)
     if #VisibilityCache > 50 then VisibilityCache = {} end
-    return result
+    return VisibilityCache[key]
 end
--- Get Nearest (Combat reuse) - 0MS: Cache 0.033s (2 frame)
+-- Get Nearest (Combat reuse) - 0MS: Cache 0.033s (2 frame), quick validate
 local lastNearest = nil
 local lastNearestTime = 0
 local function getNearest()
     local now = tick()
-    if now - lastNearestTime < 0.033 and lastNearest then return lastNearest end -- Optimized cache
+    if now - lastNearestTime < 0.033 and lastNearest then
+        local hitPart = lastNearest.Character and (lastNearest.Character:FindFirstChild(getgenv().AimbotHitpart) or lastNearest.Character.HumanoidRootPart)
+        if hitPart and lastNearest.Character.Humanoid.Health > 0 and isVisible(hitPart) then return lastNearest end
+        lastNearest = nil
+    end
     local nearest = nil
     local shortest = getgenv().AimbotFOV
     local mousePos = Services.UserInputService:GetMouseLocation()
@@ -469,13 +484,25 @@ Services.RunService.RenderStepped:Connect(function()
     FOVCircle.Radius = getgenv().AimbotFOV
     FOVCircle.Visible = getgenv().DrawFOV
 end)
--- Aimbot - 0MS: Heartbeat every frame, optimized cache
+-- Aimbot - 0MS: Heartbeat every frame, optimized cache + re-check + smooth
+local lastAimCFrame = Services.Camera.CFrame
 Services.RunService.Heartbeat:Connect(function()
     if getgenv().AimbotEnabled then
         local target = getNearest()
-        if target and target.Character and target.Character:FindFirstChild(getgenv().AimbotHitpart) then
-            local part = target.Character[getgenv().AimbotHitpart]
-            Services.Camera.CFrame = CFrame.new(Services.Camera.CFrame.Position, part.Position)
+        if target and target.Character then
+            local part = target.Character:FindFirstChild(getgenv().AimbotHitpart)
+            if part and isVisible(part) then
+                local newCFrame = CFrame.new(Services.Camera.CFrame.Position, part.Position)
+                local smooth = getgenv().AimbotSmooth or 0
+                if smooth > 0 then
+                    Services.Camera.CFrame = Services.Camera.CFrame:Lerp(newCFrame, smooth)
+                else
+                    Services.Camera.CFrame = newCFrame
+                end
+                lastAimCFrame = Services.Camera.CFrame
+            else
+                Services.Camera.CFrame = lastAimCFrame
+            end
         end
     end
 end)
