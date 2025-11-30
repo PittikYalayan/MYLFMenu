@@ -747,6 +747,14 @@ CombatTab:CreateToggle({
     end
 })
 VisualTab:CreateToggle({
+    Name = "Rainbow Skeleton (All Player- R6&R15)",
+    CurrentValue = false,
+    Flag = "RainbowSkeletonFlag",
+    Callback = function(val)
+         if features.ToggleSkeleton then features.ToggleSkeleton(val) end
+        end
+    })
+VisualTab:CreateToggle({
     Name = "Box ESP",
     CurrentValue = false,
     Flag = "BoxESPFlag",
@@ -755,6 +763,14 @@ VisualTab:CreateToggle({
     end
 })
 VisualTab:CreateToggle({
+    Name = "3D Box (All Player)",
+    CurrentValue = false,
+    Flag = "RainbowBoxFlag",
+    Callback = function(val)
+         if features.ToggleBox then features.ToggleBox(val) end
+        end
+    })
+VisualTab:CreateToggle({
     Name = "Name ESP",
     CurrentValue = false,
     Flag = "NameESPFlag",
@@ -762,6 +778,14 @@ VisualTab:CreateToggle({
         getgenv().NameESP = val
     end
 })
+VisualTab:CreateToggle({
+    Name = "Rainbow Name (All Player)",
+    CurrentValue = false,
+    Flag = "RainbowNameFlag",
+    Callback = function(val)
+         if features.ToggleRainbowName then features.ToggleRainbowName(val) end
+        end
+    })
 VisualTab:CreateToggle({
     Name = "Health ESP",
     CurrentValue = false,
@@ -779,6 +803,14 @@ VisualTab:CreateToggle({
     end
 })
 VisualTab:CreateToggle({
+    Name = "Rainbow Tracer (All Player)",
+    CurrentValue = false,
+    Flag = "RainbowTracersFlag",
+    Callback = function(val)
+         if features.ToggleTracers then features.ToggleTracers(val) end
+        end
+    })
+VisualTab:CreateToggle({
     Name = "Chams (Smooth Color)",
     CurrentValue = false,
     Flag = "ChamsFlag",
@@ -786,22 +818,15 @@ VisualTab:CreateToggle({
         getgenv().ChamsEnabled = val
     end
 })
+
 VisualTab:CreateToggle({
-    Name = "RainbowName (All Player)",
+    Name = "Rainbow Chams (All Player)",
     CurrentValue = false,
-    Flag = "RainbowNameFlag",
+    Flag = "RainbowChamsFlag",
     Callback = function(val)
-         if features.ToggleRainbowName then features.ToggleRainbowName(val) end
+         if features.ToggleGlow then features.ToggleGlow(val) end
         end
     })
-VisualTab:CreateToggle({
-    Name = "Wall ESP (Duvar Arkası)",
-    CurrentValue = false,
-    Flag = "WallESPFlag",
-    Callback = function(val)
-        getgenv().WallESP = val
-    end
-})
 VisualTab:CreateSlider({
     Name = "ESP Mesafe",
     Range = {100, 5000},
