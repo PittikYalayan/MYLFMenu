@@ -787,6 +787,14 @@ VisualTab:CreateToggle({
     end
 })
 VisualTab:CreateToggle({
+    Name = "RainbowName (All Player)",
+    CurrentValue = false,
+    Flag = "RainbowNameFlag",
+    Callback = function(val)
+         if features.ToggleRainbowName then features.ToggleRainbowName(val) end
+        end
+    })
+VisualTab:CreateToggle({
     Name = "Wall ESP (Duvar Arkası)",
     CurrentValue = false,
     Flag = "WallESPFlag",
