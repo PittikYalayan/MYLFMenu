@@ -1019,7 +1019,7 @@ function features.ToggleAutoBehind(on)
                     -- Düşmanın baktığı yön
                     local lookVec = enemyHRP.CFrame.LookVector
                     -- Arkasına pozisyon (3 stud arkası + biraz aşağı kaydırma)
-                    local behindPos = enemyHRP.Position - lookVec * 3
+                    local behindPos = enemyHRP.Position - lookVec * 1
 
                     -- Işınlama
                     myHRP.CFrame = CFrame.new(behindPos, enemyHRP.Position)
