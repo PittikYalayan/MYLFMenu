@@ -354,41 +354,18 @@ getgenv().EmotesLoopMode = false
 getgenv().CurrentEmoteTrack = nil
 -- Emotes Listesi (Efendimin Verdiği Tam Liste!)
 local emotes = {
-    {name = "GanGam Style", id = "rbxassetid://122054032133957"},
+    {name = "?", id = "rbxassetid://121966805049108"},
+    {name = "??", id = "rbxassetid://112089880074848"},
+    {name = "???", id = "rbxassetid://136491428712959"},
+    {name = "????", id = "rbxassetid://96357779735687"},
+    {name = "?keko?", id = "rbxassetid://133841838295129"},  -- keko dans ile çakışıyor, ama eskiyi korudum; isterseniz birleştiririm
+    {name = "GanGam Style", id = "rbxassetid://14618196485"},
     {name = "Dararara", id = "rbxassetid://115781688996859"},
     {name = "Twice", id = "rbxassetid://14899980745"},
     {name = "Anime", id = "rbxassetid://114774556469581"},
     {name = "Aşkını İtiraf Et", id = "rbxassetid://108873777157620"},
     {name = "Billy Zıplaması", id = "rbxassetid://115607052226647"},
     {name = "Boksör", id = "rbxassetid://80933111363555"},
-    {name = "Oturma", id = "rbxassetid://110071776811205"},
-    {name = "YERE YATMA DELİRME", id = "rbxassetid://133841838295129"},
-    {name = "Keko Dans", id = "rbxassetid://99457675722909"},
-    {name = "Twerk", id = "rbxassetid://14548621256"},
-    {name = "Twerk Gibi Bişi Keko Oturusu v2", id = "rbxassetid://84129863420846"},
-    {name = "Stres Çarkı", id = "rbxassetid://71494363833326"},
-    {name = "Dans", id = "rbxassetid://113074782746670"},
-    {name = "Dans 2", id = "rbxassetid://102342919277367"},
-    {name = "Idle", id = "rbxassetid://106394178681320"},
-    {name = "Duvara Yaslanma Idle", id = "rbxassetid://116714406076290"},
-    {name = "Dans 3", id = "rbxassetid://140333103929828"},
-    {name = "Dans 4", id = "rbxassetid://102229339944611"},
-    {name = "Dans 5", id = "rbxassetid://76766009781388"},
-    {name = "Garip Dans", id = "rbxassetid://92249489340640"},
-    {name = "Tekme", id = "rbxassetid://133566007754001"},
-    {name = "Uçan Tekme", id = "rbxassetid://87099200550143"},
-    {name = "Bully Maguire", id = "rbxassetid://99195149999804"},
-    {name = "Tuff", id = "rbxassetid://97705611021245"},
-    {name = "One Pound Fish", id = "rbxassetid://134158476680452"},
-    {name = "Die Lit", id = "rbxassetid://110204898807330"},
-    {name = "Snops Walk", id = "rbxassetid://94751338993179"},
-    {name = "Michael Myers", id = "rbxassetid://111057054738672"},
-    {name = "Dom alma", id = "rbxassetid://88421489929073"},
-    {name = "Foot Job", id = "rbxassetid://78354011045319"},
-    {name = "Sakso", id = "rbxassetid://85881727141841"},
-    {name = "Kalp", id = "rbxassetid://77780134372141"},
-    {name = "Sexi", id = "rbxassetid://106494344727100"},
-    {name = "Nah", id = "rbxassetid://115619217455701"},
     {name = "DJ Bekleme Pozu", id = "rbxassetid://114486154887764"},
     {name = "Dougle Dansı", id = "rbxassetid://87574738912971"},
     {name = "Elektro Dansı", id = "rbxassetid://138785676658772"},
@@ -423,12 +400,38 @@ local emotes = {
     {name = "Zafer Dansı", id = "rbxassetid://15505456446"},
     {name = "Zıplama", id = "rbxassetid://15609995579"},
     {name = "İmza Dansı", id = "rbxassetid://112931882473990"},
-    {name = "?", id = "rbxassetid://121966805049108"},
-    {name = "??", id = "rbxassetid://112089880074848"},
-    {name = "???", id = "rbxassetid://136491428712959"}, 
-    {name = "????", id = "rbxassetid://96357779735687"},
-    {name = "?keko?", id = "rbxassetid://133841838295129"},
-    {name = "Şapşal Dans", id = "rbxassetid://85062238386196"}
+    {name = "Şapşal Dans", id = "rbxassetid://85062238386196"},
+    -- Yeni düzeltilmiş eklemeler aşağıda (duplicate'ler güncellendi):
+    {name = "oturma", id = "rbxassetid://110071776811205"},
+    {name = "YERE YATMA DELİRME", id = "rbxassetid://98719422024341"},
+    {name = "keko dans", id = "rbxassetid://133841838295129"},
+    {name = "twerk", id = "rbxassetid://99457675722909"},
+    {name = "twerk gibi bişi", id = "rbxassetid://14548621256"},
+    {name = "keko oturusu v2", id = "rbxassetid://84129863420846"},
+    {name = "stres çarkı", id = "rbxassetid://108359356964182"},
+    {name = "dans", id = "rbxassetid://71494363833326"},
+    {name = "dans 2", id = "rbxassetid://113074782746670"},
+    {name = "idle", id = "rbxassetid://102342919277367"},
+    {name = "duvara yaslanma idle", id = "rbxassetid://106394178681320"},
+    {name = "dans 3", id = "rbxassetid://116714406076290"},
+    {name = "dans 4", id = "rbxassetid://140333103929828"},
+    {name = "dans 5", id = "rbxassetid://102229339944611"},
+    {name = "garip dans", id = "rbxassetid://76766009781388"},
+    {name = "tekme", id = "rbxassetid://92249489340640"},
+    {name = "uçan tekme", id = "rbxassetid://133566007754001"},
+    {name = "Bully Maguire", id = "rbxassetid://87099200550143"},
+    {name = "Tuff", id = "rbxassetid://99195149999804"},
+    {name = "One pound fish", id = "rbxassetid://97705611021245"},
+    {name = "Die Lit", id = "rbxassetid://134158476680452"},
+    {name = "snops walk", id = "rbxassetid://110204898807330"},
+    {name = "michael myers", id = "rbxassetid://94751338993179"},
+    {name = "domalma", id = "rbxassetid://111057054738672"},
+    {name = "foot job", id = "rbxassetid://88421489929073"},
+    {name = "sakso", id = "rbxassetid://78354011045319"},
+    {name = "kalp", id = "rbxassetid://85881727141841"},
+    {name = "sexi", id = "rbxassetid://77780134372141"},
+    {name = "nah", id = "rbxassetid://106494344727100"},
+    {name = "anıme yatma", id = "rbxassetid://115619217455701"}
 }
 -- Team Check
 local function isEnemy(plr)
@@ -1199,7 +1202,7 @@ end
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 local emoteSections = {
     {
-        title = "Developer Section",
+        title = "Emotes: Developer Section",
         emotes = {
             {name = "?", id = "rbxassetid://121966805049108"},
             {name = "??", id = "rbxassetid://112089880074848"},
@@ -1209,33 +1212,33 @@ local emoteSections = {
         }
     },
     {
-        title = "Popüler Danslar",
+        title = "Emotes: Popüler Danslar",
         emotes = {
             {name = "GanGam Style", id = "rbxassetid://14618196485"},
-            {name = "?", id = "rbxassetid://115781688996859"},
+            {name = "Dararara", id = "rbxassetid://115781688996859"},
             {name = "Twice", id = "rbxassetid://14899980745"},
             {name = "Anime", id = "rbxassetid://114774556469581"},
-            {name = "Keko Dans", id = "rbxassetid://99457675722909"},
-            {name = "Dans", id = "rbxassetid://113074782746670"},
-            {name = "Dans 2", id = "rbxassetid://102342919277367"},
-            {name = "Dans 3", id = "rbxassetid://140333103929828"},
-            {name = "Dans 4", id = "rbxassetid://102229339944611"},
-            {name = "Dans 5", id = "rbxassetid://76766009781388"},
-            {name = "Garip Dans", id = "rbxassetid://92249489340640"}
+            {name = "keko dans", id = "rbxassetid://133841838295129"},
+            {name = "dans", id = "rbxassetid://71494363833326"},
+            {name = "dans 2", id = "rbxassetid://113074782746670"},
+            {name = "dans 3", id = "rbxassetid://116714406076290"},
+            {name = "dans 4", id = "rbxassetid://140333103929828"},
+            {name = "dans 5", id = "rbxassetid://102229339944611"},
+            {name = "garip dans", id = "rbxassetid://76766009781388"}
         }
     },
     {
-        title = "Havalı Pozlar",
+        title = "Emotes: Havalı Pozlar",
         emotes = {
             {name = "Aşkını İtiraf Et", id = "rbxassetid://108873777157620"},
             {name = "Billy Zıplaması", id = "rbxassetid://115607052226647"},
             {name = "Boksör", id = "rbxassetid://80933111363555"},
-            {name = "Oturma", id = "rbxassetid://110071776811205"},
-            {name = "Dom alma", id = "rbxassetid://88421489929073"}
+            {name = "oturma", id = "rbxassetid://110071776811205"},
+            {name = "domalma", id = "rbxassetid://111057054738672"}
         }
     },
     {
-        title = "DJ & Parti",
+        title = "Emotes: DJ & Parti",
         emotes = {
             {name = "DJ Bekleme Pozu", id = "rbxassetid://114486154887764"},
             {name = "Dougle Dansı", id = "rbxassetid://87574738912971"},
@@ -1243,25 +1246,27 @@ local emoteSections = {
         }
     },
     {
-        title = "Kalça & Zıplama",
+        title = "Emotes: Kalça & Zıplama",
         emotes = {
             {name = "Eller Yukarı", id = "rbxassetid://135395608251521"},
             {name = "Garry Dansı", id = "rbxassetid://124896171012585"},
             {name = "Gürültücü", id = "rbxassetid://136095999219650"},
-            {name = "Twerk", id = "rbxassetid://14548621256"},
-            {name = "Twerk Gibi Bişi Keko Oturusu v2", id = "rbxassetid://84129863420846"}
+            {name = "twerk", id = "rbxassetid://99457675722909"},
+            {name = "twerk gibi bişi", id = "rbxassetid://14548621256"},
+            {name = "keko oturusu v2", id = "rbxassetid://84129863420846"}
         }
     },
     {
-        title = "Havalı & Horeg",
+        title = "Emotes: Havalı & Horeg",
         emotes = {
             {name = "Havalı Tokat", id = "rbxassetid://118552217459650"},
             {name = "Horeg Dansı", id = "rbxassetid://110204898807330"},
-            {name = "Jackpot Dansı", id = "rbxassetid://126041249033925"}
+            {name = "Jackpot Dansı", id = "rbxassetid://126041249033925"},
+            {name = "Die Lit", id = "rbxassetid://134158476680452"}
         }
     },
     {
-        title = "Kadın & Kafa",
+        title = "Emotes: Kadın & Kafa",
         emotes = {
             {name = "Kadın Dansı", id = "rbxassetid://76240950459288"},
             {name = "Kafa Sallama", id = "rbxassetid://15517864808"},
@@ -1269,7 +1274,7 @@ local emoteSections = {
         }
     },
     {
-        title = "Kedi & Koşma",
+        title = "Emotes: Kedi & Koşma",
         emotes = {
             {name = "Kalça Döndürme", id = "rbxassetid://88593312682192"},
             {name = "Kalça Zıplaması", id = "rbxassetid://103606174140721"},
@@ -1277,16 +1282,16 @@ local emoteSections = {
         }
     },
     {
-        title = "Kıvırma & Michael",
+        title = "Emotes: Kıvırma & Michael",
         emotes = {
             {name = "Kendine Çekme", id = "rbxassetid://115605836623904"},
             {name = "Koşma Dansı", id = "rbxassetid://96147994216119"},
             {name = "Kıvırma", id = "rbxassetid://133551169796944"},
-            {name = "Michael Myers", id = "rbxassetid://111057054738672"}
+            {name = "michael myers", id = "rbxassetid://94751338993179"}
         }
     },
     {
-        title = "Mutlu & NYC",
+        title = "Emotes: Mutlu & NYC",
         emotes = {
             {name = "Michael Myers Dansı", id = "rbxassetid://130628312209858"},
             {name = "Mutlu", id = "rbxassetid://4841405708"},
@@ -1294,7 +1299,7 @@ local emoteSections = {
         }
     },
     {
-        title = "Oryantal & Otur",
+        title = "Emotes: Oryantal & Otur",
         emotes = {
             {name = "Nika Dansı", id = "rbxassetid://132930994178862"},
             {name = "Oryantal", id = "rbxassetid://136494657202841"},
@@ -1302,7 +1307,7 @@ local emoteSections = {
         }
     },
     {
-        title = "Parti & Popüler",
+        title = "Emotes: Parti & Popüler",
         emotes = {
             {name = "Parti", id = "rbxassetid://113052435813981"},
             {name = "Popüler", id = "rbxassetid://93062298566806"},
@@ -1310,7 +1315,7 @@ local emoteSections = {
         }
     },
     {
-        title = "Sağlam & Umursamaz",
+        title = "Emotes: Sağlam & Umursamaz",
         emotes = {
             {name = "Sağlam Dans", id = "rbxassetid://99558490932154"},
             {name = "Umursamaz", id = "rbxassetid://97086109091396"},
@@ -1318,53 +1323,54 @@ local emoteSections = {
         }
     },
     {
-        title = "Yat & Zafer",
+        title = "Emotes: Yat & Zafer",
         emotes = {
             {name = "Yat", id = "rbxassetid://92747295139963"},
             {name = "Zafer Dansı", id = "rbxassetid://15505456446"},
             {name = "Zıplama", id = "rbxassetid://15609995579"},
-            {name = "YERE YATMA DELİRME", id = "rbxassetid://133841838295129"}
+            {name = "YERE YATMA DELİRME", id = "rbxassetid://98719422024341"},
+            {name = "anıme yatma", id = "rbxassetid://115619217455701"}
         }
     },
     {
-        title = "İmza & Şapşal",
+        title = "Emotes: İmza & Şapşal",
         emotes = {
             {name = "İmza Dansı", id = "rbxassetid://112931882473990"},
             {name = "Şapşal Dans", id = "rbxassetid://85062238386196"}
         }
     },
     {
-        title = "Idle & Rahat Pozlar",
+        title = "Emotes: Idle & Rahat Pozlar",
         emotes = {
-            {name = "Idle", id = "rbxassetid://106394178681320"},
-            {name = "Duvara Yaslanma Idle", id = "rbxassetid://116714406076290"},
-            {name = "Stres Çarkı", id = "rbxassetid://71494363833326"}
+            {name = "idle", id = "rbxassetid://102342919277367"},
+            {name = "duvara yaslanma idle", id = "rbxassetid://106394178681320"},
+            {name = "stres çarkı", id = "rbxassetid://108359356964182"}
         }
     },
     {
-        title = "Aksiyon & Tekmeler",
+        title = "Emotes: Aksiyon & Tekmeler",
         emotes = {
-            {name = "Tekme", id = "rbxassetid://133566007754001"},
-            {name = "Uçan Tekme", id = "rbxassetid://87099200550143"}
+            {name = "tekme", id = "rbxassetid://92249489340640"},
+            {name = "uçan tekme", id = "rbxassetid://133566007754001"}
         }
     },
     {
-        title = "Eğlence & Meme Danslar",
+        title = "Emotes: Eğlence & Meme Danslar",
         emotes = {
-            {name = "Bully Maguire", id = "rbxassetid://99195149999804"},
-            {name = "Tuff", id = "rbxassetid://97705611021245"},
-            {name = "One Pound Fish", id = "rbxassetid://134158476680452"},
-            {name = "Snops Walk", id = "rbxassetid://94751338993179"},
-            {name = "Nah", id = "rbxassetid://115619217455701"},
-            {name = "Kalp", id = "rbxassetid://77780134372141"}
+            {name = "Bully Maguire", id = "rbxassetid://87099200550143"},
+            {name = "Tuff", id = "rbxassetid://99195149999804"},
+            {name = "One pound fish", id = "rbxassetid://97705611021245"},
+            {name = "snops walk", id = "rbxassetid://110204898807330"},
+            {name = "nah", id = "rbxassetid://106494344727100"},
+            {name = "kalp", id = "rbxassetid://85881727141841"}
         }
     },
     {
-        title = "Yetişkin Emotes",
+        title = "Emotes: Yetişkin Emotes",
         emotes = {
-            {name = "Foot Job", id = "rbxassetid://78354011045319"},
-            {name = "Sakso", id = "rbxassetid://85881727141841"},
-            {name = "Sexi", id = "rbxassetid://106494344727100"}
+            {name = "foot job", id = "rbxassetid://88421489929073"},
+            {name = "sakso", id = "rbxassetid://78354011045319"},
+            {name = "sexi", id = "rbxassetid://77780134372141"}
         }
     }
 }
