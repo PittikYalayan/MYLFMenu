@@ -1405,9 +1405,9 @@ Services.LocalPlayer.CharacterAdded:Connect(function()
     end)
 end)
 -- Settings Tab - System Section (Rejoin atlandı)
-local SystemSection = SettingsTab:CreateSection("System")
+local SystemSection = SettingsTab:CreateSection("Update")
 SettingsTab:CreateParagraph({
-    Title = "Updates & Fixes",
+    Title = "Version 1.3.0a",
     Content = [[En son güncellemeler ve düzeltmeler (sabit log):
 
 • Update 1.5: Yeni emote'lar (twerk, keko dans vb.) entegre edildi.
