@@ -39,7 +39,7 @@ features._t = features._t or 0
 
 features._tpTargetId   = nil
 features._tpTargetMap  = {}
-features._tpBehindDist = 3
+features._tpBehindDist = 1
 
 features.TriggerOnAim    = false     -- hedefteyken otomatik ateş
 features.TriggerRate     = 0     -- tetikler arası min süre
