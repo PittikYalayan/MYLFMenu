@@ -1405,8 +1405,19 @@ Services.LocalPlayer.CharacterAdded:Connect(function()
     end)
 end)
 -- Settings Tab - System Section (Rejoin atlandı)
-local SystemSection = SettingsTab:CreateSection("Updates & Fix")
-SettingsTab:CreateParagraph({Title = "Update & Fix", Content = "Yeni Gelen Gücellemede 1.3.0a ",Content = "Emote Kısmı Çoğaltılmış Yeni Animasyonlar Eklenmiştir",Content = "Menü Tafarında Fps Optimize Edilmiş Ve Hile Özelliklerinde Geliştirmeler Yapılmıştır."})
+local SystemSection = SettingsTab:CreateSection("System")
+SettingsTab:CreateParagraph({
+    Title = "Updates & Fixes",
+    Content = [[En son güncellemeler ve düzeltmeler (sabit log):
+
+• Update 1.5: Yeni emote'lar (twerk, keko dans vb.) entegre edildi.
+
+• Fix: ID çakışmaları ve isim parse hataları giderildi.
+
+• Update 1.4: Sections kategorileri optimize edildi.
+
+• Fix: Flat emotes listesi ile sections tam uyumlu hale getirildi.!]]
+})
 -- Menu & Server Tab - Theme Section
 local ThemeSection = MenuServerTab:CreateSection("Theme")
 MenuServerTab:CreateColorPicker({
