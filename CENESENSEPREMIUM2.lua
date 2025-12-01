@@ -1405,8 +1405,8 @@ Services.LocalPlayer.CharacterAdded:Connect(function()
     end)
 end)
 -- Settings Tab - System Section (Rejoin atlandı)
-local SystemSection = SettingsTab:CreateSection("System")
-SettingsTab:CreateParagraph({Title = "System", Content = "Rejoin atlandı efendim, istediğinde söyle ekleyeyim."})
+local SystemSection = SettingsTab:CreateSection("Updates & Fix")
+SettingsTab:CreateParagraph({Title = "Update & Fix", Content = "Yeni Gelen Gücellemede 1.3.0a ",Content = "Emote Kısmı Çoğaltılmış Yeni Animasyonlar Eklenmiştir",Content = "Menü Tafarında Fps Optimize Edilmiş Ve Hile Özelliklerinde Geliştirmeler Yapılmıştır."})
 -- Menu & Server Tab - Theme Section
 local ThemeSection = MenuServerTab:CreateSection("Theme")
 MenuServerTab:CreateColorPicker({
