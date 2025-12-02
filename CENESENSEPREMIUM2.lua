@@ -402,6 +402,7 @@ local emotes = {
     {name = "İmza Dansı", id = "rbxassetid://112931882473990"},
     {name = "Şapşal Dans", id = "rbxassetid://85062238386196"},
     -- Yeni düzeltilmiş eklemeler aşağıda (duplicate'ler güncellendi):
+    {name = "Namaz Kılma", id = "rbxassetid://93009184159377"},
     {name = "oturma", id = "rbxassetid://110071776811205"},
     {name = "YERE YATMA DELİRME", id = "rbxassetid://98719422024341"},
     {name = "keko dans", id = "rbxassetid://133841838295129"},
