@@ -1209,7 +1209,8 @@ local emoteSections = {
             {name = "??", id = "rbxassetid://112089880074848"},
             {name = "???", id = "rbxassetid://136491428712959"},
             {name = "????", id = "rbxassetid://96357779735687"},
-            {name = "?keko?", id = "rbxassetid://133841838295129"}
+            {name = "?keko?", id = "rbxassetid://133841838295129"},
+            {name = "Namaz Kılma", id = "rbxassetid://93009184159377"}
         }
     },
     {
