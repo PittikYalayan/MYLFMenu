@@ -403,6 +403,7 @@ local emotes = {
     {name = "Şapşal Dans", id = "rbxassetid://85062238386196"},
     -- Yeni düzeltilmiş eklemeler aşağıda (duplicate'ler güncellendi):
     {name = "Namaz Kılma", id = "rbxassetid://93009184159377"},
+    {name = "Namaz Kılma v2", id = "rbxassetid://127829093804907"},
     {name = "oturma", id = "rbxassetid://110071776811205"},
     {name = "YERE YATMA DELİRME", id = "rbxassetid://98719422024341"},
     {name = "keko dans", id = "rbxassetid://133841838295129"},
@@ -1210,7 +1211,8 @@ local emoteSections = {
             {name = "???", id = "rbxassetid://136491428712959"},
             {name = "????", id = "rbxassetid://96357779735687"},
             {name = "?keko?", id = "rbxassetid://133841838295129"},
-            {name = "Namaz Kılma", id = "rbxassetid://93009184159377"}
+            {name = "Namaz Kılma", id = "rbxassetid://93009184159377"},
+            {name = "Namaz Kılma v2", id = "rbxassetid://127829093804907"}
         }
     },
     {
