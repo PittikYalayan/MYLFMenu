@@ -977,6 +977,7 @@ TeleportTab:CreateToggle({
     Callback = function(val)
         if features.ToggleAutoBehind then features.ToggleAutoBehind(val) end
     end
+      
 })
 TeleportTab:CreateToggle({
     Name = "⚡ Auto Farm Enemy",
@@ -1173,6 +1174,15 @@ EmotesTab:CreateButton({
         end)
     end
 })
+EmotesTab:CreateButton({
+   Name = "Player Emote SYNC"
+        CurrentValue = false,
+    Flag = "SYNCFlag",
+    Callback = function(val)
+        if features.ToggleSYNC then features.ToggleSYNC(val) end
+    end
+    })
+   
 -- Play Emote Function (Entegre)
 local function PlayEmote(animId, emoteName)
     pcall(function()
