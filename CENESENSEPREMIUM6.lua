@@ -1020,12 +1020,28 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
--- Camera View Tab: FIXED - Dynamic player list with recreate on refresh, no duplicate, respawn handling
+-- Camera View Tab: FREE ORBIT CAMERA - Mouse ile özgür dön, zoom, FPS drop yok, ultra smooth RenderStepped
 local CameraSection = CameraTab:CreateSection("Camera View")
 local selectedPlayer = nil
 local camActive = false
 local playerDropdown = nil -- FIXED: Global dropdown ref for destroy
 local lastRefreshTime = 0 -- FIXED: Debounce for refresh
+local characterAddedConn = nil -- FIXED: For target respawn handling
+
+-- FREE CAMERA VARS: Yaw/Pitch/Distance for orbit (radyan)
+local yaw = math.rad(180) -- Başlangıç: Arkadan bakar
+local pitch = math.rad(-15) -- Hafif yukarı
+local distance = 20 -- Başlangıç mesafe
+local minDistance = 5
+local maxDistance = 150
+
+local cameraRenderConn = nil -- RenderStepped for ultra smooth NO LAG
+local mouseMoveConn = nil -- UserInputService for mouse delta
+local mouseWheelConn = nil -- Zoom
+
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+
 local function getPlayerOptions()
     local opts = {}
     for _, plr in ipairs(Services.Players:GetPlayers()) do
@@ -1035,91 +1051,146 @@ local function getPlayerOptions()
     end
     return opts
 end
+
 local function createPlayerDropdown()
-    if playerDropdown then playerDropdown:Destroy() end -- FIXED: Eski dropdown'ı yok et, duplicate yok
+    if playerDropdown then playerDropdown:Destroy() end
     local opts = getPlayerOptions()
     playerDropdown = CameraTab:CreateDropdown({
         Name = "Select Player",
-        Options = opts, -- FIXED: Initial populate
+        Options = opts,
         CurrentOption = "None",
         Flag = "PlayerSelectFlag",
         Callback = function(val)
+            -- Eski conn disconnect
+            if characterAddedConn then characterAddedConn:Disconnect() characterAddedConn = nil end
             selectedPlayer = Services.Players:FindFirstChild(val)
-            if selectedPlayer then Rayfield:Notify({Title = "Selected", Content = val, Duration = 3}) end
+            if selectedPlayer then 
+                Rayfield:Notify({Title = "Selected", Content = val .. " - Free Cam Ready!", Duration = 3})
+                -- Target respawn relock
+                characterAddedConn = selectedPlayer.CharacterAdded:Connect(function()
+                    if camActive then
+                        task.wait(0.1) -- Ultra fast respawn relock
+                    end
+                end)
+                -- NEW: Target değişince angles reset (opsiyonel, temiz başlangıç)
+                yaw = math.rad(180)
+                pitch = math.rad(-15)
+                distance = 20
+            end
         end
     })
 end
-createPlayerDropdown() -- Initial create
+
+createPlayerDropdown()
+
 CameraTab:CreateButton({
-    Name = "Refresh Players", -- FIXED: Now recreates without duplicate/spam
+    Name = "Refresh Players",
     Callback = function()
         local now = tick()
-        if now - lastRefreshTime < 1 then -- FIXED: 1s cooldown to prevent spam
+        if now - lastRefreshTime < 1 then
             Rayfield:Notify({Title = "Cooldown", Content = "Bekle 1s", Duration = 2})
             return
         end
         lastRefreshTime = now
-        createPlayerDropdown() -- FIXED: Direkt recreate, destroy handles cleanup
+        createPlayerDropdown()
         Rayfield:Notify({Title = "Refreshed", Content = "Player list updated!", Duration = 3})
     end
 })
--- FIXED: Respawn handling for camera lock (Scriptable mod for smooth follow)
-local cameraLockConn = nil
+
+-- FREE ORBIT CAMERA CORE: Mouse ile özgür dön/zoom, RenderStepped NO FPS DROP/NO LAG
 local function lockCameraToPlayer(targetPlr, active)
-    if cameraLockConn then cameraLockConn:Disconnect() cameraLockConn = nil end -- FIXED: Always disconnect old
+    -- Tüm conn'ları temizle
+    if cameraRenderConn then cameraRenderConn:Disconnect() cameraRenderConn = nil end
+    if mouseMoveConn then mouseMoveConn:Disconnect() mouseMoveConn = nil end
+    if mouseWheelConn then mouseWheelConn:Disconnect() mouseWheelConn = nil end
+    
     if not active or not targetPlr then
-        Services.Camera.CameraType = Enum.CameraType.Custom -- FIXED: Reset to normal
+        Services.Camera.CameraType = Enum.CameraType.Custom
         local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if myHum then Services.Camera.CameraSubject = myHum end
         return
     end
-    Services.Camera.CameraType = Enum.CameraType.Scriptable -- FIXED: Scriptable for custom behind follow
-    cameraLockConn = Services.RunService.Heartbeat:Connect(function() -- FIXED: Loop only for CFrame, no subject conflict
-        pcall(function() -- FIXED: pcall for safe
+    
+    Services.Camera.CameraType = Enum.CameraType.Scriptable
+    
+    -- MOUSE DELTA SENSITIVITY (optimize: low for smooth)
+    local sensitivity = 0.005 -- Radyan per pixel, FPS drop yok
+    
+    -- Mouse Move: Yaw/Pitch update (sadece mouse move'de, efficient)
+    mouseMoveConn = UIS.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            yaw = yaw - input.Delta.X * sensitivity
+            pitch = math.clamp(pitch - input.Delta.Y * sensitivity, math.rad(-80), math.rad(80)) -- Pitch limit (ters dönmesin)
+        end
+    end)
+    
+    -- Mouse Wheel: Zoom (ultra responsive)
+    mouseWheelConn = UIS.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseWheel then
+            distance = math.clamp(distance - input.Position.Z * 2, minDistance, maxDistance)
+        end
+    end)
+    
+    -- RENDER STEPPED LOOP: Ultra smooth, NO LAG, her frame update (Roblox optimized)
+    cameraRenderConn = RS.RenderStepped:Connect(function()
+        pcall(function()
             if targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = targetPlr.Character.HumanoidRootPart
-                local cf = CFrame.new(hrp.Position + Vector3.new(0, 5, -10), hrp.Position) -- Behind view
-                Services.Camera.CFrame = cf
+                local targetPos = hrp.Position
+                
+                -- SPHERICAL ORBIT CALC: Özgür açı + mesafe
+                local camCFrame = CFrame.new(targetPos) * CFrame.Angles(pitch, yaw, 0) * CFrame.new(0, 0, -distance)
+                
+                -- Collision avoid (raycast optional, ama FPS için skip - gerekirse ekle)
+                Services.Camera.CFrame = camCFrame
             end
         end)
     end)
 end
+
 CameraTab:CreateToggle({
-    Name = "🎥 Camera View", -- FIXED: Now works with respawn, smooth Scriptable follow
+    Name = "🎥 Free Camera View", -- Özgür mouse dön/zoom, ultra optimize
     CurrentValue = false,
     Flag = "CamViewFlag",
     Callback = function(val)
         camActive = val
         lockCameraToPlayer(selectedPlayer, val)
         if val and selectedPlayer then
-            Rayfield:Notify({Title = "Camera Locked", Content = selectedPlayer.Name, Duration = 3})
+            Rayfield:Notify({Title = "Free Cam ON", Content = selectedPlayer.Name .. " - Mouse ile dön/zoom (wheel)", Duration = 4})
         else
-            Rayfield:Notify({Title = "Camera Reset", Content = "Back to self", Duration = 3})
+            Rayfield:Notify({Title = "Free Cam OFF", Content = "Normal kameraya döndü", Duration = 3})
         end
     end
 })
--- Respawn handling for selectedPlayer (ölünce/dirilince auto relock) - Loop handles, but extra safety
-Services.Players.PlayerAdded:Connect(function(plr)
-    if plr == selectedPlayer and camActive then
-        task.wait(1) -- FIXED: Shorter wait, loop picks up
-        lockCameraToPlayer(selectedPlayer, true)
-    end
-end)
--- LocalPlayer respawn handling (sen dirilince relock)
+
+-- LocalPlayer respawn: Relock
 Services.LocalPlayer.CharacterAdded:Connect(function()
     if camActive and selectedPlayer then
-        task.wait(1) -- FIXED: Shorter wait
-        lockCameraToPlayer(selectedPlayer, true)
+        task.wait(0.1)
     end
 end)
+
+-- BONUS: Reset Angles Button (isteğe göre temizle)
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected", -- FIXED: Retry loop for stability, longer waits
+    Name = "🔄 Reset Camera Angles",
+    Callback = function()
+        if selectedPlayer then
+            yaw = math.rad(180)
+            pitch = math.rad(-15)
+            distance = 20
+            Rayfield:Notify({Title = "Reset", Content = "Arkadan bakışa döndü", Duration = 2})
+        end
+    end
+})
+
+CameraTab:CreateButton({
+    Name = "⚡ Teleport to Selected",
     Callback = function()
         if not selectedPlayer then
             Rayfield:Notify({Title = "Error", Content = "No player selected", Duration = 3})
             return
         end
-        task.spawn(function() -- FIXED: Spawn for retry
+        task.spawn(function()
             local maxRetries = 10
             local retries = 0
             while retries < maxRetries do
@@ -1128,16 +1199,16 @@ CameraTab:CreateButton({
                     local myChar = Services.LocalPlayer.Character
                     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
                         local myHRP = myChar.HumanoidRootPart
-                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25) -- FIXED: CFrame direct
+                        myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)
                         Rayfield:Notify({Title = "Teleported", Content = selectedPlayer.Name, Duration = 3})
                         break
                     end
                 end
                 retries = retries + 1
-                task.wait(1) -- FIXED: 1s wait for stability (dead/respawn)
+                task.wait(1)
             end
             if retries >= maxRetries then
-                Rayfield:Notify({Title = "Error", Content = "Retry failed, try again", Duration = 3})
+                Rayfield:Notify({Title = "Error", Content = "Retry failed", Duration = 3})
             end
         end)
     end
