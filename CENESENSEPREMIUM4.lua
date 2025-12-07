@@ -1174,7 +1174,7 @@ EmotesTab:CreateButton({
         end)
     end
 })
-EmotesTab:CreateButton({
+EmotesTab:CreateToggle({
    Name = "Player Emote SYNC"
         CurrentValue = false,
     Flag = "SYNCFlag",
