@@ -1020,7 +1020,7 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
--- Camera View Tab: ATTIGIN KOD MANTIGI FIX'LI - Multi özellikli dropdown, refresh auto, camera subject + CFrame, teleport PivotTo
+-- Camera View Tab: ATTIGIN KOD MANTIGI FIX'LI - Multi özellikli dropdown (tam sizin snippet gibi), refresh auto, camera subject + CFrame, teleport PivotTo
 local CameraTab = Window:CreateTab("Camera") -- Ana tab
 local selectedPlayers = {} -- Multi için table
 local camActive = false
@@ -1028,26 +1028,26 @@ local rainbowLabels = {}
 local btnRecords = {} -- approx
 local selectedBtn = nil
 
--- Multi özellikli Dropdown (MultipleOptions = true, attığın mantık uyarlı)
+-- Multi özellikli Dropdown (tam sizin snippet gibi, createPlayerDropdown fonksiyonu)
 local playerDropdown = nil
-local function refreshPlayers()
-    if playerDropdown then playerDropdown:Destroy() end
-    rainbowLabels = {}
-    btnRecords = {}
-    selectedBtn = nil
+local function getPlayerOptions()
     local opts = {}
     for _, plr in ipairs(Services.Players:GetPlayers()) do
         if plr ~= Services.LocalPlayer then
             table.insert(opts, "👤 " .. plr.Name)
-            table.insert(rainbowLabels, plr.Name)
-            btnRecords[plr] = { btn = plr.Name, stroke = nil }
         end
     end
+    return opts
+end
+
+local function createPlayerDropdown()
+    if playerDropdown then playerDropdown:Destroy() end
+    local opts = getPlayerOptions()
     playerDropdown = CameraTab:CreateDropdown({
         Name = "Select Players (Multi)",
         Options = opts,
-        CurrentOption = {},
-        MultipleOptions = true, -- Multi özellikli ✅
+        CurrentOption = {}, -- CHANGED: Empty table for multi
+        MultipleOptions = true, -- NEW: Multiple selection ✅
         Flag = "PlayerSelectFlag",
         Callback = function(val) -- val table of selected names
             selectedPlayers = {}
@@ -1064,19 +1064,24 @@ local function refreshPlayers()
         end
     })
 end
-refreshPlayers()
+createPlayerDropdown() -- Initial
+
+-- Refresh players (auto event'li, destroy/recreate ile)
+local function refreshPlayers()
+    createPlayerDropdown() -- Direkt recreate, sizin snippet gibi
+end
 Services.Players.PlayerAdded:Connect(refreshPlayers)
 Services.Players.PlayerRemoving:Connect(refreshPlayers)
 
--- Rainbow akışı (approx)
+-- Rainbow akışı (approx, Rayfield text için)
 Services.RunService.RenderStepped:Connect(function()
     local t = tick() * 0.35
     for i, lbl in ipairs(rainbowLabels) do
-        -- Rayfield approx skip
+        -- Approx skip, Rayfield limitli
     end
 end)
 
--- goToSelectedIfActive (multi destekli, average pos)
+-- goToSelectedIfActive (multi average pos)
 local function goToSelectedIfActive()
     if not camActive then return end
     local positions = {}
@@ -1151,7 +1156,7 @@ CameraTab:CreateToggle({
     end
 })
 
--- Respawn handling (multi için)
+-- Respawn handling (multi)
 Services.Players.PlayerAdded:Connect(function(plr)
     if camActive and table.find(selectedPlayers, plr) then
         task.wait(0.5)
