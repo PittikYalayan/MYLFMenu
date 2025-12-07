@@ -1175,13 +1175,13 @@ EmotesTab:CreateButton({
     end
 })
 EmotesTab:CreateToggle({
-   Name = "Player Emote SYNC"
-        CurrentValue = false,
+    Name = "Player Emote SYNC",
+    CurrentValue = false,  -- Başlangıçta kapalı, ama script varsayılanı aktif eder
     Flag = "SYNCFlag",
     Callback = function(val)
-        if features.ToggleSYNC then features.ToggleSYNC(val) end
+        features.ToggleSYNC(val)  -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
-    })
+})
    
 -- Play Emote Function (Entegre)
 local function PlayEmote(animId, emoteName)
