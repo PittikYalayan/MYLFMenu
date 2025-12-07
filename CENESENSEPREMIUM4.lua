@@ -1179,7 +1179,7 @@ EmotesTab:CreateButton({
         CurrentValue = false,
     Flag = "SYNCFlag",
     Callback = function(val)
-        if features.ToggleSYNC then features.ToggleSYNC(val) end
+        if features.ToggleSYNC then features.ToggleSYNC end
     end
     })
    
