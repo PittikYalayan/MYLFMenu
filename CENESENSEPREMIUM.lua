@@ -1020,8 +1020,8 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
--- Camera View Tab: FREE ORBIT CAMERA - Mouse ile özgür dön, zoom, FPS drop yok, ultra smooth RenderStepped
--- MULTIPLE OPTIONS: Dropdown multi-select, camera average center for group view, teleport sequential
+-- Camera View Tab: ORBIT FOLLOW CAMERA - Mouse dön/zoom, otomatik hedef takip (hareket edince kamera hareket eder), ultra smooth
+-- MULTIPLE OPTIONS: Dropdown multi-select, camera average center follow, teleport sequential
 local CameraSection = CameraTab:CreateSection("Camera View")
 local selectedPlayers = {} -- CHANGED: Table for multiple
 local camActive = false
@@ -1030,8 +1030,8 @@ local lastRefreshTime = 0 -- FIXED: Debounce for manual refresh
 local characterAddedConns = {} -- CHANGED: Array for multiple respawn handling
 local playerListCache = {} -- NEW: Cache for fast change detection (optimize, no loop spam)
 
--- FREE CAMERA VARS: Yaw/Pitch/Distance for orbit (radyan)
-local yaw = math.rad(180) -- Başlangıç: Arkadan bakar
+-- ORBIT CAMERA VARS: Yaw/Pitch/Distance (mouse dön/zoom, hedef takip)
+local yaw = math.rad(180) -- Başlangıç: Arkadan
 local pitch = math.rad(-15) -- Hafif yukarı
 local distance = 20 -- Başlangıç mesafe
 local minDistance = 5
@@ -1077,6 +1077,7 @@ local function createPlayerDropdown()
                     local conn = plr.CharacterAdded:Connect(function()
                         if camActive then
                             task.wait(0.1) -- Ultra fast
+                            lockCameraToPlayer(selectedPlayers, true) -- Relock on respawn
                         end
                     end)
                     table.insert(characterAddedConns, conn)
@@ -1085,7 +1086,7 @@ local function createPlayerDropdown()
             if #selectedPlayers > 0 then 
                 local names = {}
                 for _, plr in selectedPlayers do table.insert(names, plr.Name) end
-                Rayfield:Notify({Title = "Selected ✅", Content = table.concat(names, ", ") .. " - Hazır! (Multi destekli)", Duration = 3})
+                Rayfield:Notify({Title = "Selected ✅", Content = table.concat(names, ", ") .. " - Hazır!", Duration = 3})
             else
                 Rayfield:Notify({Title = "Error ❌", Content = "Oyuncu bulunamadı, yeniden seç", Duration = 3})
             end
@@ -1148,11 +1149,11 @@ CameraTab:CreateButton({
         end
         lastRefreshTime = now
         refreshDropdownIfChanged()
-        Rayfield:Notify({Title = "Refreshed ✅", Content = "Liste güncellendi (Auto zaten yapıyor!)", Duration = 3})
+        Rayfield:Notify({Title = "Refreshed ✅", Content = "Liste güncellendi", Duration = 3})
     end
 })
 
--- FREE ORBIT CAMERA CORE: Multi-player support - Average center + auto distance
+-- ORBIT FOLLOW CAMERA CORE: Mouse dön/zoom, otomatik hedef takip (hareket edince kamera hareket eder)
 local function lockCameraToPlayer(targetPlayers, active)
     -- Tüm conn'ları temizle
     if cameraRenderConn then cameraRenderConn:Disconnect() cameraRenderConn = nil end
@@ -1190,27 +1191,30 @@ local function lockCameraToPlayer(targetPlayers, active)
     cameraRenderConn = RS.RenderStepped:Connect(function()
         pcall(function()
             local positions = {}
+            local lookVectors = {}
             for _, plr in ipairs(targetPlayers) do
                 if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    table.insert(positions, plr.Character.HumanoidRootPart.Position)
+                    local hrp = plr.Character.HumanoidRootPart
+                    table.insert(positions, hrp.Position)
+                    table.insert(lookVectors, hrp.CFrame.LookVector)
                 end
             end
             if #positions > 0 then
-                -- Average center for multi
+                -- Average center ve look vector for multi
                 local center = Vector3.new(0,0,0)
-                for _, pos in positions do center = center + pos end
-                center = center / #positions
-                
-                -- Auto distance adjust for bounds (multi için hepsi framede olsun)
-                local maxDist = 0
-                for _, pos in positions do
-                    local dist = (pos - center).Magnitude
-                    if dist > maxDist then maxDist = dist end
+                local avgLook = Vector3.new(0,0,0)
+                for i, pos in ipairs(positions) do 
+                    center = center + pos
+                    avgLook = avgLook + lookVectors[i]
                 end
-                local effectiveDist = math.max(distance, maxDist * 1.5) -- Zoom override if needed
+                center = center / #positions
+                avgLook = avgLook.Unit
                 
-                -- SPHERICAL ORBIT CALC: Özgür açı + mesafe
-                local camCFrame = CFrame.new(center) * CFrame.Angles(pitch, yaw, 0) * CFrame.new(0, 0, -effectiveDist)
+                -- SPHERICAL ORBIT CALC: Özgür açı + mesafe, hedef hareket edince takip
+                local camCFrame = CFrame.new(center) * CFrame.Angles(pitch, yaw, 0) * CFrame.new(0, 0, -distance)
+                
+                -- Look at center (takip için)
+                camCFrame = CFrame.new(camCFrame.Position, center)
                 
                 Services.Camera.CFrame = camCFrame
             end
@@ -1219,12 +1223,12 @@ local function lockCameraToPlayer(targetPlayers, active)
 end
 
 CameraTab:CreateToggle({
-    Name = "🎥 Free Camera View", -- Özgür mouse dön/zoom, ultra optimize, multi-player center
+    Name = "🎥 Orbit Follow Camera View", -- Mouse dön/zoom + otomatik takip
     CurrentValue = false,
     Flag = "CamViewFlag",
     Callback = function(val)
         if #selectedPlayers == 0 then
-            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç! (Multi destekli)", Duration = 3})
+            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu seç!", Duration = 3})
             return false -- Toggle'ı kapat
         end
         camActive = val
@@ -1232,9 +1236,9 @@ CameraTab:CreateToggle({
         if val then
             local names = {}
             for _, plr in selectedPlayers do table.insert(names, plr.Name) end
-            Rayfield:Notify({Title = "Free Cam ON ✅", Content = table.concat(names, ", ") .. " - Mouse ile dön/zoom (wheel)", Duration = 4})
+            Rayfield:Notify({Title = "Orbit Follow Cam ON ✅", Content = table.concat(names, ", ") .. " - Mouse ile dön/yakınlaş (wheel), adam hareket ederse kamera takip eder!", Duration = 4})
         else
-            Rayfield:Notify({Title = "Free Cam OFF", Content = "Normal kameraya döndü", Duration = 3})
+            Rayfield:Notify({Title = "Orbit Follow Cam OFF", Content = "Normal kameraya döndü", Duration = 3})
         end
     end
 })
@@ -1255,18 +1259,18 @@ CameraTab:CreateButton({
             yaw = math.rad(180)
             pitch = math.rad(-15)
             distance = 20
-            Rayfield:Notify({Title = "Reset ✅", Content = "Arkadan bakışa döndü (Multi center)", Duration = 2})
+            Rayfield:Notify({Title = "Reset ✅", Content = "Arkadan bakışa döndü ", Duration = 2})
         else
-            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç!", Duration = 2})
+            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu seç!", Duration = 2})
         end
     end
 })
 
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected (Multi Sequential)",
+    Name = "⚡ Teleport",
     Callback = function()
         if #selectedPlayers == 0 then
-            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç! (Multi destekli)", Duration = 3})
+            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu seç!", Duration = 3})
             return
         end
         task.spawn(function()
@@ -1279,8 +1283,10 @@ CameraTab:CreateButton({
                         local myChar = Services.LocalPlayer.Character
                         if myChar and myChar:FindFirstChild("HumanoidRootPart") then
                             local myHRP = myChar.HumanoidRootPart
-                            myHRP.CFrame = targetHRP.CFrame * CFrame.new(features._tpX or 0, features._tpY or 0, features._tpZ or 25)
-                            Rayfield:Notify({Title = "Teleported ✅", Content = targetPlr.Name .. " - Başarılı! (Multi devam ediyor)", Duration = 3})
+                            -- FIXED: Random ön/arka 2 metre
+                            local randomZ = math.random() > 0.5 and 2 or -2  -- 50/50: +2 (ön) veya -2 (arka)
+                            myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 0, randomZ)  -- X=0, Y=0, Z=random ±2
+                            Rayfield:Notify({Title = "Teleported ✅", Content = targetPlr.Name .. " - Başarılı!", Duration = 3})
                             break
                         end
                     end
@@ -1300,6 +1306,9 @@ CameraTab:CreateButton({
 script.Destroying:Connect(function()
     if autoRefreshConn then autoRefreshConn:Disconnect() end
     for _, conn in ipairs(characterAddedConns) do conn:Disconnect() end
+    if cameraRenderConn then cameraRenderConn:Disconnect() end
+    if mouseMoveConn then mouseMoveConn:Disconnect() end
+    if mouseWheelConn then mouseWheelConn:Disconnect() end
 end)
 -- YENİ EMOTES TAB: Emotes logic entegre (standalone GUI olmadan, Rayfield buttons ile)
 local EmotesSection = EmotesTab:CreateSection("Loop Danslar 🔥💃")
