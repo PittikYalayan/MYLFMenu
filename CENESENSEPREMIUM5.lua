@@ -1175,7 +1175,7 @@ EmotesTab:CreateButton({
     end
 })
 EmotesTab:CreateToggle({
-    Name = "Player Emote SYNC",
+    Name = "👥Player Emote SYNC",
     CurrentValue = false,  -- Başlangıçta kapalı, ama script varsayılanı aktif eder
     Flag = "SYNCFlag",
     Callback = function(val)
