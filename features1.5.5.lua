@@ -1874,4 +1874,255 @@ function features.ToggleModeration(on) if on then applyCorePack(Packs.Moderation
 
 ------------------------------
 ------------------------------
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local syncTarget = nil
+local syncConn = nil
+local activeSyncedTracks = {}
+local screenGui = nil
+local followConns = {} -- takip UI bağlantıları
+local playerAddedConn = nil
+local playerRemovingConn = nil
+local selfCharacterAddedConn = nil
+
+local function initScreenGui()
+    if screenGui then return end
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "SyncKafaMasterGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = playerGui
+end
+
+local function cleanupSync()
+    if syncConn then syncConn:Disconnect() end
+    syncConn = nil
+    for _, ownTrack in pairs(activeSyncedTracks) do
+        if ownTrack then ownTrack:Stop() end
+    end
+    activeSyncedTracks = {}
+    syncTarget = nil
+end
+
+local function getTrackId(track)
+    return tonumber(track.Animation.AnimationId:match("%d+")) or 0
+end
+
+local function isCustomTrack(track)
+    local id = getTrackId(track)
+    return id > 0 and track.Length > 0.5
+end
+
+local function syncTracksUltra(targetAnim, myAnim)
+    local targetTracks = targetAnim:GetPlayingAnimationTracks()
+    local targetIds = {}
+    for _, tTrack in ipairs(targetTracks) do
+        if isCustomTrack(tTrack) then
+            targetIds[getTrackId(tTrack)] = tTrack
+        end
+    end
+    for id, ownTrack in pairs(activeSyncedTracks) do
+        if not targetIds[id] then
+            if ownTrack then ownTrack:Stop() end
+            activeSyncedTracks[id] = nil
+        end
+    end
+    for tId, tTrack in pairs(targetIds) do
+        if not activeSyncedTracks[tId] then
+            local newAnim = Instance.new("Animation")
+            newAnim.AnimationId = tTrack.Animation.AnimationId
+            local newTrack = myAnim:LoadAnimation(newAnim)
+            newTrack:Play(0)
+            newTrack:AdjustSpeed(tTrack.Speed)
+            newTrack.Looped = tTrack.Looped
+            newTrack.Priority = tTrack.Priority
+            activeSyncedTracks[tId] = newTrack
+        else
+            local ownTrack = activeSyncedTracks[tId]
+            if ownTrack then
+                ownTrack.TimePosition = tTrack.TimePosition
+                ownTrack:AdjustSpeed(tTrack.Speed)
+                ownTrack.Looped = tTrack.Looped
+            end
+        end
+    end
+end
+
+local function startSync(plr)
+    local targetChar = plr.Character
+    local myChar = player.Character
+    if not targetChar or not myChar then return end
+    local targetHum = targetChar:WaitForChild("Humanoid", 5)
+    local targetAnim = targetHum and targetHum:WaitForChild("Animator", 5)
+    local myHum = myChar:WaitForChild("Humanoid", 5)
+    local myAnim = myHum and myHum:WaitForChild("Animator", 5)
+    if not targetAnim or not myAnim then return end
+    cleanupSync()
+    syncTarget = plr
+    syncConn = RunService.Heartbeat:Connect(function()
+        if syncTarget ~= plr then cleanupSync() return end
+        if not targetChar.Parent or not myChar.Parent then cleanupSync() return end
+        pcall(syncTracksUltra, targetAnim, myAnim)
+    end)
+end
+
+local function switchSync(plr)
+    cleanupSync()
+    startSync(plr)
+end
+
+---------------------------------------------------------------------
+-- GÖVDEYE SABİT SİNC BUTONU (Ekran UI)
+---------------------------------------------------------------------
+local function createSyncGui(plr)
+    local char = plr.Character
+    if not char then return end
+    local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+    if not torso then return end
+    initScreenGui()
+    if screenGui:FindFirstChild(plr.Name .. "_SyncUI") then
+        screenGui[plr.Name .. "_SyncUI"]:Destroy()
+    end
+    if followConns[plr] then
+        followConns[plr]:Disconnect()
+        followConns[plr] = nil
+    end
+    local cam = workspace.CurrentCamera
+    local container = Instance.new("Frame")
+    container.Name = plr.Name .. "_SyncUI"
+    container.Size = UDim2.new(0, 120, 0, 30)
+    container.AnchorPoint = Vector2.new(0.5, 1)
+    container.BackgroundTransparency = 0.25 -- 🔥 hafif saydam
+    container.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    container.Parent = screenGui
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.Text = "SYNC"
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundTransparency = 1
+    btn.Parent = container
+    local st = Instance.new("UIStroke", container)
+    st.Color = Color3.new(0,0,0)
+    st.Thickness = 1
+    st.Transparency = 0.5
+    local uc = Instance.new("UICorner", container)
+    uc.CornerRadius = UDim.new(0,10)
+    btn.MouseButton1Click:Connect(function()
+        switchSync(plr)
+    end)
+    local conn -- local için
+    conn = RunService.RenderStepped:Connect(function()
+        if not torso.Parent or not char.Parent then
+            container.Visible = false
+            conn:Disconnect() -- bağlantıyı otomatik kapat (ölüm/çıkış için ekstra temizlik)
+            followConns[plr] = nil
+            return
+        end
+        local world = torso.Position + Vector3.new(0, 1.5, 0)
+        local vPos, onScr = cam:WorldToViewportPoint(world)
+        local dist = (cam.CFrame.Position - world).Magnitude
+        -- 5m ≈ 16 stud limit (yakın oyuncular için) - kodunuzda 30 yazmışsınız, ama 16'ya çektim (5m için ideal)
+        local visible = (onScr and dist < 16)
+        container.Visible = visible
+        if visible then
+            container.Position = UDim2.new(0, vPos.X, 0, vPos.Y)
+        end
+    end)
+    followConns[plr] = conn
+end
+
+---------------------------------------------------------------------
+-- OYUNCU ÇIKIŞINDA TAM TEMİZLIK (GUI + BAĞLANTI + SYNC)
+local function onPlayerRemoving(plr)
+    if syncTarget == plr then
+        cleanupSync()
+    end
+    -- GUI'yi sil
+    if screenGui then
+        local guiName = plr.Name .. "_SyncUI"
+        local existingGui = screenGui:FindFirstChild(guiName)
+        if existingGui then
+            existingGui:Destroy()
+        end
+    end
+    -- Takip bağlantısını kapat
+    if followConns[plr] then
+        followConns[plr]:Disconnect()
+        followConns[plr] = nil
+    end
+end
+
+local features = {}
+
+function features.ToggleSYNC(on)
+    if on then
+        -- Özelliği aktif et
+        if not playerRemovingConn then
+            playerRemovingConn = Players.PlayerRemoving:Connect(onPlayerRemoving)
+        end
+        if not selfCharacterAddedConn then
+            selfCharacterAddedConn = player.CharacterAdded:Connect(function()
+                task.wait(1)
+                if syncTarget then startSync(syncTarget) end
+            end)
+        end
+        if not playerAddedConn then
+            playerAddedConn = Players.PlayerAdded:Connect(function(plr)
+                if plr ~= player then
+                    plr.CharacterAdded:Connect(function()
+                        task.wait(1.5)
+                        createSyncGui(plr)
+                    end)
+                end
+            end)
+        end
+        -- Mevcut oyuncular için GUI oluştur
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= player then
+                plr.CharacterAdded:Connect(function()
+                    task.wait(1.5)
+                    createSyncGui(plr)
+                end)
+                if plr.Character then
+                    createSyncGui(plr)
+                end
+            end
+        end
+        print("SYNC: ON")
+    else
+        -- Özelliği kapat
+        cleanupSync()
+        if playerAddedConn then
+            playerAddedConn:Disconnect()
+            playerAddedConn = nil
+        end
+        if playerRemovingConn then
+            playerRemovingConn:Disconnect()
+            playerRemovingConn = nil
+        end
+        if selfCharacterAddedConn then
+            selfCharacterAddedConn:Disconnect()
+            selfCharacterAddedConn = nil
+        end
+        -- Tüm GUI'leri ve bağlantıları temizle
+        for plr, conn in pairs(followConns) do
+            if conn then conn:Disconnect() end
+        end
+        followConns = {}
+        if screenGui then
+            screenGui:Destroy()
+            screenGui = nil
+        end
+        print("🔒 SYNC ÖZELLİĞİ KAPATILDI")
+    end
+end
+
+-- Varsayılan olarak aktif et
+features.ToggleSYNC(true)
+
+
 return features
