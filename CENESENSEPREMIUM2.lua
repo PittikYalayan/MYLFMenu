@@ -1020,14 +1020,15 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
--- Camera View Tab: ATTIGIN KOD MANTIGI FIX'LI - Rayfield gibi CreateDropdown/Toggle, refresh auto, camera subject + CFrame, teleport PivotTo
-local selectedPlayer = nil
+-- Camera View Tab: ATTIGIN KOD MANTIGI FIX'LI - Multi özellikli dropdown, refresh auto, camera subject + CFrame, teleport PivotTo
+local CameraTab = Window:CreateTab("Camera") -- Ana tab
+local selectedPlayers = {} -- Multi için table
 local camActive = false
 local rainbowLabels = {}
-local btnRecords = {} -- approx for Rayfield
+local btnRecords = {} -- approx
 local selectedBtn = nil
 
--- Dropdown for player list (Rayfield standard, scrolling approx)
+-- Multi özellikli Dropdown (MultipleOptions = true, attığın mantık uyarlı)
 local playerDropdown = nil
 local function refreshPlayers()
     if playerDropdown then playerDropdown:Destroy() end
@@ -1039,18 +1040,26 @@ local function refreshPlayers()
         if plr ~= Services.LocalPlayer then
             table.insert(opts, "👤 " .. plr.Name)
             table.insert(rainbowLabels, plr.Name)
-            btnRecords[plr] = { btn = plr.Name, stroke = nil } -- approx
+            btnRecords[plr] = { btn = plr.Name, stroke = nil }
         end
     end
     playerDropdown = CameraTab:CreateDropdown({
-        Name = "Select Player",
+        Name = "Select Players (Multi)",
         Options = opts,
-        CurrentOption = "None",
+        CurrentOption = {},
+        MultipleOptions = true, -- Multi özellikli ✅
         Flag = "PlayerSelectFlag",
-        Callback = function(val)
-            selectedPlayer = Services.Players:FindFirstChild(val:sub(4))
-            selectedBtn = val
-            Rayfield:Notify({Title = "Seçildi", Content = selectedPlayer.Name, Duration = 3})
+        Callback = function(val) -- val table of selected names
+            selectedPlayers = {}
+            for _, name in ipairs(val) do
+                local plr = Services.Players:FindFirstChild(name:sub(4))
+                if plr then
+                    table.insert(selectedPlayers, plr)
+                end
+            end
+            local names = {}
+            for _, plr in selectedPlayers do table.insert(names, plr.Name) end
+            Rayfield:Notify({Title = "Seçildi", Content = table.concat(names, ", "), Duration = 3})
             goToSelectedIfActive()
         end
     })
@@ -1059,28 +1068,36 @@ refreshPlayers()
 Services.Players.PlayerAdded:Connect(refreshPlayers)
 Services.Players.PlayerRemoving:Connect(refreshPlayers)
 
--- Rainbow akışı (Rayfield text dynamic değil, approx skip veya notify simüle)
+-- Rainbow akışı (approx)
 Services.RunService.RenderStepped:Connect(function()
     local t = tick() * 0.35
     for i, lbl in ipairs(rainbowLabels) do
-        -- Rayfield'de text color change yok, ama console print veya notify ile simüle edilebilir
+        -- Rayfield approx skip
     end
 end)
 
--- goToSelectedIfActive (attığın gibi tam)
+-- goToSelectedIfActive (multi destekli, average pos)
 local function goToSelectedIfActive()
     if not camActive then return end
-    if selectedPlayer and selectedPlayer.Character then
-        local hum = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-        local hrp = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hum and hrp then
+    local positions = {}
+    for _, plr in ipairs(selectedPlayers) do
+        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(positions, plr.Character.HumanoidRootPart.Position)
+        end
+    end
+    if #positions > 0 then
+        local center = Vector3.new(0,0,0)
+        for _, pos in positions do center = center + pos end
+        center = center / #positions
+        local hum = selectedPlayers[1].Character:FindFirstChildOfClass("Humanoid") -- İlk için subject
+        if hum then
             Services.Camera.CameraSubject = hum
-            Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+            Services.Camera.CFrame = CFrame.new(center + Vector3.new(0,5,-10), center)
         end
     end
 end
 
--- Camera View toggle (attığın gibi tam)
+-- Camera View toggle (multi destekli)
 CameraTab:CreateToggle({
     Name = "🎥 Camera View",
     CurrentValue = false,
@@ -1088,9 +1105,11 @@ CameraTab:CreateToggle({
     Callback = function(on)
         camActive = on
         if on then
-            if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChildOfClass("Humanoid") then
+            if #selectedPlayers > 0 then
                 goToSelectedIfActive()
-                Rayfield:Notify({Title = "Camera kilitlendi", Content = selectedPlayer.Name, Duration = 3})
+                local names = {}
+                for _, plr in selectedPlayers do table.insert(names, plr.Name) end
+                Rayfield:Notify({Title = "Camera kilitlendi", Content = table.concat(names, ", "), Duration = 3})
             else
                 Rayfield:Notify({Title = "Uyarı", Content = "Player seçilmedi, listeden seç.", Duration = 3})
             end
@@ -1104,20 +1123,27 @@ CameraTab:CreateToggle({
     end
 })
 
--- Teleport toggle (attığın gibi tam, on'da PivotTo)
+-- Teleport toggle (multi sequential)
 CameraTab:CreateToggle({
     Name = "⚡ Teleport",
     CurrentValue = false,
     Flag = "TeleportFlag",
     Callback = function(on)
         if on then
-            if selectedPlayer and selectedPlayer.Character then
-                local targetHRP = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-                local myChar = Services.LocalPlayer.Character
-                if targetHRP and myChar then
-                    myChar:PivotTo(targetHRP.CFrame * CFrame.new(0,0,3))
-                    Rayfield:Notify({Title = "Teleport oldun", Content = selectedPlayer.Name, Duration = 3})
-                end
+            if #selectedPlayers > 0 then
+                task.spawn(function()
+                    for _, targetPlr in ipairs(selectedPlayers) do
+                        if targetPlr.Character then
+                            local targetHRP = targetPlr.Character:FindFirstChild("HumanoidRootPart")
+                            local myChar = Services.LocalPlayer.Character
+                            if targetHRP and myChar then
+                                myChar:PivotTo(targetHRP.CFrame * CFrame.new(0,0,3))
+                                Rayfield:Notify({Title = "Teleport oldun", Content = targetPlr.Name, Duration = 3})
+                            end
+                        end
+                        task.wait(1) -- Multi delay
+                    end
+                end)
             else
                 Rayfield:Notify({Title = "Uyarı", Content = "Player seçilmedi veya karakteri yok.", Duration = 3})
             end
@@ -1125,15 +1151,15 @@ CameraTab:CreateToggle({
     end
 })
 
--- Respawn handling (güvenlik için ekledim, attığın kodda yok ama faydalı)
+-- Respawn handling (multi için)
 Services.Players.PlayerAdded:Connect(function(plr)
-    if plr == selectedPlayer and camActive then
+    if camActive and table.find(selectedPlayers, plr) then
         task.wait(0.5)
         goToSelectedIfActive()
     end
 end)
 Services.LocalPlayer.CharacterAdded:Connect(function()
-    if camActive and selectedPlayer then
+    if camActive and #selectedPlayers > 0 then
         task.wait(0.5)
         goToSelectedIfActive()
     end
