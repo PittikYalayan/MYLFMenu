@@ -1020,33 +1020,15 @@ TeleportTab:CreateSlider({
         if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
     end
 })
---- Camera View Tab: ATTIGIN KOD MANTIGI FIX'LI - Tüm section'lar CameraTab altında, left/right yok
-local CameraTab = Window:CreateTab("Camera") -- Ana tab
+-- Camera View Tab: ATTIGIN KOD MANTIGI FIX'LI - Rayfield gibi CreateDropdown/Toggle, refresh auto, camera subject + CFrame, teleport PivotTo
 local selectedPlayer = nil
 local camActive = false
 local rainbowLabels = {}
-local btnRecords = {} -- { [plr]= {btn=..., stroke=...} } approx
+local btnRecords = {} -- approx for Rayfield
 local selectedBtn = nil
 
--- Scrollable list yerine Rayfield Dropdown (options rainbow için approx)
+-- Dropdown for player list (Rayfield standard, scrolling approx)
 local playerDropdown = nil
-local function paintBtn(th, btn, stroke, isSelected) 
-    -- Rayfield'de skip, auto theme
-end
-local function reapplyThemeForList()
-    -- Rayfield auto
-end
-local function goToSelectedIfActive()
-    if not camActive then return end
-    if selectedPlayer and selectedPlayer.Character then
-        local hum = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
-        local hrp = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hum and hrp then
-            Services.Camera.CameraSubject = hum
-            Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
-        end
-    end
-end
 local function refreshPlayers()
     if playerDropdown then playerDropdown:Destroy() end
     rainbowLabels = {}
@@ -1057,8 +1039,7 @@ local function refreshPlayers()
         if plr ~= Services.LocalPlayer then
             table.insert(opts, "👤 " .. plr.Name)
             table.insert(rainbowLabels, plr.Name)
-            btnRecords[plr] = { btn = plr.Name, stroke = nil }
-            -- theme updater skip
+            btnRecords[plr] = { btn = plr.Name, stroke = nil } -- approx
         end
     end
     playerDropdown = CameraTab:CreateDropdown({
@@ -1070,25 +1051,36 @@ local function refreshPlayers()
             selectedPlayer = Services.Players:FindFirstChild(val:sub(4))
             selectedBtn = val
             Rayfield:Notify({Title = "Seçildi", Content = selectedPlayer.Name, Duration = 3})
-            reapplyThemeForList()
             goToSelectedIfActive()
         end
     })
-    reapplyThemeForList()
 end
 refreshPlayers()
 Services.Players.PlayerAdded:Connect(refreshPlayers)
 Services.Players.PlayerRemoving:Connect(refreshPlayers)
 
--- Rainbow akışı (approx)
+-- Rainbow akışı (Rayfield text dynamic değil, approx skip veya notify simüle)
 Services.RunService.RenderStepped:Connect(function()
     local t = tick() * 0.35
     for i, lbl in ipairs(rainbowLabels) do
-        -- Rayfield text change approx skip
+        -- Rayfield'de text color change yok, ama console print veya notify ile simüle edilebilir
     end
 end)
 
--- Camera View toggle (attığın gibi)
+-- goToSelectedIfActive (attığın gibi tam)
+local function goToSelectedIfActive()
+    if not camActive then return end
+    if selectedPlayer and selectedPlayer.Character then
+        local hum = selectedPlayer.Character:FindFirstChildOfClass("Humanoid")
+        local hrp = selectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hum and hrp then
+            Services.Camera.CameraSubject = hum
+            Services.Camera.CFrame = CFrame.new(hrp.Position + Vector3.new(0,5,-10), hrp.Position)
+        end
+    end
+end
+
+-- Camera View toggle (attığın gibi tam)
 CameraTab:CreateToggle({
     Name = "🎥 Camera View",
     CurrentValue = false,
@@ -1112,7 +1104,7 @@ CameraTab:CreateToggle({
     end
 })
 
--- Toggle: Seçilen oyuncunun yanına ışınlan (attığın gibi)
+-- Teleport toggle (attığın gibi tam, on'da PivotTo)
 CameraTab:CreateToggle({
     Name = "⚡ Teleport",
     CurrentValue = false,
@@ -1133,17 +1125,15 @@ CameraTab:CreateToggle({
     end
 })
 
--- Respawn handling (güvenlik)
-if selectedPlayer then
-    selectedPlayer.CharacterAdded:Connect(function()
-        if camActive then
-            task.wait(0.5)
-            goToSelectedIfActive()
-        end
-    end)
-end
+-- Respawn handling (güvenlik için ekledim, attığın kodda yok ama faydalı)
+Services.Players.PlayerAdded:Connect(function(plr)
+    if plr == selectedPlayer and camActive then
+        task.wait(0.5)
+        goToSelectedIfActive()
+    end
+end)
 Services.LocalPlayer.CharacterAdded:Connect(function()
-    if camActive then
+    if camActive and selectedPlayer then
         task.wait(0.5)
         goToSelectedIfActive()
     end
