@@ -1302,6 +1302,40 @@ script.Destroying:Connect(function()
     for _, conn in ipairs(characterAddedConns) do conn:Disconnect() end
 end)
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
+EmotesTab:CreateToggle({
+    Name = "🔄 Loop Mode (Sürekli Oynat)",
+    CurrentValue = false,
+    Flag = "EmoteLoopFlag",
+    Callback = function(val)
+        getgenv().EmotesLoopMode = val
+        if getgenv().CurrentEmoteTrack then
+            getgenv().CurrentEmoteTrack.Looped = val
+            Rayfield:Notify({Title = "Loop Güncellendi", Content = val and "ON – Sürekli!" or "OFF – Tek sefer!", Duration = 2})
+        end
+    end
+})
+EmotesTab:CreateButton({
+    Name = "🛑 Stop Current Emote",
+    Callback = function()
+        if getgenv().CurrentEmoteTrack then
+            getgenv().CurrentEmoteTrack:Stop(0.1)
+            getgenv().CurrentEmoteTrack = nil
+            local animate = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChild("Animate")
+            if animate then animate.Disabled = false end
+            Rayfield:Notify({Title = "Emote Durduruldu", Content = "Normal animasyona döndü.", Duration = 2})
+        else
+            Rayfield:Notify({Title = "Uyarı", Content = "Aktif emote yok.", Duration = 2})
+        end
+    end
+})
+EmotesTab:CreateToggle({
+        Name = "👥 SYNC Player",
+        CurrentValue = false,
+        Flag = "SYNCflag"
+        if features features.ToggleSYNC then features.ToggleSYNC(val)
+        end
+    end
+})
 local emoteSections = {
     {
         title = "Emotes: Developer Section",
