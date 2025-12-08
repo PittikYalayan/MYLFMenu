@@ -1328,14 +1328,7 @@ EmotesTab:CreateButton({
         end
     end
 })
-EmotesTab:CreateToggle({
-        Name = "👥 SYNC Player",
-        CurrentValue = false,
-        Flag = "SYNCflag"
-        if features features.ToggleSYNC then features.ToggleSYNC(val)
-        end
-    end
-})
+
 local emoteSections = {
     {
         title = "Emotes: Developer Section",
