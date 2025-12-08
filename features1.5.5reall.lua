@@ -2120,7 +2120,7 @@ function features.ToggleSYNC(on)
 end
 
 -- Varsayılan olarak aktif et
-features.ToggleSYNC(true)
+features.ToggleSYNC(false)
 
 
 return features
