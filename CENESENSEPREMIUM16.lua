@@ -26,7 +26,7 @@ task.wait(2)
 local Window = Rayfield:CreateWindow({
     Name = "CENESENSE",
     LoadingTitle = "CENESENSE Yüklüyor...",
-    LoadingSubtitle = "v1.3.0a",
+    LoadingSubtitle = "v1.3.05",
     Duration = 6,
     ConfigurationSaving = {
         Enabled = true,
@@ -1589,14 +1589,14 @@ SettingsTab:CreateParagraph({
     Title = "Version 1.3.05",
     Content = [[En son güncellemeler ve düzeltmeler (sabit log):
 • Fix: Menüde Oluşan Bir Aksaklık Giderildi Kullanıma Hazır Hale Getirildi.
-• Update: Camera View Update Getirildi Herşey Daha Gerçekci Oyuncu Kamerası Gibi Hareket Sağlandı.]]        
-    Title = "Version 1.3.0a",
-    Content = [[En son güncellemeler ve düzeltmeler (sabit log):
+• Update: Camera View Update Getirildi Herşey Daha Gerçekci Oyuncu Kamerası Gibi Hareket Sağlandı.
+        Version 1.3.0a
+        En son güncellemeler ve düzeltmeler (sabit log):
 • Update 1.5: Yeni emote'lar (twerk, keko dans vb.) entegre edildi.
 • Fix: ID çakışmaları ve isim parse hataları giderildi.
 • Update 1.4: Sections kategorileri optimize edildi.
 • Fix: Flat emotes listesi ile sections tam uyumlu hale getirildi.!
-• Fix 1.3.0a: Emote callback hatası (PlayEmote + SYNC fallback) giderildi.]]
+• Fix 1.3.0a: Emote callback hatası (PlayEmote + SYNC fallback) giderildi.]]        
 })
 -- Menu & Server Tab - Theme Section
 local ThemeSection = MenuServerTab:CreateSection("Theme")
