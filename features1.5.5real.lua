@@ -2056,8 +2056,6 @@ local function onPlayerRemoving(plr)
     end
 end
 
-local features = {}
-
 function features.ToggleSYNC(on)
     if on then
         -- Özelliği aktif et
