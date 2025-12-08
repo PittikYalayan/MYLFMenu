@@ -43,7 +43,7 @@ Rayfield:Notify({
 })
 -- Features'i external linkten yükle (bağlam uyumlu, error handling ile – hata verirse inline fallback)
 local success, features = pcall(function()
-    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.5.5.lua"))()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.5.5real.lua"))()
 end)
 if not success or not features or type(features) ~= "table" then
     Rayfield:Notify({
