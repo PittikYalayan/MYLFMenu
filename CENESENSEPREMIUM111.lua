@@ -1062,271 +1062,256 @@ TeleportTab:CreateSlider({
         if features and features.SetTeleportOffset then features.SetTeleportOffset((features._tpX or 0), (features._tpY or 0), val) end
     end
 })
--- Camera View Tab: FREE ORBIT CAMERA - Mouse ile özgür dön, zoom, FPS drop yok, ultra smooth RenderStepped
--- MULTIPLE OPTIONS: Dropdown multi-select, camera average center for group view, teleport sequential
-local CameraSection = CameraTab:CreateSection("Camera View")
-local selectedPlayers = {} -- CHANGED: Table for multiple
-local camActive = false
-local playerDropdown = nil -- FIXED: Global dropdown ref for destroy
-local lastRefreshTime = 0 -- FIXED: Debounce for manual refresh
-local characterAddedConns = {} -- CHANGED: Array for multiple respawn handling
-local playerListCache = {} -- NEW: Cache for fast change detection (optimize, no loop spam)
--- FREE CAMERA VARS: Yaw/Pitch/Distance for orbit (radyan)
-local yaw = math.rad(180) -- Başlangıç: Arkadan bakar
-local pitch = math.rad(-15) -- Hafif yukarı
-local distance = 20 -- Başlangıç mesafe
-local minDistance = 5
-local maxDistance = 150
-local cameraRenderConn = nil -- RenderStepped for ultra smooth NO LAG
-local mouseMoveConn = nil -- UserInputService for mouse delta
-local mouseWheelConn = nil -- Zoom
+local selectedPlayers = {}
+local camViewActive  = false
+local dropdownRef    = nil
+local lastRefresh    = 0
+
+local playerListCache = {}
+local respawnConns    = {}
+
+local yaw     = math.rad(180)
+local pitch   = math.rad(-15)
+local dist    = 20
+local minDist = 5
+local maxDist = 150
+
+local camStepConn   = nil
+local mouseDeltaConn = nil
+local wheelConn      = nil
+
 local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
-local Players = game:GetService("Players")
-local function getPlayerOptions()
-    local opts = {}
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Players.LocalPlayer then
-            table.insert(opts, plr.Name)
-        end
+local RS  = game:GetService("RunService")
+local Plrs = game:GetService("Players")
+local LP = Plrs.LocalPlayer
+local Cam = workspace.CurrentCamera
+
+----------------------------------------------------------------------
+-- UTIL
+----------------------------------------------------------------------
+
+local function collectOptions()
+    local list = {}
+    for _, p in ipairs(Plrs:GetPlayers()) do
+        if p ~= LP then table.insert(list, p.Name) end
     end
-    return opts
+    return list
 end
-local function createPlayerDropdown()
-    if playerDropdown then playerDropdown:Destroy() end
-    local opts = getPlayerOptions()
-    playerDropdown = CameraTab:CreateDropdown({
+
+local function rebuildDropdown()
+    if dropdownRef then dropdownRef:Destroy() end
+
+    dropdownRef = CameraTab:CreateDropdown({
         Name = "Select Players (Multi)",
-        Options = opts,
-        CurrentOption = {}, -- CHANGED: Empty table for multi
-        MultipleOptions = true, -- NEW: Multiple selection ✅
-        Flag = "PlayerSelectFlag",
-        Callback = function(val) -- val: table of names
-            -- Eski conn'ları disconnect
-            for _, conn in ipairs(characterAddedConns) do conn:Disconnect() end
-            characterAddedConns = {}
+        Options = collectOptions(),
+        CurrentOption = {},
+        MultipleOptions = true,
+        Callback = function(selectedNames)
+            -- temizle
+            for _, c in ipairs(respawnConns) do c:Disconnect() end
+            respawnConns = {}
+
             selectedPlayers = {}
-            for _, name in ipairs(val) do
-                local plr = Players:FindFirstChild(name)
+
+            for _, name in ipairs(selectedNames) do
+                local plr = Plrs:FindFirstChild(name)
                 if plr then
                     table.insert(selectedPlayers, plr)
-                    -- Multi respawn relock
-                    local conn = plr.CharacterAdded:Connect(function()
-                        if camActive then
-                            task.wait(0.1) -- Ultra fast
-                        end
-                    end)
-                    table.insert(characterAddedConns, conn)
+                    table.insert(respawnConns, plr.CharacterAdded:Connect(function()
+                        if camViewActive then task.wait(0.1) end
+                    end))
                 end
             end
+
             if #selectedPlayers > 0 then
-                local names = {}
-                for _, plr in selectedPlayers do table.insert(names, plr.Name) end
-                Rayfield:Notify({Title = "Selected ✅", Content = table.concat(names, ", ") .. " - Hazır! (Multi destekli)", Duration = 3})
-            else
-                Rayfield:Notify({Title = "Error ❌", Content = "Oyuncu bulunamadı, yeniden seç", Duration = 3})
+                local t = {}
+                for _, p in ipairs(selectedPlayers) do table.insert(t, p.Name) end
+                Rayfield:Notify({
+                    Title = "Selected",
+                    Content = table.concat(t, ", "),
+                    Duration = 3
+                })
             end
         end
     })
 end
--- INITIAL CREATE
-createPlayerDropdown()
--- AUTO REFRESH: Event-based + Heartbeat minimal check (ultra fast, no lag)
-local function refreshDropdownIfChanged()
-    local currentPlayers = {}
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= Players.LocalPlayer then
-            currentPlayers[plr.Name] = true
+
+----------------------------------------------------------------------
+-- AUTO REFRESH SYSTEM
+----------------------------------------------------------------------
+
+local function detectChanges()
+    local nowList = {}
+    for _, p in ipairs(Plrs:GetPlayers()) do
+        if p ~= LP then
+            nowList[p.Name] = true
         end
     end
+
     local changed = false
+
     for name in pairs(playerListCache) do
-        if not currentPlayers[name] then changed = true break end
+        if not nowList[name] then changed = true break end
     end
-    for name in pairs(currentPlayers) do
+
+    for name in pairs(nowList) do
         if not playerListCache[name] then changed = true break end
     end
+
     if changed then
-        playerListCache = currentPlayers
-        createPlayerDropdown() -- Auto recreate on change
-        -- Check selectedPlayers for left players
-        local toRemove = {}
-        for i, plr in ipairs(selectedPlayers) do
-            if not Players:FindFirstChild(plr.Name) then
-                table.insert(toRemove, i)
+        playerListCache = nowList
+        rebuildDropdown()
+
+        -- seçilmişlerden ayrılanları sil
+        for i = #selectedPlayers, 1, -1 do
+            if not Plrs:FindFirstChild(selectedPlayers[i].Name) then
+                table.remove(selectedPlayers, i)
             end
-        end
-        for _, idx in ipairs(toRemove) do
-            table.remove(selectedPlayers, idx)
-        end
-        if #toRemove > 0 then
-            Rayfield:Notify({Title = "Uyarı ⚠️", Content = #toRemove .. " oyuncu ayrıldı, liste güncellendi", Duration = 3})
         end
     end
 end
--- EVENTS: Player eklen/çıkınca direkt trigger (en hızlı)
-Players.PlayerAdded:Connect(refreshDropdownIfChanged)
-Players.PlayerRemoving:Connect(refreshDropdownIfChanged)
--- HEARTBEAT: Her frame check (0.016s ~0.01ms yakın, ama event'lar ana trigger)
-local autoRefreshConn = RS.Heartbeat:Connect(refreshDropdownIfChanged)
--- MANUAL REFRESH (hala var, ama auto yüzünden nadir kullan)
-CameraTab:CreateButton({
-    Name = "Refresh Players (Manual)",
-    Callback = function()
-        local now = tick()
-        if now - lastRefreshTime < 1 then
-            Rayfield:Notify({Title = "Cooldown", Content = "Bekle 1s", Duration = 2})
-            return
-        end
-        lastRefreshTime = now
-        refreshDropdownIfChanged()
-        Rayfield:Notify({Title = "Refreshed ✅", Content = "Liste güncellendi (Auto zaten yapıyor!)", Duration = 3})
-    end
-})
--- FREE ORBIT CAMERA CORE: Multi-player support - Average center + auto distance
-local function lockCameraToPlayer(targetPlayers, active)
-    -- Tüm conn'ları temizle
-    if cameraRenderConn then cameraRenderConn:Disconnect() cameraRenderConn = nil end
-    if mouseMoveConn then mouseMoveConn:Disconnect() mouseMoveConn = nil end
-    if mouseWheelConn then mouseWheelConn:Disconnect() mouseWheelConn = nil end
-   
-    if not active or #targetPlayers == 0 then
-        Services.Camera.CameraType = Enum.CameraType.Custom
-        local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if myHum then Services.Camera.CameraSubject = myHum end
-        return
-    end
-   
-    Services.Camera.CameraType = Enum.CameraType.Scriptable
-   
-    -- MOUSE DELTA SENSITIVITY (optimize: low for smooth)
-    local sensitivity = 0.005 -- Radyan per pixel, FPS drop yok
-   
-    -- Mouse Move: Yaw/Pitch update (sadece mouse move'de, efficient)
-    mouseMoveConn = UIS.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            yaw = yaw - input.Delta.X * sensitivity
-            pitch = math.clamp(pitch - input.Delta.Y * sensitivity, math.rad(-80), math.rad(80)) -- Pitch limit (ters dönmesin)
-        end
-    end)
-   
-    -- Mouse Wheel: Zoom (ultra responsive)
-    mouseWheelConn = UIS.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseWheel then
-            distance = math.clamp(distance - input.Position.Z * 2, minDistance, maxDistance)
-        end
-    end)
-   
-    -- RENDER STEPPED LOOP: Ultra smooth, NO LAG, her frame update (Roblox optimized)
-    cameraRenderConn = RS.RenderStepped:Connect(function()
-        pcall(function()
-            local positions = {}
-            for _, plr in ipairs(targetPlayers) do
-                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    table.insert(positions, plr.Character.HumanoidRootPart.Position)
-                end
-            end
-            if #positions > 0 then
-                -- Average center for multi
-                local center = Vector3.new(0,0,0)
-                for _, pos in positions do center = center + pos end
-                center = center / #positions
-               
-                -- Auto distance adjust for bounds (multi için hepsi framede olsun)
-                local maxDist = 0
-                for _, pos in positions do
-                    local dist = (pos - center).Magnitude
-                    if dist > maxDist then maxDist = dist end
-                end
-                local effectiveDist = math.max(distance, maxDist * 1.5) -- Zoom override if needed
-               
-                -- SPHERICAL ORBIT CALC: Özgür açı + mesafe
-                local camCFrame = CFrame.new(center) * CFrame.Angles(pitch, yaw, 0) * CFrame.new(0, 0, -effectiveDist)
-               
-                Services.Camera.CFrame = camCFrame
-            end
-        end)
-    end)
+
+Plrs.PlayerAdded:Connect(detectChanges)
+Plrs.PlayerRemoving:Connect(detectChanges)
+RS.Heartbeat:Connect(detectChanges)
+
+rebuildDropdown()
+
+----------------------------------------------------------------------
+-- FREE CAMERA CORE
+----------------------------------------------------------------------
+
+local function disableFreeCam()
+    camViewActive = false
+
+    if camStepConn then camStepConn:Disconnect() camStepConn = nil end
+    if mouseDeltaConn then mouseDeltaConn:Disconnect() mouseDeltaConn = nil end
+    if wheelConn then wheelConn:Disconnect() wheelConn = nil end
+
+    Cam.CameraType = Enum.CameraType.Custom
+
+    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+    if hum then Cam.CameraSubject = hum end
 end
+
+local function enableFreeCam()
+    if #selectedPlayers == 0 then
+        Rayfield:Notify({Title="Error",Content="Oyuncu seç",Duration=2})
+        return false
+    end
+
+    camViewActive = true
+
+    Cam.CameraType = Enum.CameraType.Scriptable
+
+    local sens = 0.005
+
+    mouseDeltaConn = UIS.InputChanged:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseMovement then
+            yaw = yaw - i.Delta.X * sens
+            pitch = math.clamp(pitch - i.Delta.Y * sens, math.rad(-80), math.rad(80))
+        end
+    end)
+
+    wheelConn = UIS.InputChanged:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseWheel then
+            dist = math.clamp(dist - i.Position.Z * 2, minDist, maxDist)
+        end
+    end)
+
+    camStepConn = RS.RenderStepped:Connect(function()
+        local valid = {}
+
+        for _, p in ipairs(selectedPlayers) do
+            local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then table.insert(valid, hrp.Position) end
+        end
+
+        if #valid == 0 then return end
+
+        local center = Vector3.zero
+        for _, pos in ipairs(valid) do center += pos end
+        center /= #valid
+
+        local maxD = 0
+        for _, pos in ipairs(valid) do
+            local d = (pos - center).Magnitude
+            if d > maxD then maxD = d end
+        end
+
+        local effectiveDist = math.max(dist, maxD * 1.5)
+
+        Cam.CFrame =
+            CFrame.new(center)
+            * CFrame.Angles(pitch, yaw, 0)
+            * CFrame.new(0,0,-effectiveDist)
+    end)
+
+    return true
+end
+
+----------------------------------------------------------------------
+-- TOGGLES
+----------------------------------------------------------------------
+
 CameraTab:CreateToggle({
-    Name = "🎥 Free Camera View", -- Özgür mouse dön/zoom, ultra optimize, multi-player center
+    Name = "🎥 Free Camera View",
     CurrentValue = false,
-    Flag = "CamViewFlag",
     Callback = function(val)
-        if #selectedPlayers == 0 then
-            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç! (Multi destekli)", Duration = 3})
-            return false -- Toggle'ı kapat
-        end
-        camActive = val
-        lockCameraToPlayer(selectedPlayers, val)
         if val then
-            local names = {}
-            for _, plr in selectedPlayers do table.insert(names, plr.Name) end
-            Rayfield:Notify({Title = "Free Cam ON ✅", Content = table.concat(names, ", ") .. " - Mouse ile dön/zoom (wheel)", Duration = 4})
+            if not enableFreeCam() then
+                return false
+            end
         else
-            Rayfield:Notify({Title = "Free Cam OFF", Content = "Normal kameraya döndü", Duration = 3})
+            disableFreeCam()
         end
     end
 })
--- LocalPlayer respawn: Relock
-Services.LocalPlayer.CharacterAdded:Connect(function()
-    if camActive and #selectedPlayers > 0 then
-        task.wait(0.1)
-        lockCameraToPlayer(selectedPlayers, true)
+
+LP.CharacterAdded:Connect(function()
+    if camViewActive then
+        task.wait(0.2)
+        enableFreeCam()
     end
 end)
--- BONUS: Reset Angles Button (multi için de çalışır)
+
 CameraTab:CreateButton({
     Name = "🔄 Reset Camera Angles",
     Callback = function()
-        if #selectedPlayers > 0 then
-            yaw = math.rad(180)
-            pitch = math.rad(-15)
-            distance = 20
-            Rayfield:Notify({Title = "Reset ✅", Content = "Arkadan bakışa döndü (Multi center)", Duration = 2})
-        else
-            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç!", Duration = 2})
-        end
+        yaw   = math.rad(180)
+        pitch = math.rad(-15)
+        dist  = 20
+        Rayfield:Notify({Title="Reset",Content="Camera reset",Duration=2})
     end
 })
+
 CameraTab:CreateButton({
-    Name = "⚡ Teleport to Selected (Multi Sequential)",
+    Name = "⚡ Teleport Sequential",
     Callback = function()
         if #selectedPlayers == 0 then
-            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç! (Multi destekli)", Duration = 3})
+            Rayfield:Notify({Title="Error",Content="Oyuncu seç",Duration=2})
             return
         end
+
         task.spawn(function()
-            for _, targetPlr in ipairs(selectedPlayers) do
-                local maxRetries = 10
-                local retries = 0
-                while retries < maxRetries do
-                    if targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
-                        local targetHRP = targetPlr.Character.HumanoidRootPart
-                        local myChar = Services.LocalPlayer.Character
-                        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-                            local myHRP = myChar.HumanoidRootPart
-                            myHRP.CFrame = targetHRP.CFrame * CFrame.new((features and features._tpX) or 0, (features and features._tpY) or 0, (features and features._tpZ) or 25)
-                            Rayfield:Notify({Title = "Teleported ✅", Content = targetPlr.Name .. " - Başarılı! (Multi devam ediyor)", Duration = 3})
-                            break
-                        end
-                    end
-                    retries = retries + 1
-                    task.wait(1)
+            for _, p in ipairs(selectedPlayers) do
+                local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                local my = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+
+                if hrp and my then
+                    my.CFrame = hrp.CFrame * CFrame.new(0,0,25)
+                    Rayfield:Notify({
+                        Title="TP",
+                        Content=p.Name.." → OK",
+                        Duration=2
+                    })
                 end
-                if retries >= maxRetries then
-                    Rayfield:Notify({Title = "Error ❌", Content = targetPlr.Name .. " - Retry failed", Duration = 3})
-                end
-                task.wait(1) -- Multi için delay, spam olmasın
+
+                task.wait(1)
             end
         end)
     end
 })
--- CLEANUP: Script destroy'da conn'ları disconnect (gerekli değil ama ekstra clean)
-script.Destroying:Connect(function()
-    if autoRefreshConn then autoRefreshConn:Disconnect() end
-    for _, conn in ipairs(characterAddedConns) do conn:Disconnect() end
-end)
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 -- DÜZELTME: Emote Controls Section + PlayEmote Fonksiyonu (callback hatası için zorunlu)
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
