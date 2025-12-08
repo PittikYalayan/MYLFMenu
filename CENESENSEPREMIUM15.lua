@@ -181,6 +181,32 @@ if not success then
         getgenv()._tpY = y
         getgenv()._tpZ = z
     end
+    -- YENİ: SYNC Emote Fallback (yakındaki oyunculara emote kopyala, throttle'lı)
+    features.ToggleSYNC = function(on)
+        getgenv().EmoteSYNC = on
+        if on then
+            coroutine.wrap(function()
+                while getgenv().EmoteSYNC do
+                    if getgenv().CurrentEmoteTrack then
+                        local myId = getgenv().CurrentEmoteTrack.Animation.AnimationId
+                        for _, plr in ipairs(Services.Players:GetPlayers()) do
+                            if plr ~= Services.LocalPlayer and plr.Character and (plr.Character.HumanoidRootPart.Position - Services.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < 50 then
+                                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                                if hum then
+                                    local anim = Instance.new("Animation")
+                                    anim.AnimationId = myId
+                                    local track = hum:LoadAnimation(anim)
+                                    track:Play()
+                                    anim:Destroy()
+                                end
+                            end
+                        end
+                    end
+                    task.wait(2) -- Throttle: Her 2s sync, spam önle
+                end
+            end)()
+        end
+    end
     features._walkSpeed = 16
     features._flySpeed = 50
     features._tpX = 0
@@ -358,7 +384,7 @@ local emotes = {
     {name = "??", id = "rbxassetid://112089880074848"},
     {name = "???", id = "rbxassetid://136491428712959"},
     {name = "????", id = "rbxassetid://96357779735687"},
-    {name = "?keko?", id = "rbxassetid://133841838295129"},  -- keko dans ile çakışıyor, ama eskiyi korudum; isterseniz birleştiririm
+    {name = "?keko?", id = "rbxassetid://133841838295129"}, -- keko dans ile çakışıyor, ama eskiyi korudum; isterseniz birleştiririm
     {name = "GanGam Style", id = "rbxassetid://14618196485"},
     {name = "Dararara", id = "rbxassetid://115781688996859"},
     {name = "Twice", id = "rbxassetid://14899980745"},
@@ -878,7 +904,6 @@ VisualTab:CreateToggle({
         getgenv().ChamsEnabled = val
     end
 })
-
 VisualTab:CreateToggle({
     Name = "Rainbow Chams (All Player)",
     CurrentValue = false,
@@ -977,7 +1002,7 @@ TeleportTab:CreateToggle({
     Callback = function(val)
         if features.ToggleAutoBehind then features.ToggleAutoBehind(val) end
     end
-      
+     
 })
 TeleportTab:CreateToggle({
     Name = "⚡ Auto Farm Enemy",
@@ -1029,22 +1054,18 @@ local playerDropdown = nil -- FIXED: Global dropdown ref for destroy
 local lastRefreshTime = 0 -- FIXED: Debounce for manual refresh
 local characterAddedConns = {} -- CHANGED: Array for multiple respawn handling
 local playerListCache = {} -- NEW: Cache for fast change detection (optimize, no loop spam)
-
 -- FREE CAMERA VARS: Yaw/Pitch/Distance for orbit (radyan)
 local yaw = math.rad(180) -- Başlangıç: Arkadan bakar
 local pitch = math.rad(-15) -- Hafif yukarı
 local distance = 20 -- Başlangıç mesafe
 local minDistance = 5
 local maxDistance = 150
-
 local cameraRenderConn = nil -- RenderStepped for ultra smooth NO LAG
 local mouseMoveConn = nil -- UserInputService for mouse delta
 local mouseWheelConn = nil -- Zoom
-
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 local Players = game:GetService("Players")
-
 local function getPlayerOptions()
     local opts = {}
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -1054,7 +1075,6 @@ local function getPlayerOptions()
     end
     return opts
 end
-
 local function createPlayerDropdown()
     if playerDropdown then playerDropdown:Destroy() end
     local opts = getPlayerOptions()
@@ -1071,7 +1091,7 @@ local function createPlayerDropdown()
             selectedPlayers = {}
             for _, name in ipairs(val) do
                 local plr = Players:FindFirstChild(name)
-                if plr then 
+                if plr then
                     table.insert(selectedPlayers, plr)
                     -- Multi respawn relock
                     local conn = plr.CharacterAdded:Connect(function()
@@ -1082,7 +1102,7 @@ local function createPlayerDropdown()
                     table.insert(characterAddedConns, conn)
                 end
             end
-            if #selectedPlayers > 0 then 
+            if #selectedPlayers > 0 then
                 local names = {}
                 for _, plr in selectedPlayers do table.insert(names, plr.Name) end
                 Rayfield:Notify({Title = "Selected ✅", Content = table.concat(names, ", ") .. " - Hazır! (Multi destekli)", Duration = 3})
@@ -1092,10 +1112,8 @@ local function createPlayerDropdown()
         end
     })
 end
-
 -- INITIAL CREATE
 createPlayerDropdown()
-
 -- AUTO REFRESH: Event-based + Heartbeat minimal check (ultra fast, no lag)
 local function refreshDropdownIfChanged()
     local currentPlayers = {}
@@ -1129,14 +1147,11 @@ local function refreshDropdownIfChanged()
         end
     end
 end
-
 -- EVENTS: Player eklen/çıkınca direkt trigger (en hızlı)
 Players.PlayerAdded:Connect(refreshDropdownIfChanged)
 Players.PlayerRemoving:Connect(refreshDropdownIfChanged)
-
 -- HEARTBEAT: Her frame check (0.016s ~0.01ms yakın, ama event'lar ana trigger)
 local autoRefreshConn = RS.Heartbeat:Connect(refreshDropdownIfChanged)
-
 -- MANUAL REFRESH (hala var, ama auto yüzünden nadir kullan)
 CameraTab:CreateButton({
     Name = "Refresh Players (Manual)",
@@ -1151,26 +1166,25 @@ CameraTab:CreateButton({
         Rayfield:Notify({Title = "Refreshed ✅", Content = "Liste güncellendi (Auto zaten yapıyor!)", Duration = 3})
     end
 })
-
 -- FREE ORBIT CAMERA CORE: Multi-player support - Average center + auto distance
 local function lockCameraToPlayer(targetPlayers, active)
     -- Tüm conn'ları temizle
     if cameraRenderConn then cameraRenderConn:Disconnect() cameraRenderConn = nil end
     if mouseMoveConn then mouseMoveConn:Disconnect() mouseMoveConn = nil end
     if mouseWheelConn then mouseWheelConn:Disconnect() mouseWheelConn = nil end
-    
+   
     if not active or #targetPlayers == 0 then
         Services.Camera.CameraType = Enum.CameraType.Custom
         local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if myHum then Services.Camera.CameraSubject = myHum end
         return
     end
-    
+   
     Services.Camera.CameraType = Enum.CameraType.Scriptable
-    
+   
     -- MOUSE DELTA SENSITIVITY (optimize: low for smooth)
     local sensitivity = 0.005 -- Radyan per pixel, FPS drop yok
-    
+   
     -- Mouse Move: Yaw/Pitch update (sadece mouse move'de, efficient)
     mouseMoveConn = UIS.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -1178,14 +1192,14 @@ local function lockCameraToPlayer(targetPlayers, active)
             pitch = math.clamp(pitch - input.Delta.Y * sensitivity, math.rad(-80), math.rad(80)) -- Pitch limit (ters dönmesin)
         end
     end)
-    
+   
     -- Mouse Wheel: Zoom (ultra responsive)
     mouseWheelConn = UIS.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseWheel then
             distance = math.clamp(distance - input.Position.Z * 2, minDistance, maxDistance)
         end
     end)
-    
+   
     -- RENDER STEPPED LOOP: Ultra smooth, NO LAG, her frame update (Roblox optimized)
     cameraRenderConn = RS.RenderStepped:Connect(function()
         pcall(function()
@@ -1200,7 +1214,7 @@ local function lockCameraToPlayer(targetPlayers, active)
                 local center = Vector3.new(0,0,0)
                 for _, pos in positions do center = center + pos end
                 center = center / #positions
-                
+               
                 -- Auto distance adjust for bounds (multi için hepsi framede olsun)
                 local maxDist = 0
                 for _, pos in positions do
@@ -1208,16 +1222,15 @@ local function lockCameraToPlayer(targetPlayers, active)
                     if dist > maxDist then maxDist = dist end
                 end
                 local effectiveDist = math.max(distance, maxDist * 1.5) -- Zoom override if needed
-                
+               
                 -- SPHERICAL ORBIT CALC: Özgür açı + mesafe
                 local camCFrame = CFrame.new(center) * CFrame.Angles(pitch, yaw, 0) * CFrame.new(0, 0, -effectiveDist)
-                
+               
                 Services.Camera.CFrame = camCFrame
             end
         end)
     end)
 end
-
 CameraTab:CreateToggle({
     Name = "🎥 Free Camera View", -- Özgür mouse dön/zoom, ultra optimize, multi-player center
     CurrentValue = false,
@@ -1238,7 +1251,6 @@ CameraTab:CreateToggle({
         end
     end
 })
-
 -- LocalPlayer respawn: Relock
 Services.LocalPlayer.CharacterAdded:Connect(function()
     if camActive and #selectedPlayers > 0 then
@@ -1246,7 +1258,6 @@ Services.LocalPlayer.CharacterAdded:Connect(function()
         lockCameraToPlayer(selectedPlayers, true)
     end
 end)
-
 -- BONUS: Reset Angles Button (multi için de çalışır)
 CameraTab:CreateButton({
     Name = "🔄 Reset Camera Angles",
@@ -1261,7 +1272,6 @@ CameraTab:CreateButton({
         end
     end
 })
-
 CameraTab:CreateButton({
     Name = "⚡ Teleport to Selected (Multi Sequential)",
     Callback = function()
@@ -1295,13 +1305,44 @@ CameraTab:CreateButton({
         end)
     end
 })
-
 -- CLEANUP: Script destroy'da conn'ları disconnect (gerekli değil ama ekstra clean)
 script.Destroying:Connect(function()
     if autoRefreshConn then autoRefreshConn:Disconnect() end
     for _, conn in ipairs(characterAddedConns) do conn:Disconnect() end
 end)
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
+-- DÜZELTME: Emote Controls Section + PlayEmote Fonksiyonu (callback hatası için zorunlu)
+local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
+local function PlayEmote(id, name)
+    local char = Services.LocalPlayer.Character
+    if not char then 
+        Rayfield:Notify({Title = "Emote Hatası", Content = "Karakter yüklenmedi, bekle.", Duration = 3})
+        return 
+    end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then 
+        Rayfield:Notify({Title = "Emote Hatası", Content = "Humanoid bulunamadı.", Duration = 3})
+        return 
+    end
+    -- Mevcut track'i durdur (loop varsa)
+    if getgenv().CurrentEmoteTrack then
+        getgenv().CurrentEmoteTrack:Stop(0.1)
+        getgenv().CurrentEmoteTrack = nil
+    end
+    -- Animate'i devre dışı bırak (emote öncelikli)
+    local animate = char:FindFirstChild("Animate")
+    if animate then animate.Disabled = true end
+    -- Yeni animasyon yükle ve oynat
+    local anim = Instance.new("Animation")
+    anim.AnimationId = id
+    local track = hum:LoadAnimation(anim)
+    track.Looped = getgenv().EmotesLoopMode  -- Loop toggle'ı uygula
+    track:Play()
+    getgenv().CurrentEmoteTrack = track
+    -- Cleanup (anim objesi)
+    anim:Destroy()
+    Rayfield:Notify({Title = name .. " Oynatılıyor 💃", Content = getgenv().EmotesLoopMode and " (Loop ON)" or " (Tek sefer)", Duration = 2})
+end
 EmotesTab:CreateToggle({
     Name = "🔄 Loop Mode (Sürekli Oynat)",
     CurrentValue = false,
@@ -1330,10 +1371,10 @@ EmotesTab:CreateButton({
 })
 EmotesTab:CreateToggle({
     Name = "👥 Player Emote SYNC",
-    CurrentValue = false,  -- Başlangıçta kapalı, ama script varsayılanı aktif eder
+    CurrentValue = false, -- Başlangıçta kapalı, ama script varsayılanı aktif eder
     Flag = "SYNCFlag",
     Callback = function(val)
-        features.ToggleSYNC(val)  -- Direkt eşleme: val true/false'a göre SYNC toggle
+        features.ToggleSYNC(val) -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
 })
 local emoteSections = {
@@ -1545,16 +1586,17 @@ end)
 -- Settings Tab - System Section (Rejoin atlandı)
 local SystemSection = SettingsTab:CreateSection("Update")
 SettingsTab:CreateParagraph({
+    Title = "Version 1.3.05",
+    Content = [[En son güncellemeler ve düzeltmeler (sabit log):
+• Fix: Menüde Oluşan Bir Aksaklık Giderildi Kullanıma Hazır Hale Getirildi.
+• Update: Camera View Update Getirildi Herşey Daha Gerçekci Oyuncu Kamerası Gibi Hareket Sağlandı.]]        
     Title = "Version 1.3.0a",
     Content = [[En son güncellemeler ve düzeltmeler (sabit log):
-
 • Update 1.5: Yeni emote'lar (twerk, keko dans vb.) entegre edildi.
-
 • Fix: ID çakışmaları ve isim parse hataları giderildi.
-
 • Update 1.4: Sections kategorileri optimize edildi.
-
-• Fix: Flat emotes listesi ile sections tam uyumlu hale getirildi.!]]
+• Fix: Flat emotes listesi ile sections tam uyumlu hale getirildi.!
+• Fix 1.3.0a: Emote callback hatası (PlayEmote + SYNC fallback) giderildi.]]
 })
 -- Menu & Server Tab - Theme Section
 local ThemeSection = MenuServerTab:CreateSection("Theme")
@@ -1586,7 +1628,7 @@ MenuServerTab:CreateButton({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a - CAMERA RESPAWN FIXED + NO DUPLICATE + EMOTES TAB",
+    Content = "v1.3.05 - Updated",
     Duration = 12,
     Image = 4483362458
 })
