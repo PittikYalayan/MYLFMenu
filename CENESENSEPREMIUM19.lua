@@ -49,7 +49,7 @@ if not success then
     Rayfield:Notify({
         Title = "Features Load Error",
         Content = "External features yüklenemedi, inline fallback kullanılıyor.",
-        Duration = 5
+        Duration = 0
     })
     -- Inline fallback (snippet'ten uyarlandı, bağlam aynı) - 0MS için: Throttles low
     features = {}
@@ -355,7 +355,6 @@ local CombatTab = Window:CreateTab("AimBot", 4483362458)
 local VisualTab = Window:CreateTab("ESP", 4483362458)
 local MovementTab = Window:CreateTab("Movement", 4483362458)
 local TeleportTab = Window:CreateTab("Teleport", 4483362458)
-local CameraTab = Window:CreateTab("Camera View", 4483362458)
 local EmotesTab = Window:CreateTab("Emotes", 4483362458) -- YENİ EMOTES TAB
 local SettingsTab = Window:CreateTab("Info", 4483362458)
 local MenuServerTab = Window:CreateTab("Settings", 4483362458)
