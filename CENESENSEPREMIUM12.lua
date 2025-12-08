@@ -1328,7 +1328,14 @@ EmotesTab:CreateButton({
         end
     end
 })
-
+EmotesTab:CreateToggle({
+    Name = "👥 Player Emote SYNC",
+    CurrentValue = false,  -- Başlangıçta kapalı, ama script varsayılanı aktif eder
+    Flag = "SYNCFlag",
+    Callback = function(val)
+        features.ToggleSYNC(val)  -- Direkt eşleme: val true/false'a göre SYNC toggle
+    end
+})
 local emoteSections = {
     {
         title = "Emotes: Developer Section",
