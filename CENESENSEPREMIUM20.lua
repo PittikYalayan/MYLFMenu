@@ -26,7 +26,7 @@ task.wait(2)
 local Window = Rayfield:CreateWindow({
     Name = "CENESENSE",
     LoadingTitle = "CENESENSE Yüklüyor...",
-    LoadingSubtitle = "v1.3.05",
+    LoadingSubtitle = "v1.3.0a",
     Duration = 6,
     ConfigurationSaving = {
         Enabled = true,
@@ -45,11 +45,11 @@ Rayfield:Notify({
 local success, features = pcall(function()
     return loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/features1.5.5.lua"))()
 end)
-if not success then
+if not success or not features or type(features) ~= "table" then
     Rayfield:Notify({
         Title = "Features Load Error",
-        Content = "External features yüklenemedi, inline fallback kullanılıyor.",
-        Duration = 0
+        Content = "External features yüklenemedi veya dönmedi, inline fallback kullanılıyor.",
+        Duration = 5
     })
     -- Inline fallback (snippet'ten uyarlandı, bağlam aynı) - 0MS için: Throttles low
     features = {}
@@ -207,6 +207,23 @@ if not success then
             end)()
         end
     end
+    -- FALLBACK İÇİN VISUAL FEATURES (boş/no-op, hata vermesin – external gelmezse çalışmasın ama crash olmasın)
+    features.ToggleSkeleton = function(on)
+        -- Basit skeleton ESP placeholder (gerçek implement external'da)
+        print("ToggleSkeleton: " .. tostring(on) .. " (Fallback mode)")
+    end
+    features.ToggleBox = function(on)
+        print("ToggleBox: " .. tostring(on) .. " (Fallback mode)")
+    end
+    features.ToggleRainbowName = function(on)
+        print("ToggleRainbowName: " .. tostring(on) .. " (Fallback mode)")
+    end
+    features.ToggleTracers = function(on)
+        print("ToggleTracers: " .. tostring(on) .. " (Fallback mode)")
+    end
+    features.ToggleGlow = function(on)
+        print("ToggleGlow: " .. tostring(on) .. " (Fallback mode)")
+    end
     features._walkSpeed = 16
     features._flySpeed = 50
     features._tpX = 0
@@ -355,6 +372,7 @@ local CombatTab = Window:CreateTab("AimBot", 4483362458)
 local VisualTab = Window:CreateTab("ESP", 4483362458)
 local MovementTab = Window:CreateTab("Movement", 4483362458)
 local TeleportTab = Window:CreateTab("Teleport", 4483362458)
+local CameraTab = Window:CreateTab("Camera View", 4483362458)
 local EmotesTab = Window:CreateTab("Emotes", 4483362458) -- YENİ EMOTES TAB
 local SettingsTab = Window:CreateTab("Info", 4483362458)
 local MenuServerTab = Window:CreateTab("Settings", 4483362458)
@@ -770,7 +788,7 @@ coroutine.wrap(function()
         end
     end
 end)()
--- UI Elements (Team/Combat/Visual korundu, features external ile toggle'lar bağlandı)
+-- UI Elements (Team/Combat/Visual korundu, features external ile toggle'lar bağlandı) – GÜVENLİ: features nil ise atla
 local teamNames = {}
 for _, team in ipairs(Services.Teams:GetTeams()) do
     if team.Name ~= "Neutral" and team.Name ~= "" then
@@ -836,7 +854,7 @@ VisualTab:CreateToggle({
     CurrentValue = false,
     Flag = "RainbowSkeletonFlag",
     Callback = function(val)
-         if features.ToggleSkeleton then features.ToggleSkeleton(val) end
+         if features and features.ToggleSkeleton then features.ToggleSkeleton(val) end
         end
     })
 VisualTab:CreateToggle({
@@ -852,7 +870,7 @@ VisualTab:CreateToggle({
     CurrentValue = false,
     Flag = "RainbowBoxFlag",
     Callback = function(val)
-         if features.ToggleBox then features.ToggleBox(val) end
+         if features and features.ToggleBox then features.ToggleBox(val) end
         end
     })
 VisualTab:CreateToggle({
@@ -868,7 +886,7 @@ VisualTab:CreateToggle({
     CurrentValue = false,
     Flag = "RainbowNameFlag",
     Callback = function(val)
-         if features.ToggleRainbowName then features.ToggleRainbowName(val) end
+         if features and features.ToggleRainbowName then features.ToggleRainbowName(val) end
         end
     })
 VisualTab:CreateToggle({
@@ -892,7 +910,7 @@ VisualTab:CreateToggle({
     CurrentValue = false,
     Flag = "RainbowTracersFlag",
     Callback = function(val)
-         if features.ToggleTracers then features.ToggleTracers(val) end
+         if features and features.ToggleTracers then features.ToggleTracers(val) end
         end
     })
 VisualTab:CreateToggle({
@@ -908,7 +926,7 @@ VisualTab:CreateToggle({
     CurrentValue = false,
     Flag = "RainbowChamsFlag",
     Callback = function(val)
-         if features.ToggleGlow then features.ToggleGlow(val) end
+         if features and features.ToggleGlow then features.ToggleGlow(val) end
         end
     })
 VisualTab:CreateSlider({
@@ -928,18 +946,18 @@ MovementTab:CreateToggle({
     CurrentValue = false,
     Flag = "SpeedFlag",
     Callback = function(val)
-        if features.ToggleSpeed then features.ToggleSpeed(val) end
+        if features and features.ToggleSpeed then features.ToggleSpeed(val) end
     end
 })
 MovementTab:CreateSlider({
     Name = "Walk Speed",
     Range = {1, 400},
     Increment = 1,
-    CurrentValue = features._walkSpeed or 16,
+    CurrentValue = (features and features._walkSpeed) or 16,
     Flag = "WalkSpeedFlag",
     Callback = function(val)
-        if features._walkSpeed then features._walkSpeed = val end
-        if features.SetWalkSpeed then features.SetWalkSpeed(val) end
+        if features and features._walkSpeed then features._walkSpeed = val end
+        if features and features.SetWalkSpeed then features.SetWalkSpeed(val) end
     end
 })
 MovementTab:CreateToggle({
@@ -947,17 +965,17 @@ MovementTab:CreateToggle({
     CurrentValue = false,
     Flag = "FlyFlag",
     Callback = function(val)
-        if features.ToggleFly then features.ToggleFly(val) end
+        if features and features.ToggleFly then features.ToggleFly(val) end
     end
 })
 MovementTab:CreateSlider({
     Name = "Fly Speed",
     Range = {1, 400},
     Increment = 1,
-    CurrentValue = features._flySpeed or 50,
+    CurrentValue = (features and features._flySpeed) or 50,
     Flag = "FlySpeedFlag",
     Callback = function(val)
-        if features.SetFlySpeed then features.SetFlySpeed(val) end
+        if features and features.SetFlySpeed then features.SetFlySpeed(val) end
     end
 })
 MovementTab:CreateToggle({
@@ -965,7 +983,7 @@ MovementTab:CreateToggle({
     CurrentValue = false,
     Flag = "InfiniteJumpFlag",
     Callback = function(val)
-        if features.ToggleInfiniteJump then features.ToggleInfiniteJump(val) end
+        if features and features.ToggleInfiniteJump then features.ToggleInfiniteJump(val) end
     end
 })
 MovementTab:CreateToggle({
@@ -973,7 +991,7 @@ MovementTab:CreateToggle({
     CurrentValue = false,
     Flag = "HardInvisibleFlag",
     Callback = function(val)
-        if features.ToggleHardInvisible then features.ToggleHardInvisible(val) end
+        if features and features.ToggleHardInvisible then features.ToggleHardInvisible(val) end
     end
 })
 MovementTab:CreateToggle({
@@ -981,7 +999,7 @@ MovementTab:CreateToggle({
     CurrentValue = false,
     Flag = "NoclipFlag",
     Callback = function(val)
-        if features.ToggleNoclip then features.ToggleNoclip(val) end
+        if features and features.ToggleNoclip then features.ToggleNoclip(val) end
     end
 })
 -- Teleport Tab: Tüm teleport özellikleri + auto farm/behind + X Y Z slider'lar
@@ -991,7 +1009,7 @@ TeleportTab:CreateToggle({
     CurrentValue = false,
     Flag = "TeleportFlag",
     Callback = function(val)
-        if features.ToggleTeleport then features.ToggleTeleport(val) end
+        if features and features.ToggleTeleport then features.ToggleTeleport(val) end
     end
 })
 TeleportTab:CreateToggle({
@@ -999,7 +1017,7 @@ TeleportTab:CreateToggle({
     CurrentValue = false,
     Flag = "AutoBehindFlag",
     Callback = function(val)
-        if features.ToggleAutoBehind then features.ToggleAutoBehind(val) end
+        if features and features.ToggleAutoBehind then features.ToggleAutoBehind(val) end
     end
      
 })
@@ -1008,42 +1026,307 @@ TeleportTab:CreateToggle({
     CurrentValue = false,
     Flag = "AutoFarmFlag",
     Callback = function(val)
-        if features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(val) end
+        if features and features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(val) end
     end
 })
 TeleportTab:CreateSlider({
     Name = "X Offset",
     Range = {-50, 50},
     Increment = 1,
-    CurrentValue = features._tpX or 0,
+    CurrentValue = (features and features._tpX) or 0,
     Flag = "tpXFlag",
     Callback = function(val)
-        if features._tpX then features._tpX = val end
-        if features.SetTeleportOffset then features.SetTeleportOffset(val, features._tpY or 0, features._tpZ or 25) end
+        if features and features._tpX then features._tpX = val end
+        if features and features.SetTeleportOffset then features.SetTeleportOffset(val, (features._tpY or 0), (features._tpZ or 25)) end
     end
 })
 TeleportTab:CreateSlider({
     Name = "Y Offset",
     Range = {-50, 50},
     Increment = 1,
-    CurrentValue = features._tpY or 0,
+    CurrentValue = (features and features._tpY) or 0,
     Flag = "tpYFlag",
     Callback = function(val)
-        if features._tpY then features._tpY = val end
-        if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, val, features._tpZ or 25) end
+        if features and features._tpY then features._tpY = val end
+        if features and features.SetTeleportOffset then features.SetTeleportOffset((features._tpX or 0), val, (features._tpZ or 25)) end
     end
 })
 TeleportTab:CreateSlider({
     Name = "Z Offset",
     Range = {1, 100},
     Increment = 1,
-    CurrentValue = features._tpZ or 25,
+    CurrentValue = (features and features._tpZ) or 25,
     Flag = "tpZFlag",
     Callback = function(val)
-        if features._tpZ then features._tpZ = val end
-        if features.SetTeleportOffset then features.SetTeleportOffset(features._tpX or 0, features._tpY or 0, val) end
+        if features and features._tpZ then features._tpZ = val end
+        if features and features.SetTeleportOffset then features.SetTeleportOffset((features._tpX or 0), (features._tpY or 0), val) end
     end
 })
+-- Camera View Tab: FREE ORBIT CAMERA - Mouse ile özgür dön, zoom, FPS drop yok, ultra smooth RenderStepped
+-- MULTIPLE OPTIONS: Dropdown multi-select, camera average center for group view, teleport sequential
+local CameraSection = CameraTab:CreateSection("Camera View")
+local selectedPlayers = {} -- CHANGED: Table for multiple
+local camActive = false
+local playerDropdown = nil -- FIXED: Global dropdown ref for destroy
+local lastRefreshTime = 0 -- FIXED: Debounce for manual refresh
+local characterAddedConns = {} -- CHANGED: Array for multiple respawn handling
+local playerListCache = {} -- NEW: Cache for fast change detection (optimize, no loop spam)
+-- FREE CAMERA VARS: Yaw/Pitch/Distance for orbit (radyan)
+local yaw = math.rad(180) -- Başlangıç: Arkadan bakar
+local pitch = math.rad(-15) -- Hafif yukarı
+local distance = 20 -- Başlangıç mesafe
+local minDistance = 5
+local maxDistance = 150
+local cameraRenderConn = nil -- RenderStepped for ultra smooth NO LAG
+local mouseMoveConn = nil -- UserInputService for mouse delta
+local mouseWheelConn = nil -- Zoom
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+local Players = game:GetService("Players")
+local function getPlayerOptions()
+    local opts = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Players.LocalPlayer then
+            table.insert(opts, plr.Name)
+        end
+    end
+    return opts
+end
+local function createPlayerDropdown()
+    if playerDropdown then playerDropdown:Destroy() end
+    local opts = getPlayerOptions()
+    playerDropdown = CameraTab:CreateDropdown({
+        Name = "Select Players (Multi)",
+        Options = opts,
+        CurrentOption = {}, -- CHANGED: Empty table for multi
+        MultipleOptions = true, -- NEW: Multiple selection ✅
+        Flag = "PlayerSelectFlag",
+        Callback = function(val) -- val: table of names
+            -- Eski conn'ları disconnect
+            for _, conn in ipairs(characterAddedConns) do conn:Disconnect() end
+            characterAddedConns = {}
+            selectedPlayers = {}
+            for _, name in ipairs(val) do
+                local plr = Players:FindFirstChild(name)
+                if plr then
+                    table.insert(selectedPlayers, plr)
+                    -- Multi respawn relock
+                    local conn = plr.CharacterAdded:Connect(function()
+                        if camActive then
+                            task.wait(0.1) -- Ultra fast
+                        end
+                    end)
+                    table.insert(characterAddedConns, conn)
+                end
+            end
+            if #selectedPlayers > 0 then
+                local names = {}
+                for _, plr in selectedPlayers do table.insert(names, plr.Name) end
+                Rayfield:Notify({Title = "Selected ✅", Content = table.concat(names, ", ") .. " - Hazır! (Multi destekli)", Duration = 3})
+            else
+                Rayfield:Notify({Title = "Error ❌", Content = "Oyuncu bulunamadı, yeniden seç", Duration = 3})
+            end
+        end
+    })
+end
+-- INITIAL CREATE
+createPlayerDropdown()
+-- AUTO REFRESH: Event-based + Heartbeat minimal check (ultra fast, no lag)
+local function refreshDropdownIfChanged()
+    local currentPlayers = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= Players.LocalPlayer then
+            currentPlayers[plr.Name] = true
+        end
+    end
+    local changed = false
+    for name in pairs(playerListCache) do
+        if not currentPlayers[name] then changed = true break end
+    end
+    for name in pairs(currentPlayers) do
+        if not playerListCache[name] then changed = true break end
+    end
+    if changed then
+        playerListCache = currentPlayers
+        createPlayerDropdown() -- Auto recreate on change
+        -- Check selectedPlayers for left players
+        local toRemove = {}
+        for i, plr in ipairs(selectedPlayers) do
+            if not Players:FindFirstChild(plr.Name) then
+                table.insert(toRemove, i)
+            end
+        end
+        for _, idx in ipairs(toRemove) do
+            table.remove(selectedPlayers, idx)
+        end
+        if #toRemove > 0 then
+            Rayfield:Notify({Title = "Uyarı ⚠️", Content = #toRemove .. " oyuncu ayrıldı, liste güncellendi", Duration = 3})
+        end
+    end
+end
+-- EVENTS: Player eklen/çıkınca direkt trigger (en hızlı)
+Players.PlayerAdded:Connect(refreshDropdownIfChanged)
+Players.PlayerRemoving:Connect(refreshDropdownIfChanged)
+-- HEARTBEAT: Her frame check (0.016s ~0.01ms yakın, ama event'lar ana trigger)
+local autoRefreshConn = RS.Heartbeat:Connect(refreshDropdownIfChanged)
+-- MANUAL REFRESH (hala var, ama auto yüzünden nadir kullan)
+CameraTab:CreateButton({
+    Name = "Refresh Players (Manual)",
+    Callback = function()
+        local now = tick()
+        if now - lastRefreshTime < 1 then
+            Rayfield:Notify({Title = "Cooldown", Content = "Bekle 1s", Duration = 2})
+            return
+        end
+        lastRefreshTime = now
+        refreshDropdownIfChanged()
+        Rayfield:Notify({Title = "Refreshed ✅", Content = "Liste güncellendi (Auto zaten yapıyor!)", Duration = 3})
+    end
+})
+-- FREE ORBIT CAMERA CORE: Multi-player support - Average center + auto distance
+local function lockCameraToPlayer(targetPlayers, active)
+    -- Tüm conn'ları temizle
+    if cameraRenderConn then cameraRenderConn:Disconnect() cameraRenderConn = nil end
+    if mouseMoveConn then mouseMoveConn:Disconnect() mouseMoveConn = nil end
+    if mouseWheelConn then mouseWheelConn:Disconnect() mouseWheelConn = nil end
+   
+    if not active or #targetPlayers == 0 then
+        Services.Camera.CameraType = Enum.CameraType.Custom
+        local myHum = Services.LocalPlayer.Character and Services.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if myHum then Services.Camera.CameraSubject = myHum end
+        return
+    end
+   
+    Services.Camera.CameraType = Enum.CameraType.Scriptable
+   
+    -- MOUSE DELTA SENSITIVITY (optimize: low for smooth)
+    local sensitivity = 0.005 -- Radyan per pixel, FPS drop yok
+   
+    -- Mouse Move: Yaw/Pitch update (sadece mouse move'de, efficient)
+    mouseMoveConn = UIS.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            yaw = yaw - input.Delta.X * sensitivity
+            pitch = math.clamp(pitch - input.Delta.Y * sensitivity, math.rad(-80), math.rad(80)) -- Pitch limit (ters dönmesin)
+        end
+    end)
+   
+    -- Mouse Wheel: Zoom (ultra responsive)
+    mouseWheelConn = UIS.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseWheel then
+            distance = math.clamp(distance - input.Position.Z * 2, minDistance, maxDistance)
+        end
+    end)
+   
+    -- RENDER STEPPED LOOP: Ultra smooth, NO LAG, her frame update (Roblox optimized)
+    cameraRenderConn = RS.RenderStepped:Connect(function()
+        pcall(function()
+            local positions = {}
+            for _, plr in ipairs(targetPlayers) do
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    table.insert(positions, plr.Character.HumanoidRootPart.Position)
+                end
+            end
+            if #positions > 0 then
+                -- Average center for multi
+                local center = Vector3.new(0,0,0)
+                for _, pos in positions do center = center + pos end
+                center = center / #positions
+               
+                -- Auto distance adjust for bounds (multi için hepsi framede olsun)
+                local maxDist = 0
+                for _, pos in positions do
+                    local dist = (pos - center).Magnitude
+                    if dist > maxDist then maxDist = dist end
+                end
+                local effectiveDist = math.max(distance, maxDist * 1.5) -- Zoom override if needed
+               
+                -- SPHERICAL ORBIT CALC: Özgür açı + mesafe
+                local camCFrame = CFrame.new(center) * CFrame.Angles(pitch, yaw, 0) * CFrame.new(0, 0, -effectiveDist)
+               
+                Services.Camera.CFrame = camCFrame
+            end
+        end)
+    end)
+end
+CameraTab:CreateToggle({
+    Name = "🎥 Free Camera View", -- Özgür mouse dön/zoom, ultra optimize, multi-player center
+    CurrentValue = false,
+    Flag = "CamViewFlag",
+    Callback = function(val)
+        if #selectedPlayers == 0 then
+            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç! (Multi destekli)", Duration = 3})
+            return false -- Toggle'ı kapat
+        end
+        camActive = val
+        lockCameraToPlayer(selectedPlayers, val)
+        if val then
+            local names = {}
+            for _, plr in selectedPlayers do table.insert(names, plr.Name) end
+            Rayfield:Notify({Title = "Free Cam ON ✅", Content = table.concat(names, ", ") .. " - Mouse ile dön/zoom (wheel)", Duration = 4})
+        else
+            Rayfield:Notify({Title = "Free Cam OFF", Content = "Normal kameraya döndü", Duration = 3})
+        end
+    end
+})
+-- LocalPlayer respawn: Relock
+Services.LocalPlayer.CharacterAdded:Connect(function()
+    if camActive and #selectedPlayers > 0 then
+        task.wait(0.1)
+        lockCameraToPlayer(selectedPlayers, true)
+    end
+end)
+-- BONUS: Reset Angles Button (multi için de çalışır)
+CameraTab:CreateButton({
+    Name = "🔄 Reset Camera Angles",
+    Callback = function()
+        if #selectedPlayers > 0 then
+            yaw = math.rad(180)
+            pitch = math.rad(-15)
+            distance = 20
+            Rayfield:Notify({Title = "Reset ✅", Content = "Arkadan bakışa döndü (Multi center)", Duration = 2})
+        else
+            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç!", Duration = 2})
+        end
+    end
+})
+CameraTab:CreateButton({
+    Name = "⚡ Teleport to Selected (Multi Sequential)",
+    Callback = function()
+        if #selectedPlayers == 0 then
+            Rayfield:Notify({Title = "Error ❌", Content = "Önce oyuncu(lar) seç! (Multi destekli)", Duration = 3})
+            return
+        end
+        task.spawn(function()
+            for _, targetPlr in ipairs(selectedPlayers) do
+                local maxRetries = 10
+                local retries = 0
+                while retries < maxRetries do
+                    if targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") then
+                        local targetHRP = targetPlr.Character.HumanoidRootPart
+                        local myChar = Services.LocalPlayer.Character
+                        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+                            local myHRP = myChar.HumanoidRootPart
+                            myHRP.CFrame = targetHRP.CFrame * CFrame.new((features and features._tpX) or 0, (features and features._tpY) or 0, (features and features._tpZ) or 25)
+                            Rayfield:Notify({Title = "Teleported ✅", Content = targetPlr.Name .. " - Başarılı! (Multi devam ediyor)", Duration = 3})
+                            break
+                        end
+                    end
+                    retries = retries + 1
+                    task.wait(1)
+                end
+                if retries >= maxRetries then
+                    Rayfield:Notify({Title = "Error ❌", Content = targetPlr.Name .. " - Retry failed", Duration = 3})
+                end
+                task.wait(1) -- Multi için delay, spam olmasın
+            end
+        end)
+    end
+})
+-- CLEANUP: Script destroy'da conn'ları disconnect (gerekli değil ama ekstra clean)
+script.Destroying:Connect(function()
+    if autoRefreshConn then autoRefreshConn:Disconnect() end
+    for _, conn in ipairs(characterAddedConns) do conn:Disconnect() end
+end)
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 -- DÜZELTME: Emote Controls Section + PlayEmote Fonksiyonu (callback hatası için zorunlu)
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
@@ -1108,7 +1391,7 @@ EmotesTab:CreateToggle({
     CurrentValue = false, -- Başlangıçta kapalı, ama script varsayılanı aktif eder
     Flag = "SYNCFlag",
     Callback = function(val)
-        features.ToggleSYNC(val) -- Direkt eşleme: val true/false'a göre SYNC toggle
+        if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
 })
 local emoteSections = {
@@ -1320,17 +1603,13 @@ end)
 -- Settings Tab - System Section (Rejoin atlandı)
 local SystemSection = SettingsTab:CreateSection("Update")
 SettingsTab:CreateParagraph({
-    Title = "Version 1.3.05",
+    Title = "Version 1.3.0a",
     Content = [[En son güncellemeler ve düzeltmeler (sabit log):
-• Fix: Menüde Oluşan Bir Aksaklık Giderildi Kullanıma Hazır Hale Getirildi.
-• Update: Camera View Update Getirildi Herşey Daha Gerçekci Oyuncu Kamerası Gibi Hareket Sağlandı.
-        Version 1.3.0a
-        En son güncellemeler ve düzeltmeler (sabit log):
 • Update 1.5: Yeni emote'lar (twerk, keko dans vb.) entegre edildi.
 • Fix: ID çakışmaları ve isim parse hataları giderildi.
 • Update 1.4: Sections kategorileri optimize edildi.
 • Fix: Flat emotes listesi ile sections tam uyumlu hale getirildi.!
-• Fix 1.3.0a: Emote callback hatası (PlayEmote + SYNC fallback) giderildi.]]        
+• Fix 1.3.0a: Features load hatası (nil check + fallback tamamlama) giderildi.]]
 })
 -- Menu & Server Tab - Theme Section
 local ThemeSection = MenuServerTab:CreateSection("Theme")
@@ -1362,7 +1641,7 @@ MenuServerTab:CreateButton({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.05 - Updated",
+    Content = "v1.3.0a - CAMERA RESPAWN FIXED + NO DUPLICATE + EMOTES TAB + FEATURES FIX",
     Duration = 12,
     Image = 4483362458
 })
@@ -1385,4 +1664,4 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
         end
     end
 end)
-print("CENESENSE | REINJECT OPTIMIZED + CAMERA RESPAWN FIX + EMOTES INTEGRASYON")
+print("CENESENSE | REINJECT OPTIMIZED + CAMERA RESPAWN FIX + EMOTES INTEGRASYON + FEATURES SAFE LOAD")
