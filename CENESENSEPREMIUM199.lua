@@ -1068,15 +1068,15 @@ local camViewActive = false
 local dropdownRef = nil
 local playerListCache = {}
 local respawnConns = {}
-
 local Plrs = game:GetService("Players")
 local RS = game:GetService("RunService")
 local LP = Plrs.LocalPlayer
 local Cam = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
 
-----------------------------------------------------------------
+---------------------------------------------------------
 -- PLAYER LIST (Multi-Select)
-----------------------------------------------------------------
+---------------------------------------------------------
 local function collectOptions()
     local list = {}
     for _, p in ipairs(Plrs:GetPlayers()) do
@@ -1095,20 +1095,21 @@ local function rebuildDropdown()
         Options = collectOptions(),
         CurrentOption = {},
         MultipleOptions = true,
+
         Callback = function(names)
             for _,c in ipairs(respawnConns) do c:Disconnect() end
             respawnConns = {}
+
             selectedPlayers = {}
 
             for _, n in ipairs(names) do
                 local p = Plrs:FindFirstChild(n)
                 if p then
                     table.insert(selectedPlayers,p)
+
                     table.insert(respawnConns,
                         p.CharacterAdded:Connect(function()
-                            if camViewActive then
-                                task.wait(0.1)
-                            end
+                            if camViewActive then task.wait(0.1) end
                         end)
                     )
                 end
@@ -1117,9 +1118,9 @@ local function rebuildDropdown()
     })
 end
 
-----------------------------------------------------------------
+---------------------------------------------------------
 -- AUTO REFRESH
-----------------------------------------------------------------
+---------------------------------------------------------
 local function detectChanges()
     local now = {}
     for _,p in ipairs(Plrs:GetPlayers()) do
@@ -1127,6 +1128,7 @@ local function detectChanges()
     end
 
     local changed = false
+
     for n in pairs(playerListCache) do
         if not now[n] then changed=true break end
     end
@@ -1137,6 +1139,7 @@ local function detectChanges()
     if changed then
         playerListCache = now
         rebuildDropdown()
+
         for i=#selectedPlayers,1,-1 do
             if not Plrs:FindFirstChild(selectedPlayers[i].Name) then
                 table.remove(selectedPlayers,i)
@@ -1150,65 +1153,104 @@ Plrs.PlayerRemoving:Connect(detectChanges)
 RS.Heartbeat:Connect(detectChanges)
 rebuildDropdown()
 
-----------------------------------------------------------------
--- 🔥 OTOMATİK TAKİP KAMERA (İSTEDİĞİN VERSİYON)
-----------------------------------------------------------------
-local followConn = nil
+---------------------------------------------------------
+-- 🎥 CAMERA MOVEMENT (YAW • PITCH • ZOOM)
+---------------------------------------------------------
+local yaw     = math.rad(0)
+local pitch   = math.rad(-10)
+local dist    = 12
+local minDist = 4
+local maxDist = 80
 
+local camConn = nil
+local mouseConn = nil
+local wheelConn = nil
+
+local function stopCamFollow()
+    if camConn then camConn:Disconnect() camConn = nil end
+    if mouseConn then mouseConn:Disconnect() mouseConn = nil end
+    if wheelConn then wheelConn:Disconnect() wheelConn = nil end
+
+    Cam.CameraType = Enum.CameraType.Custom
+    
+    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+    if hum then Cam.CameraSubject = hum end
+end
+
+local function startCamFollow(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    Cam.CameraType = Enum.CameraType.Scriptable
+
+    local sens = 0.003
+
+    mouseConn = UIS.InputChanged:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseMovement then
+            yaw = yaw - i.Delta.X * sens
+            pitch = math.clamp(pitch - i.Delta.Y * sens, math.rad(-80), math.rad(80))
+        end
+    end)
+
+    wheelConn = UIS.InputChanged:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseWheel then
+            dist = math.clamp(dist - i.Position.Z * 2, minDist, maxDist)
+        end
+    end)
+
+    camConn = RS.RenderStepped:Connect(function()
+        if not targetPlayer.Character then return end
+        local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        local basePos = hrp.Position
+
+        -- HRP merkezli, mouse kontrollü kamera
+        local camCF =
+            CFrame.new(basePos)
+            * CFrame.Angles(pitch, yaw, 0)
+            * CFrame.new(0, 3, dist)
+            * CFrame.new(0, 0, -dist)
+
+        Cam.CFrame = CFrame.new(camCF.Position, basePos)
+    end)
+end
+
+---------------------------------------------------------
+-- FOLLOW CAMERA (Yeni: HRP merkezli, mouse kontrollü)
+---------------------------------------------------------
 local function enableFollowCam()
     if #selectedPlayers == 0 then
-        Rayfield:Notify({
-            Title="Error",
-            Content="Oyuncu seç",
-            Duration=2
-        })
+        Rayfield:Notify({ Title="Error", Content="Oyuncu seç", Duration=2 })
         return false
     end
 
     camViewActive = true
-    Cam.CameraType = Enum.CameraType.Scriptable
 
-    -- sabit offset (yaw/pitch yok)
-    local offset = Vector3.new(0, 5, -10)
-
-    followConn = RS.RenderStepped:Connect(function()
-        local target = selectedPlayers[1]
-        if not target then return end
-
-        local hrp = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-        local hum = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
-
-        if hum and hrp then
-            Cam.CameraSubject = hum
-            Cam.CFrame = CFrame.new(hrp.Position + offset, hrp.Position)
-        end
-    end)
+    local target = selectedPlayers[1]
+    startCamFollow(target)
 
     return true
 end
 
 local function disableFollowCam()
     camViewActive = false
-    if followConn then
-        followConn:Disconnect()
-        followConn = nil
-    end
-
-    Cam.CameraType = Enum.CameraType.Custom
-
-    local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-    if myHum then Cam.CameraSubject = myHum end
+    stopCamFollow()
 end
 
-----------------------------------------------------------------
--- 🎥 CAMERA FOLLOW TOGGLE
-----------------------------------------------------------------
+---------------------------------------------------------
+-- 🎥 CAMERA VIEW TOGGLE
+---------------------------------------------------------
 CameraTab:CreateToggle({
     Name = "🎥 Camera Follow",
     CurrentValue = false,
-    Callback = function(v)
-        if v then
-            if not enableFollowCam() then return false end
+
+    Callback = function(val)
+        if val then
+            if not enableFollowCam() then
+                return false
+            end
         else
             disableFollowCam()
         end
@@ -1222,9 +1264,9 @@ LP.CharacterAdded:Connect(function()
     end
 end)
 
-----------------------------------------------------------------
+---------------------------------------------------------
 -- ⚡ TELEPORT BUTTON
-----------------------------------------------------------------
+---------------------------------------------------------
 CameraTab:CreateButton({
     Name = "⚡ Teleport Selected",
     Callback = function()
@@ -1232,7 +1274,7 @@ CameraTab:CreateButton({
             Rayfield:Notify({
                 Title="Error",
                 Content="Oyuncu seç",
-                Duration = 2
+                Duration=2
             })
             return
         end
@@ -1257,6 +1299,7 @@ CameraTab:CreateButton({
         end)
     end
 })
+
 
 
 
