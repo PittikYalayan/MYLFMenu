@@ -1064,24 +1064,25 @@ TeleportTab:CreateSlider({
 })
 -----------------------------------------------------------------Camera View---------------------------------
 local selectedPlayers = {}
-local camViewActive  = false
-local dropdownRef    = nil
-
+local camViewActive = false
+local dropdownRef = nil
 local playerListCache = {}
-local respawnConns    = {}
+local respawnConns = {}
 
 local Plrs = game:GetService("Players")
-local RS   = game:GetService("RunService")
-local LP   = Plrs.LocalPlayer
-local Cam  = workspace.CurrentCamera
+local RS = game:GetService("RunService")
+local LP = Plrs.LocalPlayer
+local Cam = workspace.CurrentCamera
 
----------------------------------------------------------
+----------------------------------------------------------------
 -- PLAYER LIST (Multi-Select)
----------------------------------------------------------
+----------------------------------------------------------------
 local function collectOptions()
     local list = {}
     for _, p in ipairs(Plrs:GetPlayers()) do
-        if p ~= LP then table.insert(list, p.Name) end
+        if p ~= LP then
+            table.insert(list, p.Name)
+        end
     end
     return list
 end
@@ -1097,7 +1098,6 @@ local function rebuildDropdown()
         Callback = function(names)
             for _,c in ipairs(respawnConns) do c:Disconnect() end
             respawnConns = {}
-
             selectedPlayers = {}
 
             for _, n in ipairs(names) do
@@ -1106,7 +1106,9 @@ local function rebuildDropdown()
                     table.insert(selectedPlayers,p)
                     table.insert(respawnConns,
                         p.CharacterAdded:Connect(function()
-                            if camViewActive then task.wait(0.1) end
+                            if camViewActive then
+                                task.wait(0.1)
+                            end
                         end)
                     )
                 end
@@ -1115,9 +1117,9 @@ local function rebuildDropdown()
     })
 end
 
----------------------------------------------------------
+----------------------------------------------------------------
 -- AUTO REFRESH
----------------------------------------------------------
+----------------------------------------------------------------
 local function detectChanges()
     local now = {}
     for _,p in ipairs(Plrs:GetPlayers()) do
@@ -1135,7 +1137,6 @@ local function detectChanges()
     if changed then
         playerListCache = now
         rebuildDropdown()
-
         for i=#selectedPlayers,1,-1 do
             if not Plrs:FindFirstChild(selectedPlayers[i].Name) then
                 table.remove(selectedPlayers,i)
@@ -1147,12 +1148,11 @@ end
 Plrs.PlayerAdded:Connect(detectChanges)
 Plrs.PlayerRemoving:Connect(detectChanges)
 RS.Heartbeat:Connect(detectChanges)
-
 rebuildDropdown()
 
----------------------------------------------------------
--- FOLLOW CAMERA (Free Orbit YOK – Tam Otomatik Takip)
----------------------------------------------------------
+----------------------------------------------------------------
+-- 🔥 OTOMATİK TAKİP KAMERA (İSTEDİĞİN VERSİYON)
+----------------------------------------------------------------
 local followConn = nil
 
 local function enableFollowCam()
@@ -1168,16 +1168,15 @@ local function enableFollowCam()
     camViewActive = true
     Cam.CameraType = Enum.CameraType.Scriptable
 
-    -- Eski koddaki offset
+    -- sabit offset (yaw/pitch yok)
     local offset = Vector3.new(0, 5, -10)
 
     followConn = RS.RenderStepped:Connect(function()
-        -- İlk seçilen oyuncuyu baz al
         local target = selectedPlayers[1]
         if not target then return end
 
-        local hum = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
         local hrp = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+        local hum = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
 
         if hum and hrp then
             Cam.CameraSubject = hum
@@ -1190,7 +1189,6 @@ end
 
 local function disableFollowCam()
     camViewActive = false
-
     if followConn then
         followConn:Disconnect()
         followConn = nil
@@ -1199,19 +1197,17 @@ local function disableFollowCam()
     Cam.CameraType = Enum.CameraType.Custom
 
     local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-    if myHum then
-        Cam.CameraSubject = myHum
-    end
+    if myHum then Cam.CameraSubject = myHum end
 end
 
----------------------------------------------------------
--- 🎥 CAMERA VIEW TOGGLE
----------------------------------------------------------
+----------------------------------------------------------------
+-- 🎥 CAMERA FOLLOW TOGGLE
+----------------------------------------------------------------
 CameraTab:CreateToggle({
     Name = "🎥 Camera Follow",
     CurrentValue = false,
-    Callback = function(val)
-        if val then
+    Callback = function(v)
+        if v then
             if not enableFollowCam() then return false end
         else
             disableFollowCam()
@@ -1226,9 +1222,9 @@ LP.CharacterAdded:Connect(function()
     end
 end)
 
----------------------------------------------------------
--- ⚡ TELEPORT BUTTON (PivotTo sürümü)
----------------------------------------------------------
+----------------------------------------------------------------
+-- ⚡ TELEPORT BUTTON
+----------------------------------------------------------------
 CameraTab:CreateButton({
     Name = "⚡ Teleport Selected",
     Callback = function()
@@ -1236,7 +1232,7 @@ CameraTab:CreateButton({
             Rayfield:Notify({
                 Title="Error",
                 Content="Oyuncu seç",
-                Duration=2
+                Duration = 2
             })
             return
         end
@@ -1244,10 +1240,9 @@ CameraTab:CreateButton({
         task.spawn(function()
             for _,p in ipairs(selectedPlayers) do
                 local targetHRP = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-                local myHRP     = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                local myHRP = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
 
                 if targetHRP and myHRP then
-                    -- *** SENİN İSTEDİĞİN TELEPORT KODU ***
                     LP.Character:PivotTo(targetHRP.CFrame * CFrame.new(0,0,3))
 
                     Rayfield:Notify({
@@ -1262,6 +1257,7 @@ CameraTab:CreateButton({
         end)
     end
 })
+
 
 
 
