@@ -1151,46 +1151,57 @@ RS.Heartbeat:Connect(detectChanges)
 rebuildDropdown()
 
 ---------------------------------------------------------
--- 📸 FIXED FOLLOW CAMERA SYSTEM (free orbit yok)
+-- FOLLOW CAMERA (Free Orbit YOK – Tam Otomatik Takip)
 ---------------------------------------------------------
-
 local followConn = nil
-
-local function disableFollowCam()
-    camViewActive = false
-    if followConn then followConn:Disconnect() followConn=nil end
-
-    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-    if hum then
-        Cam.CameraSubject = hum
-        Cam.CameraType = Enum.CameraType.Custom
-    end
-end
 
 local function enableFollowCam()
     if #selectedPlayers == 0 then
-        Rayfield:Notify({Title="Error",Content="Oyuncu seç",Duration=2})
+        Rayfield:Notify({
+            Title="Error",
+            Content="Oyuncu seç",
+            Duration=2
+        })
         return false
     end
 
     camViewActive = true
     Cam.CameraType = Enum.CameraType.Scriptable
 
+    -- Eski koddaki offset
+    local offset = Vector3.new(0, 5, -10)
+
     followConn = RS.RenderStepped:Connect(function()
-        local p = selectedPlayers[1]  -- ilk seçilen oyuncu izlenir
-        if not p.Character then return end
+        -- İlk seçilen oyuncuyu baz al
+        local target = selectedPlayers[1]
+        if not target then return end
 
-        local hum = p.Character:FindFirstChildOfClass("Humanoid")
-        local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-        if not hum or not hrp then return end
+        local hum = target.Character and target.Character:FindFirstChildOfClass("Humanoid")
+        local hrp = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
 
-        -- *** SENİN İSTEDİĞİN KAMERA ***
-        local offset = Vector3.new(0,5,-10)
-        Cam.CameraSubject = hum
-        Cam.CFrame = CFrame.new(hrp.Position + offset, hrp.Position)
+        if hum and hrp then
+            Cam.CameraSubject = hum
+            Cam.CFrame = CFrame.new(hrp.Position + offset, hrp.Position)
+        end
     end)
 
     return true
+end
+
+local function disableFollowCam()
+    camViewActive = false
+
+    if followConn then
+        followConn:Disconnect()
+        followConn = nil
+    end
+
+    Cam.CameraType = Enum.CameraType.Custom
+
+    local myHum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+    if myHum then
+        Cam.CameraSubject = myHum
+    end
 end
 
 ---------------------------------------------------------
