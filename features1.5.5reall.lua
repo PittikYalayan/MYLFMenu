@@ -299,15 +299,43 @@ features._flySpeed = features._flySpeed or 60 function features.ToggleFly(on) lo
 ----------------------------------------------------------------
 -- Infinite Jump
 ----------------------------------------------------------------
-function features.ToggleInfiniteJump(on)
+function features.ToggleInfiniteJump(on, jumpPower)
+    jumpPower = jumpPower or 100  -- Default jump gücü 100 (daha yüksek zıplama için, istersen değiştir)
+    local defaultJumpPower = 50  -- Roblox default JumpPower
+    
     if on then
+        -- Önceki bağlantıyı temizle
         if features._inf then features._inf:Disconnect() end
+        
         features._inf = UIS.JumpRequest:Connect(function()
-            local h = Player.Character and Player.Character:FindFirstChild("Humanoid")
-            if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end
+            local char = Player.Character
+            local h = char and char:FindFirstChild("Humanoid")
+            if h then
+                h:ChangeState(Enum.HumanoidStateType.Jumping)
+                -- JumpPower'ı uygula (her jump'ta refresh için)
+                if h.JumpPower ~= jumpPower then
+                    h.JumpPower = jumpPower
+                end
+            end
         end)
+        
+        -- İlk başta JumpPower'ı da set et
+        local char = Player.Character
+        local h = char and char:FindFirstChild("Humanoid")
+        if h then
+            h.JumpPower = jumpPower
+        end
     else
-        if features._inf then features._inf:Disconnect(); features._inf=nil end
+        -- Kapatırken bağlantıyı kes ve JumpPower'ı default'a döndür
+        if features._inf then 
+            features._inf:Disconnect() 
+            features._inf = nil 
+        end
+        local char = Player.Character
+        local h = char and char:FindFirstChild("Humanoid")
+        if h then
+            h.JumpPower = defaultJumpPower
+        end
     end
 end
 
