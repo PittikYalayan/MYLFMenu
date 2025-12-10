@@ -86,17 +86,50 @@ if not success or not features or type(features) ~= "table" then
             if bv then bv:Destroy() end
         end
     end
-    features.ToggleInfiniteJump = function(on)
-        getgenv().ToggleInfiniteJump = on
-        if on then
-            local conn = Services.UserInputService.JumpRequest:Connect(function()
-                local char = Services.LocalPlayer.Character
-                if char and char:FindFirstChildOfClass("Humanoid") then
-                    char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    features.ToggleInfiniteJump = function(on, jumpPower)
+     getgenv().ToggleInfiniteJump = on  -- Orijinal global set'i korudum
+     jumpPower = jumpPower or 300  -- Default jump gücü 100 (yüksek zıplama için)
+     local defaultJumpPower = 50  -- Roblox default JumpPower
+     local Services = getgenv().Services or game:GetService  -- Varsayalım Services global, yoksa game:GetService kullan
+    
+    if on then
+        -- Önceki bağlantıyı temizle (eğer varsa, ama bu kodda yoktu, ekledim)
+        if getgenv()._infJumpConn then
+            getgenv()._infJumpConn:Disconnect()
+            getgenv()._infJumpConn = nil
+        end
+        
+        getgenv()._infJumpConn = Services("UserInputService").JumpRequest:Connect(function()
+            local char = Services("Players").LocalPlayer.Character
+            local h = char and char:FindFirstChildOfClass("Humanoid")
+            if h then
+                h:ChangeState(Enum.HumanoidStateType.Jumping)
+                -- JumpPower'ı uygula (her jump'ta refresh için)
+                if h.JumpPower ~= jumpPower then
+                    h.JumpPower = jumpPower
                 end
-            end)
+            end
+        end)
+        
+        -- İlk başta JumpPower'ı da set et
+        local char = Services("Players").LocalPlayer.Character
+        local h = char and char:FindFirstChildOfClass("Humanoid")
+        if h then
+            h.JumpPower = jumpPower
+        end
+    else
+        -- Kapatırken bağlantıyı kes ve JumpPower'ı default'a döndür
+        if getgenv()._infJumpConn then
+            getgenv()._infJumpConn:Disconnect()
+            getgenv()._infJumpConn = nil
+        end
+        local char = Services("Players").LocalPlayer.Character
+        local h = char and char:FindFirstChildOfClass("Humanoid")
+        if h then
+            h.JumpPower = defaultJumpPower
         end
     end
+end
     features.ToggleHardInvisible = function(on)
         getgenv().ToggleHardInvisible = on
         local char = Services.LocalPlayer.Character
