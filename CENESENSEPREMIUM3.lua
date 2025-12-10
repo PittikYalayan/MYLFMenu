@@ -86,7 +86,49 @@ if not success or not features or type(features) ~= "table" then
             if bv then bv:Destroy() end
         end
     end
-    features.ToggleInfiniteJump = function(on)
+    features.ToggleInfiniteJump = function(on, jumpPower)
+    getgenv().ToggleInfiniteJump = on  -- Orijinal global set'i korudum
+    jumpPower = jumpPower or 100  -- Default jump gücü 100 (yüksek zıplama için)
+    local defaultJumpPower = 50  -- Roblox default JumpPower
+    
+    if on then
+        -- Önceki bağlantıyı temizle (eğer varsa)
+        if getgenv()._infJumpConn then
+            getgenv()._infJumpConn:Disconnect()
+            getgenv()._infJumpConn = nil
+        end
+        
+        getgenv()._infJumpConn = Services.UserInputService.JumpRequest:Connect(function()
+            local char = Services.LocalPlayer.Character
+            local h = char and char:FindFirstChildOfClass("Humanoid")
+            if h then
+                h:ChangeState(Enum.HumanoidStateType.Jumping)
+                -- JumpPower'ı uygula (her jump'ta refresh için)
+                if h.JumpPower ~= jumpPower then
+                    h.JumpPower = jumpPower
+                end
+            end
+        end)
+        
+        -- İlk başta JumpPower'ı da set et
+        local char = Services.LocalPlayer.Character
+        local h = char and char:FindFirstChildOfClass("Humanoid")
+        if h then
+            h.JumpPower = jumpPower
+        end
+    else
+        -- Kapatırken bağlantıyı kes ve JumpPower'ı default'a döndür
+        if getgenv()._infJumpConn then
+            getgenv()._infJumpConn:Disconnect()
+            getgenv()._infJumpConn = nil
+        end
+        local char = Services.LocalPlayer.Character
+        local h = char and char:FindFirstChildOfClass("Humanoid")
+        if h then
+            h.JumpPower = defaultJumpPower
+        end
+    end
+end
     
     features.ToggleHardInvisible = function(on)
         getgenv().ToggleHardInvisible = on
