@@ -842,6 +842,9 @@ local CanInvis = true
 local StartedNotification = false  -- Mesajı bir kere çıksın
 local RenderSteppedConn  -- Loop bağlantısı
 
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
 -- Setup Fonksiyonu (iç kullanım)
 local function setupInvisible()
     if ScriptStarted then return end  -- Zaten setup ise atla
@@ -854,6 +857,7 @@ local function setupInvisible()
     Part.Size = Vector3.new(200, 1, 200)
     Part.CFrame = CFrame.new(0, -500, 0)
     Part.CanCollide = true
+    Part.Transparency = 1  -- Render yükünü azaltır, görünmez zaten
     FakeCharacter.Parent = workspace
     FakeCharacter.HumanoidRootPart.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
     
@@ -890,6 +894,7 @@ local function setupInvisible()
         Part.Size = Vector3.new(200, 1, 200)
         Part.CFrame = CFrame.new(9999, 9999, 9999)
         Part.CanCollide = true
+        Part.Transparency = 1
         FakeCharacter.Parent = workspace
         FakeCharacter.HumanoidRootPart.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
         
@@ -923,10 +928,11 @@ local function setupInvisible()
     end)
     Player.CharacterAppearanceLoaded:Connect(RealCharacterDied)
     
-    -- RenderStepped loop (eğer yoksa bağla)
-    if not RenderSteppedConn then
-        RenderSteppedConn = game:GetService("RunService").RenderStepped:Connect(function()
-            if PseudoAnchor ~= nil and Part then
+    -- RenderStepped loop sadece invisible aktifken çalışsın (FPS kazancı)
+    local function startRenderLoop()
+        if RenderSteppedConn then return end
+        RenderSteppedConn = RunService.RenderStepped:Connect(function()
+            if PseudoAnchor and Part then
                 PseudoAnchor.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
             end
             if NoClip and FakeCharacter then
@@ -935,14 +941,21 @@ local function setupInvisible()
         end)
     end
     
+    local function stopRenderLoop()
+        if RenderSteppedConn then
+            RenderSteppedConn:Disconnect()
+            RenderSteppedConn = nil
+        end
+    end
+    
     PseudoAnchor = FakeCharacter.HumanoidRootPart
     
     -- Input toggle (E tuşu)
-    game:GetService("UserInputService").InputBegan:Connect(function(key, gamep)
+    UserInputService.InputBegan:Connect(function(key, gamep)
         if gamep then return end
         if key.KeyCode.Name:lower() == Keybind:lower() and CanInvis and RealCharacter and FakeCharacter then
             if RealCharacter:FindFirstChild("HumanoidRootPart") and FakeCharacter:FindFirstChild("HumanoidRootPart") then
-                toggleInvisible()  -- Aşağıdaki fonksiyonu çağır
+                toggleInvisible(startRenderLoop, stopRenderLoop)  -- Fonksiyonlara erişim verdim
             end
         end
     end)
@@ -964,8 +977,8 @@ local function setupInvisible()
     ScriptStarted = true
 end
 
--- Toggle Fonksiyonu (iç kullanım)
-function toggleInvisible()
+-- Toggle Fonksiyonu (iç kullanım) - start/stop loop fonksiyonlarını parametre olarak alıyoruz
+function toggleInvisible(startLoop, stopLoop)
     if not RealCharacter or not FakeCharacter then return end
     
     if IsInvisible == false then
@@ -981,6 +994,10 @@ function toggleInvisible()
                 v.Disabled = false
             end
         end
+        
+        -- Loop'u sadece burada başlat
+        if startLoop then startLoop() end
+        
         IsInvisible = true
         print("Hard Invisible ON! 👻")
     else
@@ -996,6 +1013,10 @@ function toggleInvisible()
                 v.Disabled = true
             end
         end
+        
+        -- Loop'u sadece burada durdur
+        if stopLoop then stopLoop() end
+        
         IsInvisible = false
         print("Hard Invisible OFF.")
     end
@@ -1006,17 +1027,45 @@ features.ToggleHardInvisible = function(on)
     if on then
         setupInvisible()  -- Setup'ı çalıştır
         if not IsInvisible then
-            toggleInvisible()  -- Doğrudan ON yap
+            -- Loop kontrol fonksiyonlarını tanımla ve toggle'a ver
+            local function startLoop()
+                if RenderSteppedConn then return end
+                RenderSteppedConn = RunService.RenderStepped:Connect(function()
+                    if PseudoAnchor and Part then
+                        PseudoAnchor.CFrame = Part.CFrame * CFrame.new(0, 5, 0)
+                    end
+                    if NoClip and FakeCharacter then
+                        FakeCharacter.Humanoid:ChangeState(11)
+                    end
+                end)
+            end
+            
+            local function stopLoop()
+                if RenderSteppedConn then
+                    RenderSteppedConn:Disconnect()
+                    RenderSteppedConn = nil
+                end
+            end
+            
+            toggleInvisible(startLoop, stopLoop)  -- Doğrudan ON yap
         end
         print("Hard Invisible aktive edildi! (E ile toggle et)")
     else
         if IsInvisible then
-            toggleInvisible()  -- OFF yap
+            -- Aynı kontrol fonksiyonları ile kapat
+            local function startLoop() end  -- Boş, gerek yok
+            local function stopLoop()
+                if RenderSteppedConn then
+                    RenderSteppedConn:Disconnect()
+                    RenderSteppedConn = nil
+                end
+            end
+            toggleInvisible(startLoop, stopLoop)  -- OFF yap
         end
         -- Cleanup (hafıza temizle)
         if Part then Part:Destroy() end
         if FakeCharacter then FakeCharacter:Destroy() end
-        if RenderSteppedConn then RenderSteppedConn:Disconnect() end
+        if RenderSteppedConn then RenderSteppedConn:Disconnect() RenderSteppedConn = nil end
         ScriptStarted = false
         StartedNotification = false
         IsInvisible = false
