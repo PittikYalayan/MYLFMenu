@@ -1624,7 +1624,6 @@ function features.ToggleRainbowName(on)
         features._conns.rainbow = RunService.RenderStepped:Connect(function(dt)
             t+=dt
             local col = rainbowColor(t)
-
             for model,o in pairs(features._targets) do
                 local hum = model:FindFirstChildOfClass("Humanoid")
                 if hum and model.Parent then
@@ -1638,7 +1637,6 @@ function features.ToggleRainbowName(on)
                             bb.StudsOffset = Vector3.new(0,2,0)
                             bb.AlwaysOnTop = true
                             bb.Adornee = adornee
-
                             local txt = Instance.new("TextLabel")
                             txt.Size = UDim2.new(1,0,1,0)
                             txt.BackgroundTransparency = 1
@@ -1648,7 +1646,6 @@ function features.ToggleRainbowName(on)
                             txt.TextStrokeTransparency = 0
                             txt.TextColor3 = Color3.fromRGB(255,255,255)
                             txt.Parent = bb
-
                             bb.Parent = adornee
                             o.billboard = bb
                             o.label = txt
@@ -1665,7 +1662,11 @@ function features.ToggleRainbowName(on)
         features._conns.rainbow:Disconnect()
         features._conns.rainbow=nil
         for _,o in pairs(features._targets) do
-            if o.label then o.label.TextColor3=Color3.fromRGB(255,255,255) end
+            if o.billboard then
+                o.billboard:Destroy()
+                o.billboard = nil
+                o.label = nil
+            end
         end
     end
 end
