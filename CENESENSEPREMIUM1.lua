@@ -27,7 +27,7 @@ local Window = Rayfield:CreateWindow({
     Name = "CENESENSE",
     LoadingTitle = "CENESENSE Yüklüyor...",
     LoadingSubtitle = "v1.3.0a",
-    Duration = 6,
+    Duration = 1,
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "MYLFMenu",
@@ -37,8 +37,8 @@ local Window = Rayfield:CreateWindow({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a - REFRESH + CAMERA ULTIMATE FIX + EMOTES TAB",
-    Duration = 10,
+    Content = "v1.3.0a",
+    Duration = 1,
     Image = 4483362458
 })
 -- Features'i external linkten yükle (bağlam uyumlu, error handling ile – hata verirse inline fallback)
@@ -1663,8 +1663,8 @@ MenuServerTab:CreateButton({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a - CAMERA RESPAWN FIXED + NO DUPLICATE + EMOTES TAB + FEATURES FIX",
-    Duration = 12,
+    Content = "v1.3.0a",
+    Duration = 1,
     Image = 4483362458
 })
 -- ════════════════════════════════════════════════ --
