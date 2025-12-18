@@ -9,7 +9,7 @@ local Workspace = game:GetService("Workspace")
 -- Characters klasörü
 local charsFolder = Workspace:FindFirstChild("Characters")
 if not charsFolder then
-    warn("⚠️ Workspace.Characters bulunamadı!")
+    warn("31 çektim!")
     return
 end
 
