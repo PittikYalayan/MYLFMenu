@@ -1348,21 +1348,16 @@ CameraTab:CreateButton({
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 -- DÜZELTME: Emote Controls Section + PlayEmote Fonksiyonu (callback hatası için zorunlu)
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
-
--- Global speed değişkeni (varsayılan normal hız)
--- Global speed değişkeni (varsayılan normal hız)
-getgenv().EmoteSpeed = getgenv().EmoteSpeed or 1
-
 local function PlayEmote(id, name)
     local char = Services.LocalPlayer.Character
-    if not char then
+    if not char then 
         Rayfield:Notify({Title = "Emote Hatası", Content = "Karakter yüklenmedi, bekle.", Duration = 3})
-        return
+        return 
     end
     local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then
+    if not hum then 
         Rayfield:Notify({Title = "Emote Hatası", Content = "Humanoid bulunamadı.", Duration = 3})
-        return
+        return 
     end
     -- Mevcut track'i durdur (loop varsa)
     if getgenv().CurrentEmoteTrack then
@@ -1376,13 +1371,12 @@ local function PlayEmote(id, name)
     local anim = Instance.new("Animation")
     anim.AnimationId = id
     local track = hum:LoadAnimation(anim)
-    track.Looped = getgenv().EmotesLoopMode -- Loop toggle'ı uygula
-    track.Speed = getgenv().EmoteSpeed -- Hızı ayarla
-    track:Play(0.1) -- Hafif fade ile başlat (stop ile tutarlı olsun)
+    track.Looped = getgenv().EmotesLoopMode  -- Loop toggle'ı uygula
+    track:Play()
     getgenv().CurrentEmoteTrack = track
     -- Cleanup (anim objesi)
     anim:Destroy()
-    Rayfield:Notify({Title = name .. " Oynatılıyor 💃", Content = getgenv().EmotesLoopMode and " (Loop ON)" or " (Tek sefer)" .. " | Hız: " .. string.format("%.1f", getgenv().EmoteSpeed) .. "x", Duration = 2})
+    Rayfield:Notify({Title = name .. " Oynatılıyor 💃", Content = getgenv().EmotesLoopMode and " (Loop ON)" or " (Tek sefer)", Duration = 2})
 end
 EmotesTab:CreateToggle({
     Name = "🔄 Loop Mode (Sürekli Oynat)",
