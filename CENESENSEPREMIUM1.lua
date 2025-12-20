@@ -1671,7 +1671,7 @@ if queue_on_teleport then
                 if not getgenv().CENESENSE_LOADED then
                     getgenv().CENESENSE_LOADED = true
                     loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEv2.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/CENESENSEPremium/main/Cenesense.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
                 end
             ]])
         end
@@ -1683,7 +1683,7 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
             queue_on_teleport([[
                 if not getgenv().CENESENSE_LOADED then
                     getgenv().CENESENSE_LOADED = true
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEPREMIUM1.lua"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/CENESENSEPremium/main/Cenesense.lua"))()
                 end
             ]])
         end
