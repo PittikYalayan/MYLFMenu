@@ -1354,7 +1354,8 @@ CameraTab:CreateButton({
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
 
 -- Global speed değişkeni (varsayılan normal hız)
-getgenv().EmoteSpeed = 1
+-- Global speed değişkeni (varsayılan normal hız)
+getgenv().EmoteSpeed = getgenv().EmoteSpeed or 1
 
 local function PlayEmote(id, name)
     local char = Services.LocalPlayer.Character
@@ -1421,15 +1422,13 @@ EmotesTab:CreateToggle({
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
 })
--- YENİ: Animation Speed Slider (0.1 - 10)
+- YENİ: Animation Speed Slider (stabil syntax, sorun çıkarmaz)
 EmotesTab:CreateSlider({
-    Name = "🎚️ Animation Speed",
+    Name = "🎚️ Animation Speed (0.1x - 10x)",
     Min = 0.1,
     Max = 10,
     Increment = 0.1,
     Default = 1,
-    Suffix = "x",
-    CurrentValue = 1,
     Flag = "EmoteSpeedSlider",
     Callback = function(Value)
         getgenv().EmoteSpeed = Value
@@ -1437,8 +1436,8 @@ EmotesTab:CreateSlider({
             getgenv().CurrentEmoteTrack.Speed = Value
         end
         Rayfield:Notify({
-            Title = "Hız Güncellendi",
-            Content = "Yeni hız: " .. string.format("%.1f", Value) .. "x",
+            Title = "Emote Hızı",
+            Content = string.format("%.1f", Value) .. "x olarak ayarlandı",
             Duration = 2
         })
     end
