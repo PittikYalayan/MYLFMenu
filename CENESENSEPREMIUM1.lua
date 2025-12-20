@@ -1422,26 +1422,7 @@ EmotesTab:CreateToggle({
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
 })
---YENİ: Animation Speed Slider (stabil syntax, sorun çıkarmaz)
-EmotesTab:CreateSlider({
-    Name = "🎚️ Animation Speed (0.1x - 10x)",
-    Min = 0.1,
-    Max = 10,
-    Increment = 0.1,
-    Default = 1,
-    Flag = "EmoteSpeedSlider",
-    Callback = function(Value)
-        getgenv().EmoteSpeed = Value
-        if getgenv().CurrentEmoteTrack then
-            getgenv().CurrentEmoteTrack.Speed = Value
-        end
-        Rayfield:Notify({
-            Title = "Emote Hızı",
-            Content = string.format("%.1f", Value) .. "x olarak ayarlandı",
-            Duration = 2
-        })
-    end
-})
+
 local emoteSections = {
     {
         title = "Emotes: Developer Section",
