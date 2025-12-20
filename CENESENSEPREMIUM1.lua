@@ -26,7 +26,7 @@ task.wait(2)
 local Window = Rayfield:CreateWindow({
     Name = "CENESENSE",
     LoadingTitle = "CENESENSE Yüklüyor...",
-    LoadingSubtitle = "v1.3.0a",
+    LoadingSubtitle = "Version 1.3.10c",
     Duration = 1,
     ConfigurationSaving = {
         Enabled = true,
@@ -37,7 +37,7 @@ local Window = Rayfield:CreateWindow({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a",
+    Content = "Version 1.3.10c",
     Duration = 1,
     Image = 4483362458
 })
@@ -1352,16 +1352,20 @@ CameraTab:CreateButton({
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 -- DÜZELTME: Emote Controls Section + PlayEmote Fonksiyonu (callback hatası için zorunlu)
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
+
+-- Global speed değişkeni (varsayılan normal hız)
+getgenv().EmoteSpeed = 1
+
 local function PlayEmote(id, name)
     local char = Services.LocalPlayer.Character
-    if not char then 
+    if not char then
         Rayfield:Notify({Title = "Emote Hatası", Content = "Karakter yüklenmedi, bekle.", Duration = 3})
-        return 
+        return
     end
     local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then 
+    if not hum then
         Rayfield:Notify({Title = "Emote Hatası", Content = "Humanoid bulunamadı.", Duration = 3})
-        return 
+        return
     end
     -- Mevcut track'i durdur (loop varsa)
     if getgenv().CurrentEmoteTrack then
@@ -1375,12 +1379,13 @@ local function PlayEmote(id, name)
     local anim = Instance.new("Animation")
     anim.AnimationId = id
     local track = hum:LoadAnimation(anim)
-    track.Looped = getgenv().EmotesLoopMode  -- Loop toggle'ı uygula
-    track:Play()
+    track.Looped = getgenv().EmotesLoopMode -- Loop toggle'ı uygula
+    track.Speed = getgenv().EmoteSpeed -- Hızı ayarla
+    track:Play(0.1) -- Hafif fade ile başlat (stop ile tutarlı olsun)
     getgenv().CurrentEmoteTrack = track
     -- Cleanup (anim objesi)
     anim:Destroy()
-    Rayfield:Notify({Title = name .. " Oynatılıyor 💃", Content = getgenv().EmotesLoopMode and " (Loop ON)" or " (Tek sefer)", Duration = 2})
+    Rayfield:Notify({Title = name .. " Oynatılıyor 💃", Content = getgenv().EmotesLoopMode and " (Loop ON)" or " (Tek sefer)" .. " | Hız: " .. string.format("%.1f", getgenv().EmoteSpeed) .. "x", Duration = 2})
 end
 EmotesTab:CreateToggle({
     Name = "🔄 Loop Mode (Sürekli Oynat)",
@@ -1414,6 +1419,28 @@ EmotesTab:CreateToggle({
     Flag = "SYNCFlag",
     Callback = function(val)
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
+    end
+})
+-- YENİ: Animation Speed Slider (0.1 - 10)
+EmotesTab:CreateSlider({
+    Name = "🎚️ Animation Speed",
+    Min = 0.1,
+    Max = 10,
+    Increment = 0.1,
+    Default = 1,
+    Suffix = "x",
+    CurrentValue = 1,
+    Flag = "EmoteSpeedSlider",
+    Callback = function(Value)
+        getgenv().EmoteSpeed = Value
+        if getgenv().CurrentEmoteTrack then
+            getgenv().CurrentEmoteTrack.Speed = Value
+        end
+        Rayfield:Notify({
+            Title = "Hız Güncellendi",
+            Content = "Yeni hız: " .. string.format("%.1f", Value) .. "x",
+            Duration = 2
+        })
     end
 })
 local emoteSections = {
@@ -1625,13 +1652,9 @@ end)
 -- Settings Tab - System Section (Rejoin atlandı)
 local SystemSection = SettingsTab:CreateSection("Update")
 SettingsTab:CreateParagraph({
-    Title = "Version 1.3.0a",
+    Title = "Version 1.3.10c",
     Content = [[En son güncellemeler ve düzeltmeler (sabit log):
-• Update 1.5: Yeni emote'lar (twerk, keko dans vb.) entegre edildi.
-• Fix: ID çakışmaları ve isim parse hataları giderildi.
-• Update 1.4: Sections kategorileri optimize edildi.
-• Fix: Flat emotes listesi ile sections tam uyumlu hale getirildi.!
-• Fix 1.3.0a: Features load hatası (nil check + fallback tamamlama) giderildi.]]
+• Update 1.6: Yeni emote Speed Eklendi]]
 })
 -- Menu & Server Tab - Theme Section
 local ThemeSection = MenuServerTab:CreateSection("Theme")
@@ -1663,7 +1686,7 @@ MenuServerTab:CreateButton({
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
-    Content = "v1.3.0a",
+    Content = "V 1.3.10c",
     Duration = 1,
     Image = 4483362458
 })
