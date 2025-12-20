@@ -2,11 +2,7 @@
 -- memesense31.lua - MYLF MENU ESP FULL DETECT + REMNANTS FIX | Efendim için özel, Tüm Oyuncular + No Ghost <3
 -- ═══════════════════════════════════════════════ --
 -- Zaten yüklendiyse tekrar yükleme (anti-duplicate)
-if getgenv().CENESENSE_LOADED then
-    print("CENESENSE zaten yüklü, tekrar yüklenmedi.")
-    return
-end
-getgenv().CENESENSE_LOADED = true
+
 local Services = {
     RunService = game:GetService("RunService"),
     UserInputService = game:GetService("UserInputService"),
@@ -1670,23 +1666,33 @@ Rayfield:Notify({
     Duration = 1,
     Image = 4483362458
 })
--- ════════════════════════════════════════════════ --
--- AUTO RE-INJECT SİSTEMİ (INFINITE YIELD GİBİ)
--- ════════════════════════════════════════════════ --
+-- ═════════════════════════════════════════════ --
+-- AUTO RE-INJECT SISTEMI (INFINITE YIELD GIBI)
+-- ═════════════════════════════════════════════ --
 local queue_on_teleport = (queue_on_teleport or syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport) or (queueonteleport)
+if queue_on_teleport then
+    spawn(function()
+        while wait(1) do
+            queue_on_teleport([[
+                if not getgenv().CENESENSE_LOADED then
+                    getgenv().CENESENSE_LOADED = true
+                    loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEv2.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
+                end
+            ]])
+        end
+    end)
+end
 game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
     if State == Enum.TeleportState.Started then
         if queue_on_teleport then
             queue_on_teleport([[
-                if getgenv().CENESENSE_LOADED then
-                    print("CENESENSE zaten yüklü, tekrar yüklenmedi.")
-                    return
+                if not getgenv().CENESENSE_LOADED then
+                    getgenv().CENESENSE_LOADED = true
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEPREMIUM1.lua"))()
                 end
-                loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/CENESENSEPREMIUM.lua"))()
-                getgenv().CENESENSE_LOADED = true
             ]])
         end
     end
 end)
-print("CENESENSE | REINJECT OPTIMIZED + CAMERA RESPAWN FIX + EMOTES INTEGRASYON + FEATURES SAFE LOAD")
+
