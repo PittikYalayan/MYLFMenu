@@ -1422,7 +1422,7 @@ EmotesTab:CreateToggle({
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
 })
-- YENİ: Animation Speed Slider (stabil syntax, sorun çıkarmaz)
+--YENİ: Animation Speed Slider (stabil syntax, sorun çıkarmaz)
 EmotesTab:CreateSlider({
     Name = "🎚️ Animation Speed (0.1x - 10x)",
     Min = 0.1,
