@@ -1649,13 +1649,13 @@ MenuServerTab:CreateButton({
 local ScriptsSection = MenuServerTab:CreateSection("Scripts")
 -- Load Script Button
 MenuServerTab:CreateButton({
-    Name = "MYLF PREMIUM",
+    Name = "MYLF HUB",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/PittikYalayan/MYLFMenu/main/meme11.6.lua"))()
     end
 })
 MenuServerTab:CreateButton({
-    Name = "99 NIGHT NPC",
+    Name = "[MYLF HUB] 99 NIGHT NPC",
     Callback = function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/Anti-obfuscate/main/99nightnpc.lua"))()
     end
