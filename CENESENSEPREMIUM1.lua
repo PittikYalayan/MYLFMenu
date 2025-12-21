@@ -1655,7 +1655,7 @@ MenuServerTab:CreateButton({
     end
 })
 MenuServerTab:CreateButton({
-    Name = "99 NIGHT NPC"
+    Name = "99 NIGHT NPC",
     Callback = function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/Anti-obfuscate/main/99nightnpc.lua"))()
         end
