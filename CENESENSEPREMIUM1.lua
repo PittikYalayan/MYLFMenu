@@ -431,7 +431,7 @@ local emotes = {
     {name = "???", id = "rbxassetid://136491428712959"},
     {name = "????", id = "rbxassetid://96357779735687"},
     {name = "?keko?", id = "rbxassetid://133841838295129"}, -- keko dans ile çakışıyor, ama eskiyi korudum; isterseniz birleştiririm
-    {name = "GanGam Style", id = "rbxassetid://14618196485"},
+    {name = "GanGam Style", id = "rbxassetid://137133110548904"},
     {name = "Dararara", id = "rbxassetid://115781688996859"},
     {name = "Twice", id = "rbxassetid://14899980745"},
     {name = "Anime", id = "rbxassetid://114774556469581"},
@@ -1429,7 +1429,7 @@ local emoteSections = {
     {
         title = "Emotes: Popüler Danslar",
         emotes = {
-            {name = "GanGam Style", id = "rbxassetid://14618196485"},
+            {name = "GanGam Style", id = "rbxassetid://137133110548904"},
             {name = "Dararara", id = "rbxassetid://115781688996859"},
             {name = "Twice", id = "rbxassetid://14899980745"},
             {name = "Anime", id = "rbxassetid://114774556469581"},
