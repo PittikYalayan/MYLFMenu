@@ -494,6 +494,7 @@ local emotes = {
     {name = "tekme", id = "rbxassetid://92249489340640"},
     {name = "uçan tekme", id = "rbxassetid://133566007754001"},
     {name = "Bully Maguire", id = "rbxassetid://87099200550143"},
+    {name = "SkibiDopDop", id = "rbxassetid://98328399081636"},
     {name = "Tuff", id = "rbxassetid://99195149999804"},
     {name = "One pound fish", id = "rbxassetid://97705611021245"},
     {name = "Die Lit", id = "rbxassetid://134158476680452"},
@@ -1417,6 +1418,7 @@ local emoteSections = {
     {
         title = "Emotes: Developer Section",
         emotes = {
+            {name = "SkibiDopDop", id = "rbxassetid://98328399081636"},
             {name = "?", id = "rbxassetid://121966805049108"},
             {name = "??", id = "rbxassetid://112089880074848"},
             {name = "???", id = "rbxassetid://136491428712959"},
