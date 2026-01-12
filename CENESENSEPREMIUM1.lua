@@ -475,6 +475,7 @@ local emotes = {
     {name = "Şapşal Dans", id = "rbxassetid://85062238386196"},
     -- Yeni düzeltilmiş eklemeler aşağıda (duplicate'ler güncellendi):
     {name = "Namaz Kılma", id = "rbxassetid://93009184159377"},
+    {name = "Oyun Havası", id = "rbxassetid://104062506559570"},
     {name = "Namaz Kılma v2", id = "rbxassetid://127829093804907"},
     {name = "oturma", id = "rbxassetid://110071776811205"},
     {name = "YERE YATMA DELİRME", id = "rbxassetid://98719422024341"},
@@ -1419,11 +1420,17 @@ local emoteSections = {
         title = "Emotes: Developer Section",
         emotes = {
             {name = "SkibiDopDop", id = "rbxassetid://98328399081636"},
-            {name = "?", id = "rbxassetid://121966805049108"},
-            {name = "??", id = "rbxassetid://112089880074848"},
-            {name = "???", id = "rbxassetid://136491428712959"},
-            {name = "????", id = "rbxassetid://96357779735687"},
-            {name = "?keko?", id = "rbxassetid://133841838295129"},
+            {name = "Oyun Havası", id = "rbxassetid://104062506559570"},
+            {name = "Turkish Keko Dance", id = "rbxassetid://133841838295129"},
+            {name = "Vol1", id = "rbxassetid://121966805049108"},
+            {name = "Vol2", id = "rbxassetid://112089880074848"},
+            {name = "Vol3", id = "rbxassetid://136491428712959"},
+            {name = "Vol4", id = "rbxassetid://96357779735687"}
+        }
+    },
+    {
+        title = "Muslim Emotes",
+        emotes = {
             {name = "Namaz Kılma", id = "rbxassetid://93009184159377"},
             {name = "Namaz Kılma v2", id = "rbxassetid://127829093804907"}
         }
