@@ -1464,7 +1464,7 @@ EmotesTab:CreateToggle({
 -- Slider
 EmotesTab:CreateSlider({
     Name = "Animasyon Hız Çarpanı",
-    Range = {0.5, 5},
+    Range = {0.01, 20},
     Increment = 0.1,
     Suffix = "x",
     CurrentValue = 1,
