@@ -1350,6 +1350,38 @@ CameraTab:CreateButton({
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 -- DÜZELTME: Emote Controls Section + PlayEmote Fonksiyonu (callback hatası için zorunlu)
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
+-- Değişkenler
+local CurrentSpeed = 1
+local Enabled = true
+local Humanoid = nil
+
+-- Hız uygula
+local function ApplySpeed(speed)
+    if not Humanoid or not Enabled then return end
+    for _, track in pairs(Humanoid:GetPlayingAnimationTracks()) do
+        track:AdjustSpeed(speed)
+    end
+end
+
+-- Karakter yükle
+local function LoadCharacter(char)
+    Humanoid = char:WaitForChild("Humanoid")
+    ApplySpeed(CurrentSpeed)
+    
+    Humanoid.AnimationPlayed:Connect(function(track)
+        if Enabled then
+            track:AdjustSpeed(CurrentSpeed)
+        end
+    end)
+end
+
+local Player = game.Players.LocalPlayer
+if Player.Character then
+    LoadCharacter(Player.Character)
+end
+Player.CharacterAdded:Connect(LoadCharacter)
+
+
 local function PlayEmote(id, name)
     local char = Services.LocalPlayer.Character
     if not char then 
@@ -1412,6 +1444,36 @@ EmotesTab:CreateToggle({
     Flag = "SYNCFlag",
     Callback = function(val)
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
+    end
+})
+-- Toggle
+EmotesTab:CreateToggle({
+    Name = "Animasyon Hızı Aktif",
+    CurrentValue = true,
+    Flag = "AnimEnabled",
+    Callback = function(Value)
+        Enabled = Value
+        if not Value then
+            ApplySpeed(1) -- Kapatınca normale dön
+        else
+            ApplySpeed(CurrentSpeed)
+        end
+    end
+})
+
+-- Slider
+EmotesTab:CreateSlider({
+    Name = "Animasyon Hız Çarpanı",
+    Range = {0.5, 5},
+    Increment = 0.1,
+    Suffix = "x",
+    CurrentValue = 1,
+    Flag = "AnimMultiplier",
+    Callback = function(Value)
+        CurrentSpeed = Value
+        if Enabled then
+            ApplySpeed(CurrentSpeed)
+        end
     end
 })
 
