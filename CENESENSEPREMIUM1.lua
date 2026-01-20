@@ -1352,7 +1352,7 @@ CameraTab:CreateButton({
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
 -- Değişkenler
 local CurrentSpeed = 1
-local Enabled = true
+local Enabled = false
 local Humanoid = nil
 
 -- Hız uygula
@@ -1464,7 +1464,7 @@ EmotesTab:CreateToggle({
 -- Slider
 EmotesTab:CreateSlider({
     Name = "Animasyon Hız Çarpanı",
-    Range = {0.01, 20},
+    Range = {0.1, 10},
     Increment = 0.1,
     Suffix = "x",
     CurrentValue = 1,
