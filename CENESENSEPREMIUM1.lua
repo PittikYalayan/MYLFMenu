@@ -1374,11 +1374,11 @@ local function applyAnims()
     
     -- Yeni ID'ler
     animate.idle.Animation1.AnimationId = "rbxassetid://140439422789664"
-    animate.idle.Animation2.AnimationId = "rbxassetid://10921288909"
+    animate.idle.Animation2.AnimationId = "rbxassetid://140439422789664"
     
     animate.walk.WalkAnim.AnimationId = "rbxassetid://18537392113"      -- Run ID'sini walk'a da verdim (sigma akışı)
     
-    animate.run.RunAnim.AnimationId = "rbxassetid://7109568469567"        -- Run
+    animate.run.RunAnim.AnimationId = "rbxassetid://109168724482748"        -- Run
     
     animate.jump.JumpAnim.AnimationId = "rbxassetid://100901692455858"      -- Jump + Fly etkisi
     animate.fall.FallAnim.AnimationId = "rbxassetid://18537367238"      -- Fall da aynı
