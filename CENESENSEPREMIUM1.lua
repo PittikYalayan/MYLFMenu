@@ -1355,6 +1355,57 @@ local CurrentSpeed = 1
 local Enabled = false
 local Humanoid = nil
 
+
+local applied = false
+
+local function applyAnims()
+    local player = game.Players.LocalPlayer
+    if not player.Character or not player.Character:FindFirstChild("Humanoid") then return end
+    
+    local char = player.Character
+    local hum = char.Humanoid
+    local animate = char:FindFirstChild("Animate")
+    if not animate then return end
+    
+    -- Animate reload
+    animate.Disabled = true
+    task.wait()
+    animate.Disabled = false
+    
+    -- Yeni ID'ler
+    animate.idle.Animation1.AnimationId = "rbxassetid://10921288909"
+    animate.idle.Animation2.AnimationId = "rbxassetid://10921288909"
+    
+    animate.walk.WalkAnim.AnimationId = "rbxassetid://18537392113"      -- Run ID'sini walk'a da verdim (sigma akışı)
+    
+    animate.run.RunAnim.AnimationId = "rbxassetid://18537392113"        -- Run
+    
+    animate.jump.JumpAnim.AnimationId = "rbxassetid://18537367238"      -- Jump + Fly etkisi
+    animate.fall.FallAnim.AnimationId = "rbxassetid://18537367238"      -- Fall da aynı
+    animate.climb.ClimbAnim.AnimationId = "rbxassetid://18537392113"    -- Climb sigma gibi
+    
+    -- Swim eski kaldı ama istersen değiştiririz
+    if animate:FindFirstChild("swim") then
+        animate.swim.Swim.AnimationId = "rbxassetid://18537376492"      -- Fly/swim için jump anim
+        animate.swimidle.SwimIdle.AnimationId = "rbxassetid://10921288909"
+    end
+    
+    Rayfield:Notify({
+        Title = "Dev Animation Pack (Sigma)!",
+        Content = "Yeni sigma animler aktif",
+        Duration = 5,
+    })
+end
+
+-- Respawn koruması
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    if applied then
+        applyAnims()
+    end
+end)
+
+
 -- Hız uygula
 local function ApplySpeed(speed)
     if not Humanoid or not Enabled then return end
@@ -1445,6 +1496,13 @@ EmotesTab:CreateToggle({
     Callback = function(val)
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
+})
+local Button = EmotesTab:CreateButton({
+    Name = "Dev Humanoid Anim Pack (Idle+Run+Jump/Fly...)",
+    Callback = function()
+        applied = true
+        applyAnims()
+    end,
 })
 -- Toggle
 EmotesTab:CreateToggle({
