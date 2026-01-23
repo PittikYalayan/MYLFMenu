@@ -1373,16 +1373,16 @@ local function applyAnims()
     animate.Disabled = false
     
     -- Yeni ID'ler
-    animate.idle.Animation1.AnimationId = "rbxassetid://10921288909"
+    animate.idle.Animation1.AnimationId = "rbxassetid://140439422789664"
     animate.idle.Animation2.AnimationId = "rbxassetid://10921288909"
     
     animate.walk.WalkAnim.AnimationId = "rbxassetid://18537392113"      -- Run ID'sini walk'a da verdim (sigma akışı)
     
-    animate.run.RunAnim.AnimationId = "rbxassetid://18537392113"        -- Run
+    animate.run.RunAnim.AnimationId = "rbxassetid://7109568469567"        -- Run
     
-    animate.jump.JumpAnim.AnimationId = "rbxassetid://18537367238"      -- Jump + Fly etkisi
+    animate.jump.JumpAnim.AnimationId = "rbxassetid://100901692455858"      -- Jump + Fly etkisi
     animate.fall.FallAnim.AnimationId = "rbxassetid://18537367238"      -- Fall da aynı
-    animate.climb.ClimbAnim.AnimationId = "rbxassetid://18537392113"    -- Climb sigma gibi
+    animate.climb.ClimbAnim.AnimationId = "rbxassetid://88763136693023"    -- Climb sigma gibi
     
     -- Swim eski kaldı ama istersen değiştiririz
     if animate:FindFirstChild("swim") then
