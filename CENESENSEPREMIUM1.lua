@@ -1538,13 +1538,6 @@ EmotesTab:CreateSlider({
 
 local emoteSections = {
     {
-    title = "Anim Pack",
-        emotes = {}
-    },
-        
-        
-
-    {
         title = "Emotes: Developer Section",
         emotes = {
             {name = "susma", id = "rbxassetid://114829008360220"},
