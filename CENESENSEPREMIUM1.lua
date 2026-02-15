@@ -1498,7 +1498,12 @@ EmotesTab:CreateToggle({
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
     end
 })
-
+local Button = EmotesTab:CreateButton({
+    Name = "Dev Humanoid Anim Pack (Idle+Run+Jump/Fly...)",
+    Callback = function()
+        applied = true
+        applyAnims()
+    end,
 -- Toggle
 EmotesTab:CreateToggle({
     Name = "Animasyon Hızı Aktif",
@@ -1536,12 +1541,7 @@ local emoteSections = {
         emotes = {}
     },
         
-        local Button = EmotesTab:CreateButton({
-    Name = "Dev Humanoid Anim Pack (Idle+Run+Jump/Fly...)",
-    Callback = function()
-        applied = true
-        applyAnims()
-    end,
+        
 })
     {
         title = "Emotes: Developer Section",
