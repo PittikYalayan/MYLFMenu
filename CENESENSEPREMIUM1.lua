@@ -1504,6 +1504,7 @@ local Button = EmotesTab:CreateButton({
         applied = true
         applyAnims()
     end,
+        })
 -- Toggle
 EmotesTab:CreateToggle({
     Name = "Animasyon Hızı Aktif",
@@ -1542,7 +1543,7 @@ local emoteSections = {
     },
         
         
-})
+
     {
         title = "Emotes: Developer Section",
         emotes = {
