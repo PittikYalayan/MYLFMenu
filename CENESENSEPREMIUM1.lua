@@ -1532,7 +1532,10 @@ EmotesTab:CreateSlider({
 
 local emoteSections = {
     {
-        title = "Anim Pack",
+    title = "Anim Pack",
+        emotes = {}
+    },
+        
         local Button = EmotesTab:CreateButton({
     Name = "Dev Humanoid Anim Pack (Idle+Run+Jump/Fly...)",
     Callback = function()
@@ -1540,7 +1543,6 @@ local emoteSections = {
         applyAnims()
     end,
 })
-    },
     {
         title = "Emotes: Developer Section",
         emotes = {
