@@ -1503,8 +1503,8 @@ local Button = EmotesTab:CreateButton({
     Callback = function()
         applied = true
         applyAnims()
-    end,
-    })
+    end
+ })
 -- Toggle
 EmotesTab:CreateToggle({
     Name = "Animasyon Hızı Aktif",
