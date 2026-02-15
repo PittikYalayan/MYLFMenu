@@ -1373,8 +1373,8 @@ local function applyAnims()
     animate.Disabled = false
     
     -- Yeni ID'ler
-    animate.idle.Animation1.AnimationId = "rbxassetid://140439422789664"
-    animate.idle.Animation2.AnimationId = "rbxassetid://140439422789664"
+    animate.idle.Animation1.AnimationId = "rbxassetid://4211218409"
+    animate.idle.Animation2.AnimationId = "rbxassetid://4211218409"
     
     animate.walk.WalkAnim.AnimationId = "rbxassetid://18537392113"      -- Run ID'sini walk'a da verdim (sigma akışı)
     
