@@ -406,6 +406,349 @@ local CameraTab = Window:CreateTab("Camera View", 4483362458)
 local EmotesTab = Window:CreateTab("Emotes", 4483362458) -- YENİ EMOTES TAB
 local SettingsTab = Window:CreateTab("Info", 4483362458)
 local MenuServerTab = Window:CreateTab("Settings", 4483362458)
+
+-- ═══════════════════════════════════════════════ --
+-- NPC TAB KODU (tamamen yazıları değiştirmeden eklendi)
+-- ═══════════════════════════════════════════════ --
+
+local selectedNpc = nil
+local espEnabled = false
+local pointlightEnabled = false
+local innerRainbow = false
+local outerRainbow = false
+local showName = true
+local showInfoLine = true
+local showHealthBar = true
+
+local npcEsp = {}
+local renderConn
+local currentNpcDict = {}
+
+local function refreshNPCList()
+   local options = {}
+   currentNpcDict = {}
+   
+   if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then 
+      Rayfield:Notify({Title = "Cenesense", Content = "Karakter yok, NPC'ler yüklenemedi aşkım", Duration = 4})
+      return options 
+   end
+   
+   local playerHRP = player.Character.HumanoidRootPart
+   
+   for _, obj in ipairs(workspace:GetChildren()) do
+      if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
+         local charPlayer = game.Players:GetPlayerFromCharacter(obj)
+         if not charPlayer then
+            local dist = math.floor((playerHRP.Position - obj.HumanoidRootPart.Position).Magnitude)
+            local display = obj.Name .. " [" .. dist .. "m]"
+            table.insert(options, display)
+            currentNpcDict[obj.Name] = obj
+         end
+      end
+   end
+   
+   table.sort(options)
+   return options
+end
+
+local function createEsp(model)
+   if npcEsp[model] then return end
+   
+   local highlight = Instance.new("Highlight")
+   highlight.Name = "ZebaniEspHighlight"
+   highlight.Parent = model
+   highlight.Adornee = model
+   highlight.FillTransparency = 1
+   highlight.OutlineTransparency = 1
+   highlight.Enabled = true
+   
+   local hrp = model:FindFirstChild("HumanoidRootPart")
+   if not hrp then return end
+   
+   local bb = Instance.new("BillboardGui")
+   bb.Name = "ZebaniEspGui"
+   bb.Parent = hrp
+   bb.Adornee = hrp
+   bb.Size = UDim2.new(0, 180, 0, 80)
+   bb.StudsOffset = Vector3.new(3, 2, 0)
+   bb.AlwaysOnTop = true
+   bb.LightInfluence = 0
+   bb.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+   bb.ResetOnSpawn = false
+   
+   local nameLabel = Instance.new("TextLabel", bb)
+   nameLabel.Size = UDim2.new(1, 0, 0.35, 0)
+   nameLabel.Position = UDim2.new(0, 0, 0, 0)
+   nameLabel.BackgroundTransparency = 1
+   nameLabel.Text = model.Name
+   nameLabel.TextColor3 = Color3.new(1,1,1)
+   nameLabel.TextSize = 14
+   nameLabel.Font = Enum.Font.GothamBold
+   nameLabel.TextStrokeTransparency = 0.5
+   nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
+   nameLabel.Visible = showName
+   
+   local infoLabel = Instance.new("TextLabel", bb)
+   infoLabel.Size = UDim2.new(1, 0, 0.35, 0)
+   infoLabel.Position = UDim2.new(0, 0, 0.4, 0)
+   infoLabel.BackgroundTransparency = 1
+   infoLabel.Text = "[Can: 100/100 | Mesafe: 0m]"
+   infoLabel.TextColor3 = Color3.fromRGB(200,220,255)
+   infoLabel.TextSize = 12
+   infoLabel.Font = Enum.Font.Gotham
+   infoLabel.TextStrokeTransparency = 0.6
+   infoLabel.TextStrokeColor3 = Color3.new(0,0,0)
+   infoLabel.Visible = showInfoLine
+   
+   local healthBarBg = Instance.new("Frame", bb)
+   healthBarBg.Size = UDim2.new(0, 5, 0, 60)
+   healthBarBg.Position = UDim2.new(1, -10, 0.1, 0)
+   healthBarBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+   healthBarBg.BorderSizePixel = 0
+   Instance.new("UICorner", healthBarBg).CornerRadius = UDim.new(1,0)
+   
+   local healthBarFill = Instance.new("Frame", healthBarBg)
+   healthBarFill.AnchorPoint = Vector2.new(0,1)
+   healthBarFill.Position = UDim2.new(0,0,1,0)
+   healthBarFill.Size = UDim2.new(1,0,0,0)
+   healthBarFill.BackgroundColor3 = Color3.new(0,1,0)
+   healthBarFill.BorderSizePixel = 0
+   Instance.new("UICorner", healthBarFill).CornerRadius = UDim.new(1,0)
+   
+   local damageLine = Instance.new("Frame", healthBarBg)
+   damageLine.Size = UDim2.new(1,0,0,2)
+   damageLine.Position = UDim2.new(0,0,-0.5,0)
+   damageLine.BackgroundColor3 = Color3.new(1,0,0)
+   damageLine.BorderSizePixel = 0
+   damageLine.Visible = false
+   
+   npcEsp[model] = {
+      highlight = highlight,
+      bb = bb,
+      nameLabel = nameLabel,
+      infoLabel = infoLabel,
+      healthBarBg = healthBarBg,
+      healthBarFill = healthBarFill,
+      damageLine = damageLine
+   }
+end
+
+local function removeEsp(model)
+   if npcEsp[model] then
+      npcEsp[model].bb:Destroy()
+      npcEsp[model].highlight:Destroy()
+      npcEsp[model] = nil
+   end
+end
+
+local function updateEsp()
+   if not selectedNpc or not espEnabled or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
+   
+   local data = npcEsp[selectedNpc]
+   if not data then return end
+   
+   local hrp = selectedNpc:FindFirstChild("HumanoidRootPart")
+   local hum = selectedNpc:FindFirstChildOfClass("Humanoid")
+   if not (hrp and hum and selectedNpc.Parent) then
+      removeEsp(selectedNpc)
+      npcEsp = {}
+      if renderConn then renderConn:Disconnect() renderConn = nil end
+      selectedNpc = nil
+      Rayfield:Notify({Title = "Cenesense", Content = "NPC gitti, ESP kapandı aşkım", Duration = 3})
+      return
+   end
+   
+   local dist = (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+   
+   if showInfoLine and data.infoLabel then
+      data.infoLabel.Text = string.format("[Can: %d/%d | Mesafe: %dm]", math.floor(hum.Health), math.floor(hum.MaxHealth), math.floor(dist))
+   end
+   
+   local maxH = hum.MaxHealth
+   local curH = hum.Health
+   local perc = math.clamp(curH / maxH, 0, 1)
+   
+   data.healthBarFill.Size = UDim2.new(1, 0, perc, 0)
+   
+   local baseHue = (tick() * 0.3) % 1
+   
+   if curH >= maxH - 0.1 then
+      data.healthBarFill.BackgroundColor3 = Color3.fromHSV(baseHue, 0.95, 1)
+      data.damageLine.Visible = false
+   else
+      data.healthBarFill.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
+      data.damageLine.Visible = true
+   end
+   
+   local h = data.highlight
+   if innerRainbow then
+      h.FillColor = Color3.fromHSV(baseHue, 1, 1)
+      h.FillTransparency = 0.4
+   else
+      h.FillTransparency = 1
+   end
+   
+   if outerRainbow then
+      local outerHue = (tick() * 0.2) % 1
+      h.OutlineColor = Color3.fromHSV(outerHue, 1, 1)
+      h.OutlineTransparency = 0
+   else
+      h.OutlineTransparency = 1
+   end
+end
+
+local function createPointlight(model)
+   local hrp = model and model:FindFirstChild("HumanoidRootPart")
+   if not hrp or hrp:FindFirstChild("NpcPointlight") then return end
+   local pl = Instance.new("PointLight")
+   pl.Name = "NpcPointlight"
+   pl.Parent = hrp
+   pl.Brightness = 0.8
+   pl.Range = 35
+   pl.Color = Color3.fromRGB(255, 220, 100)
+   pl.Shadows = false
+   pl.Enabled = true
+end
+
+local function removePointlight(model)
+   local hrp = model and model:FindFirstChild("HumanoidRootPart")
+   if hrp then
+      local pl = hrp:FindFirstChild("NpcPointlight")
+      if pl then pl:Destroy() end
+   end
+end
+
+-- Toggle fonksiyonları + Cenesense Notify
+local function toggleEsp(v)
+   espEnabled = v
+   if selectedNpc then
+      if v then
+         createEsp(selectedNpc)
+         if not renderConn then renderConn = RunService.RenderStepped:Connect(updateEsp) end
+         Rayfield:Notify({Title = "Cenesense", Content = "Ana ESP Aktif Edildi", Duration = 3, Image = 4483362458})
+      else
+         removeEsp(selectedNpc)
+         if renderConn then renderConn:Disconnect() renderConn = nil end
+         Rayfield:Notify({Title = "Cenesense", Content = "Ana ESP Kapatıldı", Duration = 3, Image = 4483362458})
+      end
+   else
+      Rayfield:Notify({Title = "Cenesense", Content = "Önce bir NPC seçin!", Duration = 3})
+   end
+end
+
+local function togglePL(v)
+   pointlightEnabled = v
+   if selectedNpc then
+      if v then 
+         createPointlight(selectedNpc) 
+         Rayfield:Notify({Title = "Cenesense", Content = "Pointlight Aktif Edildi", Duration = 3, Image = 4483362458})
+      else 
+         removePointlight(selectedNpc) 
+         Rayfield:Notify({Title = "Cenesense", Content = "Pointlight Kapatıldı", Duration = 3, Image = 4483362458})
+      end
+   else
+      Rayfield:Notify({Title = "Cenesense", Content = "Önce bir NPC seçin!", Duration = 3})
+   end
+end
+
+local function toggleInner(v)
+   innerRainbow = v
+   Rayfield:Notify({Title = "Cenesense", Content = v and "İç Rainbow Aktif Edildi" or "İç Rainbow Kapatıldı", Duration = 3, Image = 4483362458})
+end
+
+local function toggleOuter(v)
+   outerRainbow = v
+   Rayfield:Notify({Title = "Cenesense", Content = v and "Dış Rainbow Aktif Edildi" or "Dış Rainbow Kapatıldı", Duration = 3, Image = 4483362458})
+end
+
+local function toggleName(v)
+   showName = v
+   if npcEsp[selectedNpc] then npcEsp[selectedNpc].nameLabel.Visible = v end
+   Rayfield:Notify({Title = "Cenesense", Content = v and "İsim Gösterimi Aktif Edildi" or "İsim Gösterimi Kapatıldı", Duration = 3, Image = 4483362458})
+end
+
+local function toggleInfo(v)
+   showInfoLine = v
+   if npcEsp[selectedNpc] then npcEsp[selectedNpc].infoLabel.Visible = v end
+   Rayfield:Notify({Title = "Cenesense", Content = v and "[Can | Mesafe] Gösterimi Aktif Edildi" or "[Can | Mesafe] Gösterimi Kapatıldı", Duration = 3, Image = 4483362458})
+end
+
+local function toggleBar(v)
+   showHealthBar = v
+   if npcEsp[selectedNpc] then npcEsp[selectedNpc].healthBarBg.Visible = v end
+   Rayfield:Notify({Title = "Cenesense", Content = v and "Dikey Health Bar Aktif Edildi" or "Dikey Health Bar Kapatıldı", Duration = 3, Image = 4483362458})
+end
+
+-- UI Elemanları (NPCTab'a özel)
+local NPCDropdown = NPCTab:CreateDropdown({
+   Name = "🎯 NPC Seç",
+   Options = refreshNPCList(),
+   CurrentOption = {"Hiçbiri"},
+   Callback = function(Option)
+      local selectedText = Option[1]
+      if selectedText == "Hiçbiri" then
+         if selectedNpc then
+            if espEnabled then removeEsp(selectedNpc) end
+            if pointlightEnabled then removePointlight(selectedNpc) end
+            selectedNpc = nil
+         end
+         return
+      end
+      
+      local npcName = selectedText:match("^(.-)%s%[")
+      local npc = currentNpcDict[npcName]
+      
+      if npc then
+         if selectedNpc and selectedNpc ~= npc then
+            if espEnabled then removeEsp(selectedNpc) end
+            if pointlightEnabled then removePointlight(selectedNpc) end
+         end
+         
+         selectedNpc = npc
+         
+         if espEnabled then 
+            createEsp(npc) 
+            if not renderConn then renderConn = RunService.RenderStepped:Connect(updateEsp) end 
+         end
+         if pointlightEnabled then createPointlight(npc) end
+      end
+   end
+})
+
+NPCTab:CreateButton({
+   Name = "🔄 NPC Listesini Yenile",
+   Callback = function()
+      local newOptions = refreshNPCList()
+      NPCDropdown:Refresh(newOptions, true)
+   end
+})
+
+NPCTab:CreateButton({
+   Name = "🚀 Seçiliye Işınlan 💕",
+   Callback = function()
+      if selectedNpc and selectedNpc:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+         player.Character.HumanoidRootPart.CFrame = selectedNpc.HumanoidRootPart.CFrame * CFrame.new(0, 6, 0)
+         Rayfield:Notify({Title = "Cenesense", Content = "Işınlandın aşkım!", Duration = 3})
+      else
+         Rayfield:Notify({Title = "Cenesense", Content = "NPC veya karakter yok", Duration = 3})
+      end
+   end
+})
+
+local sec = NPCTab:CreateSection("👁️ ESP Ayarları")
+
+NPCTab:CreateToggle({Name = "ESP Aç/Kapa", CurrentValue = false, Callback = toggleEsp})
+NPCTab:CreateToggle({Name = "Pointlight", CurrentValue = false, Callback = togglePL})
+NPCTab:CreateToggle({Name = "🌈 İç Rainbow", CurrentValue = false, Callback = toggleInner})
+NPCTab:CreateToggle({Name = "🌈 Dış Rainbow", CurrentValue = false, Callback = toggleOuter})
+NPCTab:CreateToggle({Name = "İsim Göster", CurrentValue = true, Callback = toggleName})
+NPCTab:CreateToggle({Name = "[Can | Mesafe] Göster", CurrentValue = true, Callback = toggleInfo})
+NPCTab:CreateToggle({Name = "Dikey Health Bar (Sağda)", CurrentValue = true, Callback = toggleBar})
+
+-- ═══════════════════════════════════════════════ --
+-- GERİ KALAN KOD (değişmedi, sadece NPC kısmı eklendi)
+-- ═══════════════════════════════════════════════ --
+
 -- Global Variables (Aimbot/ESP korundu, features external ile uyumlu)
 getgenv().AimbotEnabled = false
 getgenv().SilentAimEnabled = false
@@ -432,7 +775,7 @@ local emotes = {
     {name = "??", id = "rbxassetid://112089880074848"},
     {name = "???", id = "rbxassetid://136491428712959"},
     {name = "????", id = "rbxassetid://96357779735687"},
-    {name = "?keko?", id = "rbxassetid://133841838295129"}, -- keko dans ile çakışıyor, ama eskiyi korudum; isterseniz birleştiririm
+    {name = "?keko?", id = "rbxassetid://133841838295129"},
     {name = "GanGam Style", id = "rbxassetid://137133110548904"},
     {name = "Dararara", id = "rbxassetid://115781688996859"},
     {name = "Twice", id = "rbxassetid://14899980745"},
@@ -475,7 +818,6 @@ local emotes = {
     {name = "Zıplama", id = "rbxassetid://15609995579"},
     {name = "İmza Dansı", id = "rbxassetid://112931882473990"},
     {name = "Şapşal Dans", id = "rbxassetid://85062238386196"},
-    -- Yeni düzeltilmiş eklemeler aşağıda (duplicate'ler güncellendi):
     {name = "Namaz Kılma", id = "rbxassetid://93009184159377"},
     {name = "Oyun Havası", id = "rbxassetid://104062506559570"},
     {name = "Namaz Kılma v2", id = "rbxassetid://127829093804907"},
@@ -1333,22 +1675,6 @@ CameraTab:CreateButton({
     end
 })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -- Emote Buttons (Her emote için button, Rayfield ile gruplanmış)
 -- DÜZELTME: Emote Controls Section + PlayEmote Fonksiyonu (callback hatası için zorunlu)
 local EmoteControlSection = EmotesTab:CreateSection("Emote Controls")
@@ -1733,341 +2059,6 @@ for _, section in ipairs(emoteSections) do
     end
 end
 
----NPC TABS---
-local selectedNpc = nil
-local espEnabled = false
-local pointlightEnabled = false
-local innerRainbow = false
-local outerRainbow = false
-local showName = true
-local showInfoLine = true
-local showHealthBar = true
-
-local npcEsp = {}
-local renderConn
-local currentNpcDict = {}
-
-local function refreshNPCList()
-   local options = {}
-   currentNpcDict = {}
-   
-   if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then 
-      Rayfield:Notify({Title = "Cenesense", Content = "Karakter yok, NPC'ler yüklenemedi aşkım", Duration = 4})
-      return options 
-   end
-   
-   local playerHRP = player.Character.HumanoidRootPart
-   
-   for _, obj in ipairs(workspace:GetChildren()) do
-      if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChild("HumanoidRootPart") then
-         local charPlayer = game.Players:GetPlayerFromCharacter(obj)
-         if not charPlayer then
-            local dist = math.floor((playerHRP.Position - obj.HumanoidRootPart.Position).Magnitude)
-            local display = obj.Name .. " [" .. dist .. "m]"
-            table.insert(options, display)
-            currentNpcDict[obj.Name] = obj
-         end
-      end
-   end
-   
-   table.sort(options)
-   return options
-end
-
-local function createEsp(model)
-   if npcEsp[model] then return end
-   
-   local highlight = Instance.new("Highlight")
-   highlight.Name = "ZebaniEspHighlight"
-   highlight.Parent = model
-   highlight.Adornee = model
-   highlight.FillTransparency = 1
-   highlight.OutlineTransparency = 1
-   highlight.Enabled = true
-   
-   local hrp = model:FindFirstChild("HumanoidRootPart")
-   if not hrp then return end
-   
-   local bb = Instance.new("BillboardGui")
-   bb.Name = "ZebaniEspGui"
-   bb.Parent = hrp
-   bb.Adornee = hrp
-   bb.Size = UDim2.new(0, 180, 0, 80)
-   bb.StudsOffset = Vector3.new(3, 2, 0)
-   bb.AlwaysOnTop = true
-   bb.LightInfluence = 0
-   bb.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-   bb.ResetOnSpawn = false
-   
-   local nameLabel = Instance.new("TextLabel", bb)
-   nameLabel.Size = UDim2.new(1, 0, 0.35, 0)
-   nameLabel.Position = UDim2.new(0, 0, 0, 0)
-   nameLabel.BackgroundTransparency = 1
-   nameLabel.Text = model.Name
-   nameLabel.TextColor3 = Color3.new(1,1,1)
-   nameLabel.TextSize = 14
-   nameLabel.Font = Enum.Font.GothamBold
-   nameLabel.TextStrokeTransparency = 0.5
-   nameLabel.TextStrokeColor3 = Color3.new(0,0,0)
-   nameLabel.Visible = showName
-   
-   local infoLabel = Instance.new("TextLabel", bb)
-   infoLabel.Size = UDim2.new(1, 0, 0.35, 0)
-   infoLabel.Position = UDim2.new(0, 0, 0.4, 0)
-   infoLabel.BackgroundTransparency = 1
-   infoLabel.Text = "[Can: 100/100 | Mesafe: 0m]"
-   infoLabel.TextColor3 = Color3.fromRGB(200,220,255)
-   infoLabel.TextSize = 12
-   infoLabel.Font = Enum.Font.Gotham
-   infoLabel.TextStrokeTransparency = 0.6
-   infoLabel.TextStrokeColor3 = Color3.new(0,0,0)
-   infoLabel.Visible = showInfoLine
-   
-   local healthBarBg = Instance.new("Frame", bb)
-   healthBarBg.Size = UDim2.new(0, 5, 0, 60)
-   healthBarBg.Position = UDim2.new(1, -10, 0.1, 0)
-   healthBarBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
-   healthBarBg.BorderSizePixel = 0
-   Instance.new("UICorner", healthBarBg).CornerRadius = UDim.new(1,0)
-   
-   local healthBarFill = Instance.new("Frame", healthBarBg)
-   healthBarFill.AnchorPoint = Vector2.new(0,1)
-   healthBarFill.Position = UDim2.new(0,0,1,0)
-   healthBarFill.Size = UDim2.new(1,0,0,0)
-   healthBarFill.BackgroundColor3 = Color3.new(0,1,0)
-   healthBarFill.BorderSizePixel = 0
-   Instance.new("UICorner", healthBarFill).CornerRadius = UDim.new(1,0)
-   
-   local damageLine = Instance.new("Frame", healthBarBg)
-   damageLine.Size = UDim2.new(1,0,0,2)
-   damageLine.Position = UDim2.new(0,0,-0.5,0)
-   damageLine.BackgroundColor3 = Color3.new(1,0,0)
-   damageLine.BorderSizePixel = 0
-   damageLine.Visible = false
-   
-   npcEsp[model] = {
-      highlight = highlight,
-      bb = bb,
-      nameLabel = nameLabel,
-      infoLabel = infoLabel,
-      healthBarBg = healthBarBg,
-      healthBarFill = healthBarFill,
-      damageLine = damageLine
-   }
-end
-
-local function removeEsp(model)
-   if npcEsp[model] then
-      npcEsp[model].bb:Destroy()
-      npcEsp[model].highlight:Destroy()
-      npcEsp[model] = nil
-   end
-end
-
-local function updateEsp()
-   if not selectedNpc or not espEnabled or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
-   
-   local data = npcEsp[selectedNpc]
-   if not data then return end
-   
-   local hrp = selectedNpc:FindFirstChild("HumanoidRootPart")
-   local hum = selectedNpc:FindFirstChildOfClass("Humanoid")
-   if not (hrp and hum and selectedNpc.Parent) then
-      removeEsp(selectedNpc)
-      npcEsp = {}
-      if renderConn then renderConn:Disconnect() renderConn = nil end
-      selectedNpc = nil
-      Rayfield:Notify({Title = "Cenesense", Content = "NPC gitti, ESP kapandı aşkım", Duration = 3})
-      return
-   end
-   
-   local dist = (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
-   
-   if showInfoLine and data.infoLabel then
-      data.infoLabel.Text = string.format("[Can: %d/%d | Mesafe: %dm]", math.floor(hum.Health), math.floor(hum.MaxHealth), math.floor(dist))
-   end
-   
-   local maxH = hum.MaxHealth
-   local curH = hum.Health
-   local perc = math.clamp(curH / maxH, 0, 1)
-   
-   data.healthBarFill.Size = UDim2.new(1, 0, perc, 0)
-   
-   local baseHue = (tick() * 0.3) % 1
-   
-   if curH >= maxH - 0.1 then
-      data.healthBarFill.BackgroundColor3 = Color3.fromHSV(baseHue, 0.95, 1)
-      data.damageLine.Visible = false
-   else
-      data.healthBarFill.BackgroundColor3 = Color3.fromRGB(220, 40, 40)
-      data.damageLine.Visible = true
-   end
-   
-   local h = data.highlight
-   if innerRainbow then
-      h.FillColor = Color3.fromHSV(baseHue, 1, 1)
-      h.FillTransparency = 0.4
-   else
-      h.FillTransparency = 1
-   end
-   
-   if outerRainbow then
-      local outerHue = (tick() * 0.2) % 1
-      h.OutlineColor = Color3.fromHSV(outerHue, 1, 1)
-      h.OutlineTransparency = 0
-   else
-      h.OutlineTransparency = 1
-   end
-end
-
-local function createPointlight(model)
-   local hrp = model and model:FindFirstChild("HumanoidRootPart")
-   if not hrp or hrp:FindFirstChild("NpcPointlight") then return end
-   local pl = Instance.new("PointLight")
-   pl.Name = "NpcPointlight"
-   pl.Parent = hrp
-   pl.Brightness = 0.8
-   pl.Range = 35
-   pl.Color = Color3.fromRGB(255, 220, 100)
-   pl.Shadows = false
-   pl.Enabled = true
-end
-
-local function removePointlight(model)
-   local hrp = model and model:FindFirstChild("HumanoidRootPart")
-   if hrp then
-      local pl = hrp:FindFirstChild("NpcPointlight")
-      if pl then pl:Destroy() end
-   end
-end
-
--- Toggle fonksiyonları + Cenesense Notify
-local function toggleEsp(v)
-   espEnabled = v
-   if selectedNpc then
-      if v then
-         createEsp(selectedNpc)
-         if not renderConn then renderConn = RunService.RenderStepped:Connect(updateEsp) end
-         Rayfield:Notify({Title = "Cenesense", Content = "Ana ESP Aktif Edildi", Duration = 3, Image = 4483362458})
-      else
-         removeEsp(selectedNpc)
-         if renderConn then renderConn:Disconnect() renderConn = nil end
-         Rayfield:Notify({Title = "Cenesense", Content = "Ana ESP Kapatıldı", Duration = 3, Image = 4483362458})
-      end
-   else
-      Rayfield:Notify({Title = "Cenesense", Content = "Önce bir NPC seçin!", Duration = 3})
-   end
-end
-
-local function togglePL(v)
-   pointlightEnabled = v
-   if selectedNpc then
-      if v then 
-         createPointlight(selectedNpc) 
-         Rayfield:Notify({Title = "Cenesense", Content = "Pointlight Aktif Edildi", Duration = 3, Image = 4483362458})
-      else 
-         removePointlight(selectedNpc) 
-         Rayfield:Notify({Title = "Cenesense", Content = "Pointlight Kapatıldı", Duration = 3, Image = 4483362458})
-      end
-   else
-      Rayfield:Notify({Title = "Cenesense", Content = "Önce bir NPC seçin!", Duration = 3})
-   end
-end
-
-local function toggleInner(v)
-   innerRainbow = v
-   Rayfield:Notify({Title = "Cenesense", Content = v and "İç Rainbow Aktif Edildi" or "İç Rainbow Kapatıldı", Duration = 3, Image = 4483362458})
-end
-
-local function toggleOuter(v)
-   outerRainbow = v
-   Rayfield:Notify({Title = "Cenesense", Content = v and "Dış Rainbow Aktif Edildi" or "Dış Rainbow Kapatıldı", Duration = 3, Image = 4483362458})
-end
-
-local function toggleName(v)
-   showName = v
-   if npcEsp[selectedNpc] then npcEsp[selectedNpc].nameLabel.Visible = v end
-   Rayfield:Notify({Title = "Cenesense", Content = v and "İsim Gösterimi Aktif Edildi" or "İsim Gösterimi Kapatıldı", Duration = 3, Image = 4483362458})
-end
-
-local function toggleInfo(v)
-   showInfoLine = v
-   if npcEsp[selectedNpc] then npcEsp[selectedNpc].infoLabel.Visible = v end
-   Rayfield:Notify({Title = "Cenesense", Content = v and "[Can | Mesafe] Gösterimi Aktif Edildi" or "[Can | Mesafe] Gösterimi Kapatıldı", Duration = 3, Image = 4483362458})
-end
-
-local function toggleBar(v)
-   showHealthBar = v
-   if npcEsp[selectedNpc] then npcEsp[selectedNpc].healthBarBg.Visible = v end
-   Rayfield:Notify({Title = "Cenesense", Content = v and "Dikey Health Bar Aktif Edildi" or "Dikey Health Bar Kapatıldı", Duration = 3, Image = 4483362458})
-end
-
--- UI Elemanları
-local NPCDropdown = NPCTab:CreateDropdown({
-   Name = "🎯 NPC Seç",
-   Options = refreshNPCList(),
-   CurrentOption = {"Hiçbiri"},
-   Callback = function(Option)
-      local selectedText = Option[1]
-      if selectedText == "Hiçbiri" then
-         if selectedNpc then
-            if espEnabled then removeEsp(selectedNpc) end
-            if pointlightEnabled then removePointlight(selectedNpc) end
-            selectedNpc = nil
-         end
-         return
-      end
-      
-      local npcName = selectedText:match("^(.-)%s%[")
-      local npc = currentNpcDict[npcName]
-      
-      if npc then
-         if selectedNpc and selectedNpc ~= npc then
-            if espEnabled then removeEsp(selectedNpc) end
-            if pointlightEnabled then removePointlight(selectedNpc) end
-         end
-         
-         selectedNpc = npc
-         
-         if espEnabled then 
-            createEsp(npc) 
-            if not renderConn then renderConn = RunService.RenderStepped:Connect(updateEsp) end 
-         end
-         if pointlightEnabled then createPointlight(npc) end
-      end
-   end
-})
-
-NPCTab:CreateButton({
-   Name = "🔄 NPC Listesini Yenile",
-   Callback = function()
-      local newOptions = refreshNPCList()
-      NPCDropdown:Refresh(newOptions, true)
-   end
-})
-
-NPCTab:CreateButton({
-   Name = "🚀 Seçiliye Işınlan 💕",
-   Callback = function()
-      if selectedNpc and selectedNpc:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-         player.Character.HumanoidRootPart.CFrame = selectedNpc.HumanoidRootPart.CFrame * CFrame.new(0, 6, 0)
-         Rayfield:Notify({Title = "Cenesense", Content = "Işınlandın aşkım!", Duration = 3})
-      else
-         Rayfield:Notify({Title = "Cenesense", Content = "NPC veya karakter yok", Duration = 3})
-      end
-   end
-})
-
-local sec = Tab:CreateSection("👁️ ESP Ayarları")
-
-NPCTab:CreateToggle({Name = "ESP Aç/Kapa", CurrentValue = false, Callback = toggleEsp})
-NPCTab:CreateToggle({Name = "Pointlight", CurrentValue = false, Callback = togglePL})
-NPCTab:CreateToggle({Name = "🌈 İç Rainbow", CurrentValue = false, Callback = toggleInner})
-NPCTab:CreateToggle({Name = "🌈 Dış Rainbow", CurrentValue = false, Callback = toggleOuter})
-NPCTab:CreateToggle({Name = "İsim Göster", CurrentValue = true, Callback = toggleName})
-NPCTab:CreateToggle({Name = "[Can | Mesafe] Göster", CurrentValue = true, Callback = toggleInfo})
-NPCTab:CreateToggle({Name = "Dikey Health Bar (Sağda)", CurrentValue = true, Callback = toggleBar})
-
 
 
 -- Respawn Güvenlik (Emotes için)
@@ -2165,4 +2156,3 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
         end
     end
 end)
-
