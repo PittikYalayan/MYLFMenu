@@ -1214,43 +1214,26 @@ rebuildDropdown()
 ---------------------------------------------------------
 local currentTarget = nil
 
-local function getClosestSelectedPlayer()
-    if #selectedPlayers == 0 then return nil end
-    
-    local myRoot = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return selectedPlayers[1] end   -- fallback
-    
-    local myPos = myRoot.Position
-    local closest = nil
-    local minDist = math.huge
-    
-    for _, plr in ipairs(selectedPlayers) do
-        local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            local d = (root.Position - myPos).Magnitude
-            if d < minDist then
-                minDist = d
-                closest = plr
-            end
-        end
+local function updateFollowTarget()
+    if #selectedPlayers == 0 then
+        currentTarget = nil
+        return
     end
     
-    return closest or selectedPlayers[1]
-end
-
-local function updateFollowTarget()
-    local newTarget = getClosestSelectedPlayer()
+    local newTarget = selectedPlayers[1]  -- Listedeki İLK oyuncu (senin seçme sırasına göre)
+    
     if newTarget == currentTarget then return end
     
     currentTarget = newTarget
-    -- açıları sıfırlamak istemiyorsan aşağıdaki 3 satırı kaldırabilirsin
-    -- yaw = math.rad(0)
+    
+    -- İstersen her hedef değişiminde açıları sıfırla (yorum satırına alabilirsin)
+    -- yaw   = math.rad(0)
     -- pitch = math.rad(-10)
-    -- dist = 12
+    -- dist  = 12
 end
 
 ---------------------------------------------------------
--- CAMERA MOVEMENT (smooth + güvenli hale getirildi)
+-- CAMERA MOVEMENT (uzak mesafede de stabil çalışsın diye ufak iyileştirme)
 ---------------------------------------------------------
 local function stopCamFollow()
     if camConn then camConn:Disconnect() camConn = nil end
@@ -1265,9 +1248,9 @@ local function stopCamFollow()
 end
 
 local function startCamFollow()
-    if mouseConn or wheelConn or camConn then return end   -- tekrar bağlanmasın
+    if mouseConn or wheelConn or camConn then return end  -- tekrar bağlanma
     
-    local sens = 0.0032   -- biraz daha akıcı
+    local sens = 0.0032
     
     mouseConn = UIS.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -1285,8 +1268,7 @@ local function startCamFollow()
     camConn = RS.RenderStepped:Connect(function(dt)
         if not camViewActive then return end
         
-        -- Her frame en yakın hedefi kontrol et
-        updateFollowTarget()
+        updateFollowTarget()  -- her frame kontrol et (liste değişirse hemen uyar)
         
         if not currentTarget or not currentTarget.Character then
             stopCamFollow()
@@ -1301,7 +1283,7 @@ local function startCamFollow()
             return
         end
         
-        local basePos = hrp.Position + Vector3.new(0, 2, 0)   -- biraz yukarı daha doğal
+        local basePos = hrp.Position + Vector3.new(0, 2.2, 0)  -- biraz daha yukarı bakar, uzak mesafede daha iyi
         
         local camCF = CFrame.new(basePos)
             * CFrame.Angles(pitch, yaw, 0)
@@ -1312,11 +1294,15 @@ local function startCamFollow()
 end
 
 ---------------------------------------------------------
--- TOGGLE & ENABLE / DISABLE
+-- ENABLE / DISABLE (ufak mesaj iyileştirmesi)
 ---------------------------------------------------------
 local function enableFollowCam()
     if #selectedPlayers == 0 then
-        Rayfield:Notify({ Title="Hata", Content="En az bir oyuncu seçmelisin", Duration=2.5 })
+        Rayfield:Notify({ 
+            Title = "Hata", 
+            Content = "Önce listeden oyuncu seç (ilk seçilen takip edilir)", 
+            Duration = 3 
+        })
         return false
     end
     
