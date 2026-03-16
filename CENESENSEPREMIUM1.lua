@@ -1190,7 +1190,7 @@ rebuildDropdown()
 -- 🎥 CAMERA MOVEMENT (YAW • PITCH • ZOOM)
 ---------------------------------------------------------
 local yaw     = math.rad(0)
-local pitch   = math.rad(-10)
+local pitch   = math.rad(-15)   -- biraz daha doğal açı
 local dist    = 12
 local minDist = 4
 local maxDist = 80
@@ -1199,78 +1199,88 @@ local camConn = nil
 local mouseConn = nil
 local wheelConn = nil
 
+local targetPlayer = nil
+local camViewActive = false
+
+-- ====================== STOP ======================
 local function stopCamFollow()
-    if camConn then camConn:Disconnect() camConn = nil end
-    if mouseConn then mouseConn:Disconnect() mouseConn = nil end
-    if wheelConn then wheelConn:Disconnect() wheelConn = nil end
+	if camConn then camConn:Disconnect() camConn = nil end
+	if mouseConn then mouseConn:Disconnect() mouseConn = nil end
+	if wheelConn then wheelConn:Disconnect() wheelConn = nil end
 
-    Cam.CameraType = Enum.CameraType.Custom
-    
-    local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-    if hum then Cam.CameraSubject = hum end
+	Cam.CameraType = Enum.CameraType.Custom
+	
+	local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+	if hum then
+		Cam.CameraSubject = hum
+	end
+	
+	targetPlayer = nil
+	camViewActive = false
 end
 
-local function startCamFollow(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+-- ====================== START ======================
+local function startCamFollow(newTarget)
+	if not newTarget or not newTarget.Character then return end
+	
+	local hrp = newTarget.Character:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
 
-    Cam.CameraType = Enum.CameraType.Scriptable
+	targetPlayer = newTarget
+	Cam.CameraType = Enum.CameraType.Scriptable
 
-    local sens = 0.003
+	-- Mouse hareketi (yaw & pitch)
+	mouseConn = UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			local sens = 0.003
+			yaw   = yaw - input.Delta.X * sens
+			pitch = math.clamp(pitch - input.Delta.Y * sens, math.rad(-80), math.rad(80))
+		end
+	end)
 
-    mouseConn = UIS.InputChanged:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseMovement then
-            yaw = yaw - i.Delta.X * sens
-            pitch = math.clamp(pitch - i.Delta.Y * sens, math.rad(-80), math.rad(80))
-        end
-    end)
+	-- Zoom
+	wheelConn = UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseWheel then
+			dist = math.clamp(dist - input.Position.Z * 2, minDist, maxDist)
+		end
+	end)
 
-    wheelConn = UIS.InputChanged:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseWheel then
-            dist = math.clamp(dist - i.Position.Z * 2, minDist, maxDist)
-        end
-    end)
+	-- Smooth takip + doğal third person davranışı
+	camConn = RunService.RenderStepped:Connect(function(dt)
+		if not targetPlayer or not targetPlayer.Character then return end
+		
+		local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+		local hum = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+		if not hrp or not hum then return end
 
-    camConn = RS.RenderStepped:Connect(function()
-        if not targetPlayer.Character then return end
-        local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
+		local basePos = hrp.Position
 
-        local basePos = hrp.Position
+		-- Karakterin baktığı yön (HRP'nin Yaw'ını alıyoruz)
+		local rootCFrame = hrp.CFrame
+		local rootYaw = math.atan2(-rootCFrame.LookVector.X, -rootCFrame.LookVector.Z)  -- karakterin yönü
 
-        -- HRP merkezli, mouse kontrollü kamera
-        local camCF =
-            CFrame.new(basePos)
-            * CFrame.Angles(pitch, yaw, 0)
-            * CFrame.new(0, 3, dist)
-            * CFrame.new(0, 0, -dist)
+		-- Mouse ile ekstra döndürme (relative yaw)
+		local desiredYaw = rootYaw + yaw
 
-        Cam.CFrame = CFrame.new(camCF.Position, basePos)
-    end)
+		-- Kamera pozisyonu hesapla (karakterin arkasından)
+		local offset = CFrame.new(0, 3, dist) 
+		               * CFrame.Angles(pitch, 0, 0)   -- pitch sadece dikey
+
+		local camCFrame = CFrame.new(basePos) 
+		                  * CFrame.Angles(0, desiredYaw, 0) 
+		                  * offset
+
+		-- Smooth geçiş için Lerp (çok önemli!)
+		local smoothFactor = 1 - math.pow(0.001, dt)   -- ~60 FPS'de güzel yumuşaklık
+		-- Alternatif: 8 * dt  (daha hızlı takip istersen 10-12 yap)
+
+		Cam.CFrame = Cam.CFrame:Lerp(
+			CFrame.new(camCFrame.Position, basePos + Vector3.new(0, 2, 0)),  -- hafif yukarı bakması için +2
+			smoothFactor
+		)
+	end)
 end
 
----------------------------------------------------------
--- FOLLOW CAMERA (Yeni: HRP merkezli, mouse kontrollü)
----------------------------------------------------------
-local function enableFollowCam()
-    if #selectedPlayers == 0 then
-        Rayfield:Notify({ Title="Error", Content="Oyuncu seç", Duration=2 })
-        return false
-    end
-
-    camViewActive = true
-
-    local target = selectedPlayers[1]
-    startCamFollow(target)
-
-    return true
-end
-
-local function disableFollowCam()
-    camViewActive = false
-    stopCamFollow()
-end
 
 ---------------------------------------------------------
 -- 🎥 CAMERA VIEW TOGGLE
