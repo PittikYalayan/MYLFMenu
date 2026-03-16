@@ -1101,7 +1101,7 @@ local RS = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Cam = workspace.CurrentCamera
 local LP = Players.LocalPlayer
-
+-- Önceki değişkenler aynı kalıyor...
 local yaw   = math.rad(0)
 local pitch = math.rad(-10)
 local dist  = 12
@@ -1111,8 +1111,36 @@ local maxDist = 80
 local camConn   = nil
 local mouseConn = nil
 local wheelConn = nil
-local targetPlayer = nil
+local targetPlayer = nil     -- artık dinamik olarak en yakın / ilk seçilen olacak
 local camViewActive = false
+
+-- Seçili oyuncuların listesini tutacak tablo (multi-select için)
+local selectedPlayers = {}   -- {Player1, Player2, ...}
+
+-- ====================== GET BEST TARGET ======================
+-- Multi seçiliyse: en yakını seç (veya istersen [1]'i seç)
+local function getBestTarget()
+    if #selectedPlayers == 0 then return nil end
+    
+    local lpChar = LP.Character
+    if not lpChar or not lpChar.PrimaryPart then return selectedPlayers[1] end  -- fallback
+    
+    local lpPos = lpChar.PrimaryPart.Position
+    local closest = nil
+    local minDist = math.huge
+    
+    for _, plr in ipairs(selectedPlayers) do
+        if plr ~= LP and plr.Character and plr.Character.PrimaryPart then
+            local dist = (plr.Character.PrimaryPart.Position - lpPos).Magnitude
+            if dist < minDist then
+                minDist = dist
+                closest = plr
+            end
+        end
+    end
+    
+    return closest or selectedPlayers[1]  -- en yakın yoksa ilkini ver
+end
 
 -- ====================== STOP ======================
 local function stopCamFollow()
@@ -1120,117 +1148,166 @@ local function stopCamFollow()
     if mouseConn then mouseConn:Disconnect() mouseConn = nil end
     if wheelConn then wheelConn:Disconnect() wheelConn = nil end
     
-    if workspace.CurrentCamera then
-        workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
+    local Cam = workspace.CurrentCamera
+    if Cam then
+        Cam.CameraType = Enum.CameraType.Custom
         local hum = LP.Character and LP.Character:FindFirstChildWhichIsA("Humanoid")
-        if hum then
-            workspace.CurrentCamera.CameraSubject = hum
-        end
+        if hum then Cam.CameraSubject = hum end
     end
     
     targetPlayer = nil
     camViewActive = false
 end
 
--- ====================== START ======================
-local function startCamFollow(newTarget)
-    if not newTarget or not newTarget.Character then return false end
+-- ====================== START / UPDATE TARGET ======================
+local function updateCameraTarget()
+    local newTarget = getBestTarget()
+    if newTarget == targetPlayer then return end  -- aynıysa değişme
     
-    local hrp = newTarget.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
+    if not newTarget or not newTarget.Character or not newTarget.Character:FindFirstChild("HumanoidRootPart") then
+        stopCamFollow()
+        return
+    end
     
     targetPlayer = newTarget
     
+    -- açıları sıfırlamak istemiyorsan bu satırları kaldırabilirsin
+    -- yaw   = math.rad(0)
+    -- pitch = math.rad(-10)
+    -- dist  = 12
+end
+
+local function startCamFollow()
     local Cam = workspace.CurrentCamera
     Cam.CameraType = Enum.CameraType.Scriptable
     
-    -- Mouse ile serbest dönüş
-    local sens = 0.0032          -- biraz daha akıcı hissettiriyor
-    mouseConn = UIS.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            yaw   = yaw   - input.Delta.X * sens
-            pitch = math.clamp(pitch - input.Delta.Y * sens, math.rad(-82), math.rad(82))
-        end
-    end)
+    -- Mouse kontrol (sadece bir kere bağlanır)
+    if not mouseConn then
+        local sens = 0.0032
+        mouseConn = UIS.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                yaw   = yaw   - input.Delta.X * sens
+                pitch = math.clamp(pitch - input.Delta.Y * sens, math.rad(-82), math.rad(82))
+            end
+        end)
+    end
     
-    -- Zoom
-    wheelConn = UIS.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseWheel then
-            local delta = input.Position.Z    -- forward = positive, backward = negative
-            dist = math.clamp(dist - delta * 2.4, minDist, maxDist)
-        end
-    end)
+    -- Zoom (sadece bir kere)
+    if not wheelConn then
+        wheelConn = UIS.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseWheel then
+                dist = math.clamp(dist - input.Position.Z * 2.4, minDist, maxDist)
+            end
+        end)
+    end
     
-    -- Smooth takip
-    camConn = RS.RenderStepped:Connect(function(dt)
-        if not targetPlayer or not targetPlayer.Character then
-            stopCamFollow()
-            return
-        end
-        
-        local char = targetPlayer.Character
-        local hrp  = char:FindFirstChild("HumanoidRootPart")
-        local hum  = char:FindFirstChildWhichIsA("Humanoid")
-        
-        if not hrp or not hum or hum.Health <= 0 then
-            stopCamFollow()
-            return
-        end
-        
-        local focusPos = hrp.Position + Vector3.new(0, 2.1, 0)   -- hafif yukarı → daha doğal bakış
-        
-        -- Senin orijinal mantık: HRP merkezli + mouse yaw/pitch
-        local camOffset = CFrame.Angles(pitch, yaw, 0)
-                        * CFrame.new(0, 0, dist)
-        
-        local desiredCFrame = CFrame.new(focusPos) * camOffset
-        desiredCFrame = CFrame.new(desiredCFrame.Position, focusPos)   -- lookAt = focusPos
-        
-        -- Yumuşatma (en önemli fark burada)
-        local alpha = 1 - math.exp(-16 * dt)   -- ~16-20 arası çok doğal duruyor
-        Cam.CFrame = Cam.CFrame:Lerp(desiredCFrame, alpha)
-    end)
-    
-    return true
+    -- Render loop
+    if not camConn then
+        camConn = RS.RenderStepped:Connect(function(dt)
+            if not camViewActive then return end
+            
+            -- Her frame hedefi güncelle (multi seçiliyse en yakın değişebilir)
+            updateCameraTarget()
+            
+            if not targetPlayer or not targetPlayer.Character then
+                stopCamFollow()
+                return
+            end
+            
+            local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+            local hum = targetPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+            if not hrp or not hum or hum.Health <= 0 then
+                stopCamFollow()
+                return
+            end
+            
+            local focusPos = hrp.Position + Vector3.new(0, 2.1, 0)
+            
+            local camOffset = CFrame.Angles(pitch, yaw, 0) * CFrame.new(0, 0, dist)
+            local desiredCFrame = CFrame.new(focusPos) * camOffset
+            desiredCFrame = CFrame.new(desiredCFrame.Position, focusPos)
+            
+            local alpha = 1 - math.exp(-16 * dt)
+            Cam.CFrame = Cam.CFrame:Lerp(desiredCFrame, alpha)
+        end)
+    end
 end
 
 -- ====================== ENABLE / DISABLE ======================
 local function enableFollowCam()
     if #selectedPlayers == 0 then
-        Rayfield:Notify({
-            Title = "Hata",
-            Content = "Lütfen bir oyuncu seçin!",
-            Duration = 2.5
-        })
+        Rayfield:Notify({Title = "Hata", Content = "En az bir oyuncu seçmelisin!", Duration = 2.5})
         return false
     end
-    
-    local target = selectedPlayers[1]
-    if target == LP then
-        Rayfield:Notify({
-            Title = "Uyarı",
-            Content = "Kendini izleyemezsin.",
-            Duration = 2
-        })
-        return false
-    end
-    
-    -- Her yeni hedefte açıları sıfırlamak genellikle daha temiz hissettirir
-    yaw   = math.rad(0)
-    pitch = math.rad(-10)
-    dist  = 12
     
     camViewActive = true
-    return startCamFollow(target)
+    updateCameraTarget()   -- ilk hedefi belirle
+    startCamFollow()       -- bağlantıları kur / devam ettir
+    return true
 end
 
 local function disableFollowCam()
+    camViewActive = false
     stopCamFollow()
 end
 
+-- ====================== MULTI-SELECT DROPDOWN ======================
+-- Tüm oyuncuları listeleyen multi-select kutusu
+local playerList = {}
+for _, plr in ipairs(game.Players:GetPlayers()) do
+    if plr ~= LP then
+        table.insert(playerList, plr.Name)
+    end
+end
+
+-- Oyuncular girip çıktıkça güncelle (opsiyonel ama faydalı)
+game.Players.PlayerAdded:Connect(function(plr)
+    if plr ~= LP then
+        table.insert(playerList, plr.Name)
+    end
+end)
+
+game.Players.PlayerRemoving:Connect(function(plr)
+    for i, name in ipairs(playerList) do
+        if name == plr.Name then
+            table.remove(playerList, i)
+            break
+        end
+    end
+    -- seçililerden de çıkar
+    for i = #selectedPlayers, 1, -1 do
+        if selectedPlayers[i] == plr then
+            table.remove(selectedPlayers, i)
+        end
+    end
+end)
+
+-- Multi select oluştur
+CameraTab:CreateDropdown({
+    Name = "🎯 Takip Edilecek Oyuncular (Multi)",
+    Options = playerList,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Flag = "SelectedPlayersMulti",
+    Callback = function(selectedNames)
+        selectedPlayers = {}
+        for _, name in ipairs(selectedNames) do
+            local plr = game.Players:FindFirstChild(name)
+            if plr then
+                table.insert(selectedPlayers, plr)
+            end
+        end
+        
+        -- Eğer kamera açıksa hemen güncelle
+        if camViewActive then
+            updateCameraTarget()
+        end
+    end
+})
+
 -- ====================== TOGGLE ======================
 CameraTab:CreateToggle({
-    Name = "🎥 Camera Follow (HRP merkezli)",
+    Name = "🎥 Camera Follow (Multi Destekli)",
     CurrentValue = false,
     Callback = function(val)
         if val then
@@ -1241,18 +1318,12 @@ CameraTab:CreateToggle({
     end
 })
 
--- Respawn durumunda tekrar başlatma
+-- Respawn desteği
 LP.CharacterAdded:Connect(function()
-    task.wait(0.35)   -- biraz gecikme geçişi yumuşatıyor
-    if camViewActive and targetPlayer and targetPlayer.Character then
-        startCamFollow(targetPlayer)
-    end
-end)
-
--- Hedef oyuncu oyundan çıkarsa / karakteri yok olursa temizle
-Players.PlayerRemoving:Connect(function(plr)
-    if plr == targetPlayer then
-        stopCamFollow()
+    task.wait(0.4)
+    if camViewActive then
+        updateCameraTarget()
+        startCamFollow()
     end
 end)
 ---------------------------------------------------------
