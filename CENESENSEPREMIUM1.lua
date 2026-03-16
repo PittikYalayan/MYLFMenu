@@ -1096,109 +1096,18 @@ TeleportTab:CreateSlider({
     end
 })
 -----------------------------------------------------------------Camera View---------------------------------
-local selectedPlayers = {}
-local camViewActive = false
-local dropdownRef = nil
-local playerListCache = {}
-local respawnConns = {}
-local Plrs = game:GetService("Players")
-local RS = game:GetService("RunService")
-local LP = Plrs.LocalPlayer
-local Cam = workspace.CurrentCamera
-local UIS = game:GetService("UserInputService")
-
 ---------------------------------------------------------
--- PLAYER LIST (Multi-Select)
+-- 🎥 CAMERA MOVEMENT (Geliştirilmiş - Doğal Takip)
 ---------------------------------------------------------
-local function collectOptions()
-    local list = {}
-    for _, p in ipairs(Plrs:GetPlayers()) do
-        if p ~= LP then
-            table.insert(list, p.Name)
-        end
-    end
-    return list
-end
+local yaw      = math.rad(0)
+local pitch    = math.rad(-15)
+local dist     = 12
+local minDist  = 4
+local maxDist  = 80
 
-local function rebuildDropdown()
-    if dropdownRef then dropdownRef:Destroy() end
-
-    dropdownRef = CameraTab:CreateDropdown({
-        Name = "Select Players",
-        Options = collectOptions(),
-        CurrentOption = {},
-        MultipleOptions = true,
-
-        Callback = function(names)
-            for _,c in ipairs(respawnConns) do c:Disconnect() end
-            respawnConns = {}
-
-            selectedPlayers = {}
-
-            for _, n in ipairs(names) do
-                local p = Plrs:FindFirstChild(n)
-                if p then
-                    table.insert(selectedPlayers,p)
-
-                    table.insert(respawnConns,
-                        p.CharacterAdded:Connect(function()
-                            if camViewActive then task.wait(0.1) end
-                        end)
-                    )
-                end
-            end
-        end
-    })
-end
-
----------------------------------------------------------
--- AUTO REFRESH
----------------------------------------------------------
-local function detectChanges()
-    local now = {}
-    for _,p in ipairs(Plrs:GetPlayers()) do
-        if p ~= LP then now[p.Name] = true end
-    end
-
-    local changed = false
-
-    for n in pairs(playerListCache) do
-        if not now[n] then changed=true break end
-    end
-    for n in pairs(now) do
-        if not playerListCache[n] then changed=true break end
-    end
-
-    if changed then
-        playerListCache = now
-        rebuildDropdown()
-
-        for i=#selectedPlayers,1,-1 do
-            if not Plrs:FindFirstChild(selectedPlayers[i].Name) then
-                table.remove(selectedPlayers,i)
-            end
-        end
-    end
-end
-
-Plrs.PlayerAdded:Connect(detectChanges)
-Plrs.PlayerRemoving:Connect(detectChanges)
-RS.Heartbeat:Connect(detectChanges)
-rebuildDropdown()
-
----------------------------------------------------------
--- 🎥 CAMERA MOVEMENT (YAW • PITCH • ZOOM)
----------------------------------------------------------
-local yaw     = math.rad(0)
-local pitch   = math.rad(-15)   -- biraz daha doğal açı
-local dist    = 12
-local minDist = 4
-local maxDist = 80
-
-local camConn = nil
+local camConn   = nil
 local mouseConn = nil
 local wheelConn = nil
-
 local targetPlayer = nil
 local camViewActive = false
 
@@ -1211,10 +1120,8 @@ local function stopCamFollow()
 	Cam.CameraType = Enum.CameraType.Custom
 	
 	local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-	if hum then
-		Cam.CameraSubject = hum
-	end
-	
+	if hum then Cam.CameraSubject = hum end
+
 	targetPlayer = nil
 	camViewActive = false
 end
@@ -1229,8 +1136,8 @@ local function startCamFollow(newTarget)
 	targetPlayer = newTarget
 	Cam.CameraType = Enum.CameraType.Scriptable
 
-	-- Mouse hareketi (yaw & pitch)
-	mouseConn = UserInputService.InputChanged:Connect(function(input)
+	-- Mouse ile döndürme
+	mouseConn = UIS.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseMovement then
 			local sens = 0.003
 			yaw   = yaw - input.Delta.X * sens
@@ -1239,14 +1146,14 @@ local function startCamFollow(newTarget)
 	end)
 
 	-- Zoom
-	wheelConn = UserInputService.InputChanged:Connect(function(input)
+	wheelConn = UIS.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseWheel then
 			dist = math.clamp(dist - input.Position.Z * 2, minDist, maxDist)
 		end
 	end)
 
-	-- Smooth takip + doğal third person davranışı
-	camConn = RunService.RenderStepped:Connect(function(dt)
+	-- Smooth ve doğal kamera takibi
+	camConn = RS.RenderStepped:Connect(function(dt)
 		if not targetPlayer or not targetPlayer.Character then return end
 		
 		local hrp = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1254,33 +1161,52 @@ local function startCamFollow(newTarget)
 		if not hrp or not hum then return end
 
 		local basePos = hrp.Position
-
-		-- Karakterin baktığı yön (HRP'nin Yaw'ını alıyoruz)
 		local rootCFrame = hrp.CFrame
-		local rootYaw = math.atan2(-rootCFrame.LookVector.X, -rootCFrame.LookVector.Z)  -- karakterin yönü
-
-		-- Mouse ile ekstra döndürme (relative yaw)
+		
+		-- Karakterin baktığı yön + mouse ile yaptığımız ekstra dönüş
+		local rootYaw = math.atan2(-rootCFrame.LookVector.X, -rootCFrame.LookVector.Z)
 		local desiredYaw = rootYaw + yaw
 
-		-- Kamera pozisyonu hesapla (karakterin arkasından)
-		local offset = CFrame.new(0, 3, dist) 
-		               * CFrame.Angles(pitch, 0, 0)   -- pitch sadece dikey
+		-- Kamera offset (pitch + mesafe)
+		local offset = CFrame.new(0, 3, dist) * CFrame.Angles(pitch, 0, 0)
 
-		local camCFrame = CFrame.new(basePos) 
-		                  * CFrame.Angles(0, desiredYaw, 0) 
-		                  * offset
+		local targetCFrame = CFrame.new(basePos) 
+		                     * CFrame.Angles(0, desiredYaw, 0) 
+		                     * offset
 
-		-- Smooth geçiş için Lerp (çok önemli!)
-		local smoothFactor = 1 - math.pow(0.001, dt)   -- ~60 FPS'de güzel yumuşaklık
-		-- Alternatif: 8 * dt  (daha hızlı takip istersen 10-12 yap)
+		-- Yumuşak takip (en önemli kısım)
+		local alpha = 1 - math.pow(0.001, dt)   -- 60 FPS için çok doğal
+		-- Daha yapışkan istersen: local alpha = 12 * dt
 
 		Cam.CFrame = Cam.CFrame:Lerp(
-			CFrame.new(camCFrame.Position, basePos + Vector3.new(0, 2, 0)),  -- hafif yukarı bakması için +2
-			smoothFactor
+			CFrame.new(targetCFrame.Position, basePos + Vector3.new(0, 2, 0)),
+			alpha
 		)
 	end)
 end
 
+-- ====================== ENABLE / DISABLE ======================
+local function enableFollowCam()
+	if #selectedPlayers == 0 then
+		Rayfield:Notify({ Title = "Error", Content = "Lütfen oyuncu seçin!", Duration = 2 })
+		return false
+	end
+
+	camViewActive = true
+	local target = selectedPlayers[1]
+
+	-- Yeni hedefe geçerken kamera açılarını sıfırla (daha temiz olur)
+	yaw = 0
+	pitch = math.rad(-15)
+	dist = 12
+
+	startCamFollow(target)
+	return true
+end
+
+local function disableFollowCam()
+	stopCamFollow()
+end
 
 ---------------------------------------------------------
 -- 🎥 CAMERA VIEW TOGGLE
@@ -1288,21 +1214,19 @@ end
 CameraTab:CreateToggle({
     Name = "🎥 Camera Follow",
     CurrentValue = false,
-
     Callback = function(val)
         if val then
-            if not enableFollowCam() then
-                return false
-            end
+            enableFollowCam()
         else
             disableFollowCam()
         end
     end
 })
 
+-- Karakter yeniden doğduğunda kamera açıksa tekrar başlat
 LP.CharacterAdded:Connect(function()
     if camViewActive then
-        task.wait(0.2)
+        task.wait(0.3)
         enableFollowCam()
     end
 end)
