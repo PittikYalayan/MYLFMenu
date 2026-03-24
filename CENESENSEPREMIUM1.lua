@@ -396,69 +396,7 @@ Services.RunService.RenderStepped:Connect(function(dt)
         CrownPanel.Size = UDim2.fromOffset(math.clamp(need, 260, 680), 26)
     end
 end)
--- ==================== AKTİF HİLE PANELİ (Tüm kategoriler için) ====================
-local ActiveFeatures = {}  -- Tüm açık özellikleri burada tutacağız
 
-local ActivePanel = Instance.new("Frame")
-ActivePanel.Name = "ActiveFeaturesPanel"
-ActivePanel.AnchorPoint = Vector2.new(1, 0)
-ActivePanel.Position = UDim2.new(1, -20, 0, 80)     -- Sağ üst, istersen değiştir
-ActivePanel.Size = UDim2.fromOffset(200, 40)
-ActivePanel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-ActivePanel.BackgroundTransparency = 0.25
-ActivePanel.BorderSizePixel = 0
-ActivePanel.Visible = false
-ActivePanel.Parent = Overlay
-
-makeCorner(ActivePanel, 10)
-local panelStroke = makeStroke(ActivePanel, 1.5, 0.3)
-panelStroke.Color = getgenv().ThemeColor
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Size = UDim2.new(1, 0, 0, 26)
-TitleLabel.Position = UDim2.new(0, 0, 0, 4)
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextSize = 13
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.Text = "AKTİF HİLELER"
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
-TitleLabel.Parent = ActivePanel
-
-local FeatureList = Instance.new("TextLabel")
-FeatureList.BackgroundTransparency = 1
-FeatureList.Size = UDim2.new(1, -14, 1, -34)
-FeatureList.Position = UDim2.new(0, 7, 0, 30)
-FeatureList.Font = Enum.Font.GothamSemibold
-FeatureList.TextSize = 12
-FeatureList.TextColor3 = Color3.fromRGB(0, 255, 180)
-FeatureList.TextXAlignment = Enum.TextXAlignment.Left
-FeatureList.TextYAlignment = Enum.TextYAlignment.Top
-FeatureList.TextWrapped = true
-FeatureList.RichText = true
-FeatureList.Text = ""
-FeatureList.Parent = ActivePanel
-
-pad(ActivePanel, 8)
-
--- Paneli güncelleyen ana fonksiyon
-local function UpdateActiveFeaturesPanel()
-    local lines = {}
-    for featureName, isOn in pairs(ActiveFeatures) do
-        if isOn then
-            table.insert(lines, "• " .. featureName)
-        end
-    end
-
-    if #lines > 0 then
-        FeatureList.Text = table.concat(lines, "\n")
-        ActivePanel.Visible = true
-        
-        local neededHeight = 36 + (#lines * 17) + 10
-        ActivePanel.Size = UDim2.fromOffset(200, math.clamp(neededHeight, 55, 320))
-    else
-        ActivePanel.Visible = false
-    end
 end
 local TeamTab = Window:CreateTab("Team Selection", 4483362458)
 local CombatTab = Window:CreateTab("AimBot", 4483362458)
@@ -1943,6 +1881,69 @@ Rayfield:Notify({
     Duration = 1,
     Image = 4483362458
 })
+-- ==================== AKTİF HİLE PANELİ (Tüm kategoriler için) ====================
+local ActiveFeatures = {}  -- Tüm açık özellikleri burada tutacağız
+
+local ActivePanel = Instance.new("Frame")
+ActivePanel.Name = "ActiveFeaturesPanel"
+ActivePanel.AnchorPoint = Vector2.new(1, 0)
+ActivePanel.Position = UDim2.new(1, -20, 0, 80)     -- Sağ üst, istersen değiştir
+ActivePanel.Size = UDim2.fromOffset(200, 40)
+ActivePanel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+ActivePanel.BackgroundTransparency = 0.25
+ActivePanel.BorderSizePixel = 0
+ActivePanel.Visible = false
+ActivePanel.Parent = Overlay
+
+makeCorner(ActivePanel, 10)
+local panelStroke = makeStroke(ActivePanel, 1.5, 0.3)
+panelStroke.Color = getgenv().ThemeColor
+
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Size = UDim2.new(1, 0, 0, 26)
+TitleLabel.Position = UDim2.new(0, 0, 0, 4)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextSize = 13
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.Text = "AKTİF HİLELER"
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+TitleLabel.Parent = ActivePanel
+
+local FeatureList = Instance.new("TextLabel")
+FeatureList.BackgroundTransparency = 1
+FeatureList.Size = UDim2.new(1, -14, 1, -34)
+FeatureList.Position = UDim2.new(0, 7, 0, 30)
+FeatureList.Font = Enum.Font.GothamSemibold
+FeatureList.TextSize = 12
+FeatureList.TextColor3 = Color3.fromRGB(0, 255, 180)
+FeatureList.TextXAlignment = Enum.TextXAlignment.Left
+FeatureList.TextYAlignment = Enum.TextYAlignment.Top
+FeatureList.TextWrapped = true
+FeatureList.RichText = true
+FeatureList.Text = ""
+FeatureList.Parent = ActivePanel
+
+pad(ActivePanel, 8)
+
+-- Paneli güncelleyen ana fonksiyon
+local function UpdateActiveFeaturesPanel()
+    local lines = {}
+    for featureName, isOn in pairs(ActiveFeatures) do
+        if isOn then
+            table.insert(lines, "• " .. featureName)
+        end
+    end
+
+    if #lines > 0 then
+        FeatureList.Text = table.concat(lines, "\n")
+        ActivePanel.Visible = true
+        
+        local neededHeight = 36 + (#lines * 17) + 10
+        ActivePanel.Size = UDim2.fromOffset(200, math.clamp(neededHeight, 55, 320))
+    else
+        ActivePanel.Visible = false
+    end
 -- ═════════════════════════════════════════════ --
 -- AUTO RE-INJECT SISTEMI (INFINITE YIELD GIBI)
 -- ═════════════════════════════════════════════ --
