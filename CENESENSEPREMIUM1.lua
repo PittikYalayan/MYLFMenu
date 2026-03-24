@@ -20,16 +20,16 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Yüklenme ekranını 15 saniye uzat (efendim için özel gecikme)
 task.wait(2)
 local Window = Rayfield:CreateWindow({
-    Name = "CENESENSE",
-    LoadingTitle = "CENESENSE Yüklüyor...",
-    LoadingSubtitle = "Version 1.3.10c",
-    Duration = 1,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "MYLFMenu",
-        FileName = "memesense31"
-    },
-    KeySystem = false
+    Name = "CENESENSE",
+    LoadingTitle = "CENESENSE Yüklüyor...",
+    LoadingSubtitle = "Version 1.3.10c",
+    Duration = 1,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "MYLFMenu",
+        FileName = "memesense31"
+    },
+    KeySystem = false
 })
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
