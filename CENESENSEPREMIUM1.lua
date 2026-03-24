@@ -396,8 +396,6 @@ Services.RunService.RenderStepped:Connect(function(dt)
         CrownPanel.Size = UDim2.fromOffset(math.clamp(need, 260, 680), 26)
     end
 end)
-
-end
 local TeamTab = Window:CreateTab("Team Selection", 4483362458)
 local CombatTab = Window:CreateTab("AimBot", 4483362458)
 local VisualTab = Window:CreateTab("ESP", 4483362458)
@@ -839,8 +837,6 @@ if #teamNames > 0 then
         Flag = "EnemyTeamsFlag",
         Callback = function(val)
             getgenv().SelectedEnemyTeams = val
-                ActiveFeatures["Enemy Teams"] = val
-                 UpdateActiveFeaturesPanel()
         end
     })
 end
@@ -850,8 +846,6 @@ TeamTab:CreateToggle({
     Flag = "TeamCheckFlag",
     Callback = function(val)
         getgenv().TeamCheckEnabled = val
-            ActiveFeatures["Team Check"] = val
-             UpdateActiveFeaturesPanel()
     end
 })
 CombatTab:CreateToggle({
@@ -860,8 +854,6 @@ CombatTab:CreateToggle({
     Flag = "AimbotFlag",
     Callback = function(val)
         getgenv().AimbotEnabled = val
-            ActiveFeatures["AimBot"] = val
-             UpdateActiveFeaturesPanel()
     end
 })
 CombatTab:CreateToggle({
@@ -870,8 +862,6 @@ CombatTab:CreateToggle({
     Flag = "SilentAimFlag",
     Callback = function(val)
         getgenv().SilentAimEnabled = val
-            ActiveFeatures["Silent Aim"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 CombatTab:CreateSlider({
@@ -882,8 +872,6 @@ CombatTab:CreateSlider({
     Flag = "FOVFlag",
     Callback = function(val)
         getgenv().AimbotFOV = val
-            ActiveFeatures["Aim FOV :"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 CombatTab:CreateToggle({
@@ -892,8 +880,6 @@ CombatTab:CreateToggle({
     Flag = "DrawFOVFlag",
     Callback = function(val)
         getgenv().DrawFOV = val
-            ActiveFeatures["FOV Chamber"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 VisualTab:CreateToggle({
@@ -902,10 +888,7 @@ VisualTab:CreateToggle({
     Flag = "RainbowSkeletonFlag",
     Callback = function(val)
          if features and features.ToggleSkeleton then features.ToggleSkeleton(val) end
-            ActiveFeatures["RainBow SKLTN"] = val
-UpdateActiveFeaturesPanel()
         end
-        
     })
 VisualTab:CreateToggle({
     Name = "Box ESP",
@@ -913,8 +896,6 @@ VisualTab:CreateToggle({
     Flag = "BoxESPFlag",
     Callback = function(val)
         getgenv().BoxESP = val
-            ActiveFeatures["Box ESP"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 VisualTab:CreateToggle({
@@ -923,10 +904,7 @@ VisualTab:CreateToggle({
     Flag = "RainbowBoxFlag",
     Callback = function(val)
          if features and features.ToggleBox then features.ToggleBox(val) end
-            ActiveFeatures["3D Box"] = val
-UpdateActiveFeaturesPanel()
         end
-        
     })
 VisualTab:CreateToggle({
     Name = "Name ESP",
@@ -934,8 +912,6 @@ VisualTab:CreateToggle({
     Flag = "NameESPFlag",
     Callback = function(val)
         getgenv().NameESP = val
-            ActiveFeatures["Name"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 VisualTab:CreateToggle({
@@ -944,8 +920,6 @@ VisualTab:CreateToggle({
     Flag = "RainbowNameFlag",
     Callback = function(val)
          if features and features.ToggleRainbowName then features.ToggleRainbowName(val) end
-            ActiveFeatures["RainBow Name"] = val
-UpdateActiveFeaturesPanel()
         end
     })
 VisualTab:CreateToggle({
@@ -954,8 +928,6 @@ VisualTab:CreateToggle({
     Flag = "HealthESPFlag",
     Callback = function(val)
         getgenv().HealthESP = val
-            ActiveFeatures["Health"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 VisualTab:CreateToggle({
@@ -964,8 +936,6 @@ VisualTab:CreateToggle({
     Flag = "TracerESPFlag",
     Callback = function(val)
         getgenv().TracerESP = val
-            ActiveFeatures["Tracer"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 VisualTab:CreateToggle({
@@ -974,8 +944,6 @@ VisualTab:CreateToggle({
     Flag = "RainbowTracersFlag",
     Callback = function(val)
          if features and features.ToggleTracers then features.ToggleTracers(val) end
-            ActiveFeatures["RainBow Tracer"] = val
-UpdateActiveFeaturesPanel()
         end
     })
 VisualTab:CreateToggle({
@@ -984,8 +952,6 @@ VisualTab:CreateToggle({
     Flag = "ChamsFlag",
     Callback = function(val)
         getgenv().ChamsEnabled = val
-            ActiveFeatures["Chams"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 VisualTab:CreateToggle({
@@ -994,8 +960,6 @@ VisualTab:CreateToggle({
     Flag = "RainbowChamsFlag",
     Callback = function(val)
          if features and features.ToggleGlow then features.ToggleGlow(val) end
-            ActiveFeatures["RainBow Chams"] = val
-UpdateActiveFeaturesPanel()
         end
     })
 VisualTab:CreateSlider({
@@ -1006,8 +970,6 @@ VisualTab:CreateSlider({
     Flag = "ESPDistanceFlag",
     Callback = function(val)
         getgenv().ESPDistance = val
-            ActiveFeatures["ESP Distance :"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 -- Movement Tab: Core movement
@@ -1018,8 +980,6 @@ MovementTab:CreateToggle({
     Flag = "SpeedFlag",
     Callback = function(val)
         if features and features.ToggleSpeed then features.ToggleSpeed(val) end
-            ActiveFeatures["Speed"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 MovementTab:CreateSlider({
@@ -1031,8 +991,6 @@ MovementTab:CreateSlider({
     Callback = function(val)
         if features and features._walkSpeed then features._walkSpeed = val end
         if features and features.SetWalkSpeed then features.SetWalkSpeed(val) end
-            ActiveFeatures["Walk Speed :"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 MovementTab:CreateToggle({
@@ -1041,8 +999,6 @@ MovementTab:CreateToggle({
     Flag = "FlyFlag",
     Callback = function(val)
         if features and features.ToggleFly then features.ToggleFly(val) end
-            ActiveFeatures["FLY"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 MovementTab:CreateSlider({
@@ -1053,8 +1009,6 @@ MovementTab:CreateSlider({
     Flag = "FlySpeedFlag",
     Callback = function(val)
         if features and features.SetFlySpeed then features.SetFlySpeed(val) end
-            ActiveFeatures["FLY Speed : "] = val
-UpdateActiveFeaturesPanel()
     end
 })
 MovementTab:CreateToggle({
@@ -1063,8 +1017,6 @@ MovementTab:CreateToggle({
     Flag = "InfiniteJumpFlag",
     Callback = function(val)
         if features and features.ToggleInfiniteJump then features.ToggleInfiniteJump(val) end
-            ActiveFeatures["Jump"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 MovementTab:CreateToggle({
@@ -1073,8 +1025,6 @@ MovementTab:CreateToggle({
     Flag = "HardInvisibleFlag",
     Callback = function(val)
         if features and features.ToggleHardInvisible then features.ToggleHardInvisible(val) end
-            ActiveFeatures["InvIs"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 MovementTab:CreateToggle({
@@ -1083,8 +1033,6 @@ MovementTab:CreateToggle({
     Flag = "NoclipFlag",
     Callback = function(val)
         if features and features.ToggleNoclip then features.ToggleNoclip(val) end
-            ActiveFeatures["NoClip"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 -- Teleport Tab: Tüm teleport özellikleri + auto farm/behind + X Y Z slider'lar
@@ -1095,8 +1043,6 @@ TeleportTab:CreateToggle({
     Flag = "TeleportFlag",
     Callback = function(val)
         if features and features.ToggleTeleport then features.ToggleTeleport(val) end
-            ActiveFeatures["Teleport"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 TeleportTab:CreateToggle({
@@ -1105,8 +1051,6 @@ TeleportTab:CreateToggle({
     Flag = "AutoBehindFlag",
     Callback = function(val)
         if features and features.ToggleAutoBehind then features.ToggleAutoBehind(val) end
-            ActiveFeatures["Behind Enemy"] = val
-UpdateActiveFeaturesPanel()
     end
      
 })
@@ -1116,8 +1060,6 @@ TeleportTab:CreateToggle({
     Flag = "AutoFarmFlag",
     Callback = function(val)
         if features and features.ToggleAutoTeleportToEnemy then features.ToggleAutoTeleportToEnemy(val) end
-            ActiveFeatures["Auto Farm"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 TeleportTab:CreateSlider({
@@ -1129,8 +1071,6 @@ TeleportTab:CreateSlider({
     Callback = function(val)
         if features and features._tpX then features._tpX = val end
         if features and features.SetTeleportOffset then features.SetTeleportOffset(val, (features._tpY or 0), (features._tpZ or 25)) end
-            ActiveFeatures["X : "] = val
-UpdateActiveFeaturesPanel()
     end
 })
 TeleportTab:CreateSlider({
@@ -1142,8 +1082,6 @@ TeleportTab:CreateSlider({
     Callback = function(val)
         if features and features._tpY then features._tpY = val end
         if features and features.SetTeleportOffset then features.SetTeleportOffset((features._tpX or 0), val, (features._tpZ or 25)) end
-            ActiveFeatures["Y : "] = val
-UpdateActiveFeaturesPanel()
     end
 })
 TeleportTab:CreateSlider({
@@ -1155,8 +1093,6 @@ TeleportTab:CreateSlider({
     Callback = function(val)
         if features and features._tpZ then features._tpZ = val end
         if features and features.SetTeleportOffset then features.SetTeleportOffset((features._tpX or 0), (features._tpY or 0), val) end
-            ActiveFeatures["Z : "] = val
-UpdateActiveFeaturesPanel()
     end
 })
 -----------------------------------------------------------------Camera View---------------------------------
@@ -1351,8 +1287,6 @@ CameraTab:CreateToggle({
         else
             disableFollowCam()
         end
-            ActiveFeatures["Camera Foll :"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 
@@ -1376,8 +1310,6 @@ CameraTab:CreateButton({
                 Duration=2
             })
             return
-                ActiveFeatures["Cam Teleport"] = val
-UpdateActiveFeaturesPanel()
         end
 
         task.spawn(function()
@@ -1543,8 +1475,6 @@ EmotesTab:CreateToggle({
             getgenv().CurrentEmoteTrack.Looped = val
             Rayfield:Notify({Title = "Loop Güncellendi", Content = val and "ON – Sürekli!" or "OFF – Tek sefer!", Duration = 2})
         end
-            ActiveFeatures["Emote Loop : "] = val
-UpdateActiveFeaturesPanel()
     end
 })
 EmotesTab:CreateButton({
@@ -1559,8 +1489,6 @@ EmotesTab:CreateButton({
         else
             Rayfield:Notify({Title = "Uyarı", Content = "Aktif emote yok.", Duration = 2})
         end
-            ActiveFeatures["Stop Emote"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 EmotesTab:CreateToggle({
@@ -1569,8 +1497,6 @@ EmotesTab:CreateToggle({
     Flag = "SYNCFlag",
     Callback = function(val)
         if features and features.ToggleSYNC then features.ToggleSYNC(val) end -- Direkt eşleme: val true/false'a göre SYNC toggle
-            ActiveFeatures["Emote SYNC"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 local Button = EmotesTab:CreateButton({
@@ -1578,8 +1504,6 @@ local Button = EmotesTab:CreateButton({
     Callback = function()
         applied = true
         applyAnims()
-            ActiveFeatures["Dev Anim Pack"] = val
-UpdateActiveFeaturesPanel()
     end
  })
 -- Toggle
@@ -1594,8 +1518,6 @@ EmotesTab:CreateToggle({
         else
             ApplySpeed(CurrentSpeed)
         end
-            ActiveFeatures["Animation Speed"] = val
-UpdateActiveFeaturesPanel()
     end
 })
 
@@ -1612,8 +1534,6 @@ EmotesTab:CreateSlider({
         if Enabled then
             ApplySpeed(CurrentSpeed)
         end
-            ActiveFeatures["Animation Speed : "] = val
-UpdateActiveFeaturesPanel()
     end
 })
 
@@ -1881,69 +1801,6 @@ Rayfield:Notify({
     Duration = 1,
     Image = 4483362458
 })
--- ==================== AKTİF HİLE PANELİ (Tüm kategoriler için) ====================
-local ActiveFeatures = {}  -- Tüm açık özellikleri burada tutacağız
-
-local ActivePanel = Instance.new("Frame")
-ActivePanel.Name = "ActiveFeaturesPanel"
-ActivePanel.AnchorPoint = Vector2.new(1, 0)
-ActivePanel.Position = UDim2.new(1, -20, 0, 80)     -- Sağ üst, istersen değiştir
-ActivePanel.Size = UDim2.fromOffset(200, 40)
-ActivePanel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-ActivePanel.BackgroundTransparency = 0.25
-ActivePanel.BorderSizePixel = 0
-ActivePanel.Visible = false
-ActivePanel.Parent = Overlay
-
-makeCorner(ActivePanel, 10)
-local panelStroke = makeStroke(ActivePanel, 1.5, 0.3)
-panelStroke.Color = getgenv().ThemeColor
-
-local TitleLabel = Instance.new("TextLabel")
-TitleLabel.BackgroundTransparency = 1
-TitleLabel.Size = UDim2.new(1, 0, 0, 26)
-TitleLabel.Position = UDim2.new(0, 0, 0, 4)
-TitleLabel.Font = Enum.Font.GothamBold
-TitleLabel.TextSize = 13
-TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TitleLabel.Text = "AKTİF HİLELER"
-TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
-TitleLabel.Parent = ActivePanel
-
-local FeatureList = Instance.new("TextLabel")
-FeatureList.BackgroundTransparency = 1
-FeatureList.Size = UDim2.new(1, -14, 1, -34)
-FeatureList.Position = UDim2.new(0, 7, 0, 30)
-FeatureList.Font = Enum.Font.GothamSemibold
-FeatureList.TextSize = 12
-FeatureList.TextColor3 = Color3.fromRGB(0, 255, 180)
-FeatureList.TextXAlignment = Enum.TextXAlignment.Left
-FeatureList.TextYAlignment = Enum.TextYAlignment.Top
-FeatureList.TextWrapped = true
-FeatureList.RichText = true
-FeatureList.Text = ""
-FeatureList.Parent = ActivePanel
-
-pad(ActivePanel, 8)
-
--- Paneli güncelleyen ana fonksiyon
-local function UpdateActiveFeaturesPanel()
-    local lines = {}
-    for featureName, isOn in pairs(ActiveFeatures) do
-        if isOn then
-            table.insert(lines, "• " .. featureName)
-        end
-    end
-
-    if #lines > 0 then
-        FeatureList.Text = table.concat(lines, "\n")
-        ActivePanel.Visible = true
-        
-        local neededHeight = 36 + (#lines * 17) + 10
-        ActivePanel.Size = UDim2.fromOffset(200, math.clamp(neededHeight, 55, 320))
-    else
-        ActivePanel.Visible = false
-    end
 -- ═════════════════════════════════════════════ --
 -- AUTO RE-INJECT SISTEMI (INFINITE YIELD GIBI)
 -- ═════════════════════════════════════════════ --
