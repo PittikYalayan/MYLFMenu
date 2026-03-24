@@ -20,48 +20,17 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Yüklenme ekranını 15 saniye uzat (efendim için özel gecikme)
 task.wait(2)
 local Window = Rayfield:CreateWindow({
-    Name = "CENESENSE",           -- başlangıç ismi (önemli değil)
-    LoadingTitle = "CENESENSE Yüklüyor...",
-    LoadingSubtitle = "Version 1.3.10c",
-    Duration = 1,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "MYLFMenu",
-        FileName = "memesense31"
-    },
-    KeySystem = false
+    Name = "CENESENSE",
+    LoadingTitle = "CENESENSE Yüklüyor...",
+    LoadingSubtitle = "Version 1.3.10c",
+    Duration = 1,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "MYLFMenu",
+        FileName = "memesense31"
+    },
+    KeySystem = false
 })
-
--- ─────────────────────────────────────────────
--- 4 tane isim (istediğin gibi değiştirebilirsin)
--- ─────────────────────────────────────────────
-local names = {
-    "Hard Bypass Tech.",
-    "Live User",
-    "MYLFHUB",
-    "MYLFHUB.com"
-}
-
--- TitleBar'daki isim TextLabel'ını bul
-local titleBar = Window:FindFirstAncestorWhichIsA("ScreenGui") 
-    and Window:FindFirstAncestorWhichIsA("ScreenGui"):FindFirstChild("TitleBar", true)
-
-local nameLabel = titleBar and titleBar:FindFirstChild("Title", true) 
-    or titleBar and titleBar:FindFirstChildWhichIsA("TextLabel")
-
-if not nameLabel then
-    warn("Title label bulunamadı, Rayfield versiyonu farklı olabilir.")
-end
-
--- Her 3 saniyede bir rastgele isim değiştir
-task.spawn(function()
-    while true do
-        if nameLabel then
-            nameLabel.Text = names[math.random(1, #names)]
-        end
-        task.wait(3)
-    end
-end)
 Rayfield:Notify({
     Title = "CENESENSE | PREMIUM",
     Content = "Version 1.3.10c",
