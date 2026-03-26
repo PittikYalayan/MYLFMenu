@@ -12,7 +12,7 @@ local hrp = char:WaitForChild("HumanoidRootPart")
 --// SETTINGS
 local categories = {
     Fuel = {"coal","fuel"},
-    Wood = {"wood"},
+    Wood = {"wood","log"},
     All = {"coal","fuel","wood"}
 }
 
