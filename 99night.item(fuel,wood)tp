@@ -1,0 +1,100 @@
+--// SERVICES
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager") -- Mouse simülasyonu için
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+--// SETTINGS
+local categories = {
+    Fuel = {"coal","fuel","komur"},
+    Wood = {"wood","log","odun"},
+    All = {"coal","fuel","komur","wood","log","odun"}
+}
+
+--// UI
+local gui = Instance.new("ScreenGui", game.CoreGui)
+gui.Name = "MYLF_LOOT_CLICKER"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0,200,0,150)
+frame.Position = UDim2.new(0,20,0,200)
+frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+frame.Active = true
+frame.Draggable = true
+
+local function createButton(name, yPos, callback)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1,0,0,40)
+    btn.Position = UDim2.new(0,0,0,yPos)
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.MouseButton1Click:Connect(callback)
+end
+
+--// CORE FUNCTIONS
+local function isMatch(obj, list)
+    local n = string.lower(obj.Name)
+    for _,k in pairs(list) do
+        if string.find(n, k) then return true end
+    end
+end
+
+local function getPart(obj)
+    if obj:IsA("Model") then return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+    elseif obj:IsA("BasePart") then return obj end
+end
+
+-- 🔥 GERÇEK MOUSE1 TIKLAMA SİMÜLASYONU
+local function simulateMouseClick(part)
+    pcall(function()
+        -- Parçanın ekrandaki koordinatını bul (WorldToScreenPoint)
+        local screenPos, onScreen = Camera:WorldToScreenPoint(part.Position)
+        
+        if onScreen then
+            -- Mouse imlecini parçanın olduğu yere ışınla ve tıkla-bırak yap
+            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, true, game, 0) -- Mouse1 Down
+            task.wait(0.05)
+            VirtualInputManager:SendMouseButtonEvent(screenPos.X, screenPos.Y, 0, false, game, 0) -- Mouse1 Up
+        end
+    end)
+end
+
+local function bringItems(filter)
+    -- Eşyalar tam önünde (görüş açında) toplansın ki mouse tıklayabilsin
+    local targetPos = hrp.CFrame * CFrame.new(0, 0, -5)
+
+    for _, v in pairs(workspace:GetDescendants()) do
+        if isMatch(v, filter) then
+            local p = getPart(v)
+            if p then
+                -- 1. Yanına çek
+                pcall(function()
+                    p.CFrame = targetPos
+                    p.Anchored = false
+                end)
+
+                -- 2. Çok kısa bekle (fiziksel yerleşim için)
+                task.wait(0.1)
+                
+                -- 3. Mouse ile "Dokun ve Bırak" simülasyonu yap
+                simulateMouseClick(p)
+                
+                -- 4. Eğer Touch sistemi de varsa yedek olarak tetikle
+                firetouchinterest(hrp, p, 0)
+                task.wait()
+                firetouchinterest(hrp, p, 1)
+            end
+        end
+    end
+end
+
+--// BUTTONS
+createButton("🔥 Fuel", 0, function() bringItems(categories.Fuel) end)
+createButton("🌲 Wood", 50, function() bringItems(categories.Wood) end)
+createButton("💀 All", 100, function() bringItems(categories.All) end)
