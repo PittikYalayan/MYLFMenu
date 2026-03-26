@@ -428,6 +428,7 @@ getgenv().CurrentEmoteTrack = nil
 -- Emotes Listesi (Efendimin Verdiği Tam Liste!)
 local emotes = {
     {name = "susma", id = "rbxassetid://114829008360220"},
+    {name = "Jeffrey Epstine", id = "rbxassetid://126039650255772"},
     {name = "?", id = "rbxassetid://121966805049108"},
     {name = "??", id = "rbxassetid://112089880074848"},
     {name = "???", id = "rbxassetid://136491428712959"},
@@ -1541,6 +1542,7 @@ local emoteSections = {
     {
         title = "Emotes: Developer Section",
         emotes = {
+            {name = "Jeffrey Epstine", id = "rbxassetid://126039650255772"},
             {name = "susma", id = "rbxassetid://114829008360220"},
             {name = "SkibiDopDop", id = "rbxassetid://98328399081636"},
             {name = "Oyun Havası", id = "rbxassetid://104062506559570"},
