@@ -20,8 +20,8 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Yüklenme ekranını 15 saniye uzat (efendim için özel gecikme)
 task.wait(2)
 local Window = Rayfield:CreateWindow({
-    Name = "CENESENSE",
-    LoadingTitle = "CENESENSE Yüklüyor...",
+    Name = "MYLFHUB",
+    LoadingTitle = "MYLFHUB Yüklüyor...",
     LoadingSubtitle = "Version 1.3.10c",
     Duration = 1,
     ConfigurationSaving = {
@@ -32,7 +32,7 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 Rayfield:Notify({
-    Title = "CENESENSE | PREMIUM",
+    Title = "MYLFHUB | PREMIUM",
     Content = "Version 1.3.10c",
     Duration = 1,
     Image = 4483362458
@@ -1798,7 +1798,7 @@ MenuServerTab:CreateButton({
     end
 })
 Rayfield:Notify({
-    Title = "CENESENSE | PREMIUM",
+    Title = "MYLFHUB | PREMIUM",
     Content = "V 1.3.10c",
     Duration = 1,
     Image = 4483362458
@@ -1811,10 +1811,10 @@ if queue_on_teleport then
     spawn(function()
         while wait(1) do
             queue_on_teleport([[
-                if not getgenv().CENESENSE_LOADED then
-                    getgenv().CENESENSE_LOADED = true
+                if not getgenv().MYLFHUB_LOADED then
+                    getgenv().MYLFHUB_LOADED = true
                     loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/CENESENSEPremium/main/Cenesense.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/MYLFHUBPremium/main/MYLFHUB.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
                 end
             ]])
         end
@@ -1824,9 +1824,9 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
     if State == Enum.TeleportState.Started then
         if queue_on_teleport then
             queue_on_teleport([[
-                if not getgenv().CENESENSE_LOADED then
-                    getgenv().CENESENSE_LOADED = true
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/CENESENSEPremium/main/Cenesense.lua"))()
+                if not getgenv().MYLFHUB_LOADED then
+                    getgenv().MYLFHUB_LOADED = true
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/MYLFHUBPremium/main/MYLFHUB.lua"))()
                 end
             ]])
         end
