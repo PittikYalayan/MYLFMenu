@@ -1,0 +1,141 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+-- Load wait
+repeat task.wait() until game:IsLoaded() and LocalPlayer.Character
+
+-- Highlight
+local Highlight = Instance.new("Highlight")
+Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+Highlight.FillTransparency = 0.8
+Highlight.OutlineTransparency = 0.2
+Highlight.Enabled = false
+Highlight.Parent = game:GetService("CoreGui")
+
+-- Billboard (yükseklik artırıldı isim+path için)
+local Billboard = Instance.new("BillboardGui")
+Billboard.Size = UDim2.new(0, 300, 0, 80)
+Billboard.StudsOffset = Vector3.new(0, 2, 0)
+Billboard.AlwaysOnTop = true
+Billboard.Enabled = false
+Billboard.Parent = game:GetService("CoreGui")
+
+-- Üst: İsim (büyük bold)
+local NameLabel = Instance.new("TextLabel")
+NameLabel.Size = UDim2.new(1, 0, 0, 35)
+NameLabel.Position = UDim2.new(0, 0, 0, 0)
+NameLabel.BackgroundTransparency = 1
+NameLabel.TextSize = 24
+NameLabel.Font = Enum.Font.SourceSansBold
+NameLabel.TextStrokeTransparency = 0.5
+NameLabel.TextStrokeColor3 = Color3.new(0,0,0)
+NameLabel.TextColor3 = Color3.new(1,1,1)
+NameLabel.TextXAlignment = Enum.TextXAlignment.Center
+NameLabel.Parent = Billboard
+
+-- Alt: Tam Path (küçük)
+local PathLabel = Instance.new("TextLabel")
+PathLabel.Size = UDim2.new(1, 0, 0, 25)
+PathLabel.Position = UDim2.new(0, 0, 0, 40)
+PathLabel.BackgroundTransparency = 1
+PathLabel.TextSize = 16
+PathLabel.Font = Enum.Font.SourceSansBold
+PathLabel.TextStrokeTransparency = 0.5
+PathLabel.TextStrokeColor3 = Color3.new(0,0,0)
+PathLabel.TextColor3 = Color3.new(1,1,1)
+PathLabel.TextXAlignment = Enum.TextXAlignment.Center
+PathLabel.TextWrapped = true
+PathLabel.Parent = Billboard
+
+-- Cache (ultra opti)
+local LastPart = nil
+local LastDisplayName = ""
+local LastPath = ""
+local LastRainbow = nil
+
+-- İsim bul
+local function GetDisplayName(Part)
+    local Model = Part:FindFirstAncestorWhichIsA("Model")
+    if Model then
+        local Player = Players:GetPlayerFromCharacter(Model)
+        if Player then return Player.DisplayName end
+        return Model.Name
+    end
+    return Part.Name
+end
+
+-- Tam path hesapla (hızlı, cache'li)
+local function GetFullPath(Part)
+    local path = {}
+    local current = Part
+    while current do
+        table.insert(path, 1, current.Name)
+        current = current.Parent
+    end
+    return table.concat(path, ".")
+end
+
+-- Loop (RenderStepped 0ms/frame sync god)
+RunService.RenderStepped:Connect(function()
+    local TargetPart = Mouse.Target
+    
+    if TargetPart and TargetPart:IsA("BasePart") and not TargetPart:IsA("Terrain") then
+        local Model = TargetPart:FindFirstAncestorWhichIsA("Model")
+        if Model and Model ~= LocalPlayer.Character then
+            local DisplayName = GetDisplayName(TargetPart)
+            local FullPath = GetFullPath(TargetPart)
+            
+            -- Same part? Sadece rainbow (opti max)
+            if TargetPart == LastPart and DisplayName == LastDisplayName and FullPath == LastPath then
+                local Hue = (tick() % 8) / 8
+                local Rainbow = Color3.fromHSV(Hue, 1, 1)
+                if Rainbow ~= LastRainbow then
+                    Highlight.FillColor = Rainbow
+                    Highlight.OutlineColor = Rainbow
+                    NameLabel.TextColor3 = Rainbow
+                    PathLabel.TextColor3 = Rainbow
+                    LastRainbow = Rainbow
+                end
+                return
+            end
+            
+            -- New part: Full update
+            local Hue = (tick() % 8) / 8
+            local Rainbow = Color3.fromHSV(Hue, 1, 1)
+            LastRainbow = Rainbow
+            
+            Highlight.Adornee = TargetPart
+            Highlight.FillColor = Rainbow
+            Highlight.OutlineColor = Rainbow
+            Highlight.Enabled = true
+            
+            NameLabel.Text = DisplayName
+            PathLabel.Text = FullPath
+            NameLabel.TextColor3 = Rainbow
+            PathLabel.TextColor3 = Rainbow
+            
+            Billboard.Adornee = TargetPart
+            Billboard.Enabled = true
+            
+            LastPart = TargetPart
+            LastDisplayName = DisplayName
+            LastPath = FullPath
+        else
+            -- Local char: Hide
+            if LastPart then
+                Highlight.Enabled = false
+                Billboard.Enabled = false
+                LastPart = nil
+            end
+        end
+    else
+        -- No valid: Hide
+        if LastPart then
+            Highlight.Enabled = false
+            Billboard.Enabled = false
+            LastPart = nil
+        end
+    end
+end)
