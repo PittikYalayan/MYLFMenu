@@ -325,36 +325,79 @@ RainbowBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 RainbowBar.Parent = CrownPanel
 makeCorner(RainbowBar, 2)
 local grad = Instance.new("UIGradient", RainbowBar)
--- Live API (Örnekten tam alındı – HWID'li, heartbeat/active) - Ping fix: Slower intervals
+-- Live API (Yeni Worker uyumlu)
+local Players = game:GetService("Players")
+local Services = {
+    HttpService = game:GetService("HttpService")
+}
+
+local LocalPlayer = Players.LocalPlayer
+
 local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
 local realHWID = gethwid and gethwid() or "UnknownHWID"
+
 local PC_HWID = Services.HttpService:UrlEncode(exec .. "_" .. realHWID)
 local LIVE_BASE = "https://mylflive.bythekyol.workers.dev"
-local http = (syn and syn.request) or request or http_request or (http and http.request)
+
+local http =
+    (syn and syn.request)
+    or request
+    or http_request
+    or (http and http.request)
+
 local function httpJSON(method, url, bodyTable)
-    local opt = {Url = url, Method = method, Headers = {["Content-Type"] = "application/json"}}
-    if bodyTable then opt.Body = Services.HttpService:JSONEncode(bodyTable) end
-    local ok, res = pcall(function() return http(opt) end)
+    local opt = {
+        Url = url,
+        Method = method,
+        Headers = {
+            ["Content-Type"] = "application/json"
+        }
+    }
+
+    if bodyTable then
+        opt.Body = Services.HttpService:JSONEncode(bodyTable)
+    end
+
+    local ok, res = pcall(function()
+        return http(opt)
+    end)
+
     return ok and res or nil
 end
+
 local LiveActiveCount = 0
--- 60s heartbeat (balanced)
+local LiveUsers = {}
+
+-- 60s heartbeat
 coroutine.wrap(function()
     while true do
-        httpJSON("POST", LIVE_BASE .. "/heartbeat", { hwid = PC_HWID })
+        httpJSON("POST", LIVE_BASE .. "/heartbeat", {
+            hwid = PC_HWID,
+            name = LocalPlayer.Name,
+            displayName = LocalPlayer.DisplayName,
+            executor = exec
+        })
+
         task.wait(60)
     end
 end)()
--- 30s active count (slower for ping)
+
+-- 30s active pull
 coroutine.wrap(function()
     while true do
         local res = httpJSON("GET", LIVE_BASE .. "/active")
+
         if res and res.StatusCode == 200 then
-            local ok, data = pcall(function() return Services.HttpService:JSONDecode(res.Body) end)
+            local ok, data = pcall(function()
+                return Services.HttpService:JSONDecode(res.Body)
+            end)
+
             if ok and type(data) == "table" then
                 LiveActiveCount = tonumber(data.active) or 0
+                LiveUsers = data.users or {}
             end
         end
+
         task.wait(30)
     end
 end)()
