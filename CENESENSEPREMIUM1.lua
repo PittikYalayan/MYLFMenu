@@ -325,18 +325,11 @@ RainbowBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 RainbowBar.Parent = CrownPanel
 makeCorner(RainbowBar, 2)
 local grad = Instance.new("UIGradient", RainbowBar)
--- Live API (Yeni Worker uyumlu)
-local Players = game:GetService("Players")
-local Services = {
-    HttpService = game:GetService("HttpService")
-}
-
-local LocalPlayer = Players.LocalPlayer
-
+-- Live API FIXED
 local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
 local realHWID = gethwid and gethwid() or "UnknownHWID"
-
 local PC_HWID = Services.HttpService:UrlEncode(exec .. "_" .. realHWID)
+
 local LIVE_BASE = "https://mylflive.bythekyol.workers.dev"
 
 local http =
@@ -346,6 +339,8 @@ local http =
     or (http and http.request)
 
 local function httpJSON(method, url, bodyTable)
+    if not http then return nil end
+
     local opt = {
         Url = url,
         Method = method,
@@ -362,32 +357,44 @@ local function httpJSON(method, url, bodyTable)
         return http(opt)
     end)
 
-    return ok and res or nil
+    if ok then
+        return res
+    end
+
+    return nil
 end
 
 local LiveActiveCount = 0
 local LiveUsers = {}
 
--- 60s heartbeat
-coroutine.wrap(function()
-    while true do
+-- ilk heartbeat anında
+task.spawn(function()
+    httpJSON("POST", LIVE_BASE .. "/heartbeat", {
+        hwid = PC_HWID,
+        name = game.Players.LocalPlayer.Name,
+        displayName = game.Players.LocalPlayer.DisplayName,
+        executor = exec
+    })
+end)
+
+-- heartbeat loop
+task.spawn(function()
+    while task.wait(60) do
         httpJSON("POST", LIVE_BASE .. "/heartbeat", {
             hwid = PC_HWID,
-            name = LocalPlayer.Name,
-            displayName = LocalPlayer.DisplayName,
+            name = game.Players.LocalPlayer.Name,
+            displayName = game.Players.LocalPlayer.DisplayName,
             executor = exec
         })
-
-        task.wait(60)
     end
-end)()
+end)
 
--- 30s active pull
-coroutine.wrap(function()
-    while true do
+-- active loop
+task.spawn(function()
+    while task.wait(15) do
         local res = httpJSON("GET", LIVE_BASE .. "/active")
 
-        if res and res.StatusCode == 200 then
+        if res and tonumber(res.StatusCode) == 200 and res.Body then
             local ok, data = pcall(function()
                 return Services.HttpService:JSONDecode(res.Body)
             end)
@@ -397,10 +404,8 @@ coroutine.wrap(function()
                 LiveUsers = data.users or {}
             end
         end
-
-        task.wait(30)
     end
-end)()
+end)
 -- Hesaplamalar ve Update (Örnekten tam) - Optimized: Grad update every 1s now
 local hbAvg, rsAvg, hbN, rsN, halfA, frameCount = 0, 0, 0, 0, 0, 0
 local lastGradUpdate = 0
