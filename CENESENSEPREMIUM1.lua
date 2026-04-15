@@ -325,39 +325,65 @@ RainbowBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 RainbowBar.Parent = CrownPanel
 makeCorner(RainbowBar, 2)
 local grad = Instance.new("UIGradient", RainbowBar)
--- Live API (Örnekten tam alındı – HWID'li, heartbeat/active) - Ping fix: Slower intervals
 local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
 local realHWID = gethwid and gethwid() or "UnknownHWID"
 local PC_HWID = Services.HttpService:UrlEncode(exec .. "_" .. realHWID)
+
 local LIVE_BASE = "https://mylflive.bythekyol.workers.dev"
-local http = (syn and syn.request) or request or http_request or (http and http.request)
+
+local http =
+    (syn and syn.request)
+    or request
+    or http_request
+    or (http and http.request)
+
 local function httpJSON(method, url, bodyTable)
-    local opt = {Url = url, Method = method, Headers = {["Content-Type"] = "application/json"}}
-    if bodyTable then opt.Body = Services.HttpService:JSONEncode(bodyTable) end
-    local ok, res = pcall(function() return http(opt) end)
+    if not http then return nil end
+
+    local opt = {
+        Url = url,
+        Method = method,
+        Headers = {
+            ["Content-Type"] = "application/json"
+        }
+    }
+
+    if bodyTable then
+        opt.Body = Services.HttpService:JSONEncode(bodyTable)
+    end
+
+    local ok, res = pcall(function()
+        return http(opt)
+    end)
+
     return ok and res or nil
 end
+
 local LiveActiveCount = 0
--- 60s heartbeat (balanced)
-coroutine.wrap(function()
-    while true do
-        httpJSON("POST", LIVE_BASE .. "/heartbeat", { hwid = PC_HWID })
-        task.wait(60)
+
+task.spawn(function()
+    while task.wait(60) do
+        httpJSON("POST", LIVE_BASE .. "/heartbeat", {
+            hwid = PC_HWID
+        })
     end
-end)()
--- 30s active count (slower for ping)
-coroutine.wrap(function()
-    while true do
+end)
+
+task.spawn(function()
+    while task.wait(15) do
         local res = httpJSON("GET", LIVE_BASE .. "/active")
-        if res and res.StatusCode == 200 then
-            local ok, data = pcall(function() return Services.HttpService:JSONDecode(res.Body) end)
+
+        if res and tonumber(res.StatusCode) == 200 and res.Body then
+            local ok, data = pcall(function()
+                return Services.HttpService:JSONDecode(res.Body)
+            end)
+
             if ok and type(data) == "table" then
                 LiveActiveCount = tonumber(data.active) or 0
             end
         end
-        task.wait(30)
     end
-end)()
+end)
 -- Hesaplamalar ve Update (Örnekten tam) - Optimized: Grad update every 1s now
 local hbAvg, rsAvg, hbN, rsN, halfA, frameCount = 0, 0, 0, 0, 0, 0
 local lastGradUpdate = 0
