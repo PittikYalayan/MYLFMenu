@@ -20,8 +20,8 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 -- Yüklenme ekranını 15 saniye uzat (efendim için özel gecikme)
 task.wait(2)
 local Window = Rayfield:CreateWindow({
-    Name = "MYLFHUB",
-    LoadingTitle = "MYLFHUB Yüklüyor...",
+    Name = "CENESENSE",
+    LoadingTitle = "CENESENSE Yüklüyor...",
     LoadingSubtitle = "Version 1.3.10c",
     Duration = 1,
     ConfigurationSaving = {
@@ -32,7 +32,7 @@ local Window = Rayfield:CreateWindow({
     KeySystem = false
 })
 Rayfield:Notify({
-    Title = "MYLFHUB | PREMIUM",
+    Title = "CENESENSE | PREMIUM",
     Content = "Version 1.3.10c",
     Duration = 1,
     Image = 4483362458
@@ -325,87 +325,39 @@ RainbowBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 RainbowBar.Parent = CrownPanel
 makeCorner(RainbowBar, 2)
 local grad = Instance.new("UIGradient", RainbowBar)
--- Live API FIXED
+-- Live API (Örnekten tam alındı – HWID'li, heartbeat/active) - Ping fix: Slower intervals
 local exec = identifyexecutor and identifyexecutor() or "UnknownExec"
 local realHWID = gethwid and gethwid() or "UnknownHWID"
 local PC_HWID = Services.HttpService:UrlEncode(exec .. "_" .. realHWID)
-
 local LIVE_BASE = "https://mylflive.bythekyol.workers.dev"
-
-local http =
-    (syn and syn.request)
-    or request
-    or http_request
-    or (http and http.request)
-
+local http = (syn and syn.request) or request or http_request or (http and http.request)
 local function httpJSON(method, url, bodyTable)
-    if not http then return nil end
-
-    local opt = {
-        Url = url,
-        Method = method,
-        Headers = {
-            ["Content-Type"] = "application/json"
-        }
-    }
-
-    if bodyTable then
-        opt.Body = Services.HttpService:JSONEncode(bodyTable)
-    end
-
-    local ok, res = pcall(function()
-        return http(opt)
-    end)
-
-    if ok then
-        return res
-    end
-
-    return nil
+    local opt = {Url = url, Method = method, Headers = {["Content-Type"] = "application/json"}}
+    if bodyTable then opt.Body = Services.HttpService:JSONEncode(bodyTable) end
+    local ok, res = pcall(function() return http(opt) end)
+    return ok and res or nil
 end
-
 local LiveActiveCount = 0
-local LiveUsers = {}
-
--- ilk heartbeat anında
-task.spawn(function()
-    httpJSON("POST", LIVE_BASE .. "/heartbeat", {
-        hwid = PC_HWID,
-        name = game.Players.LocalPlayer.Name,
-        displayName = game.Players.LocalPlayer.DisplayName,
-        executor = exec
-    })
-end)
-
--- heartbeat loop
-task.spawn(function()
-    while task.wait(60) do
-        httpJSON("POST", LIVE_BASE .. "/heartbeat", {
-            hwid = PC_HWID,
-            name = game.Players.LocalPlayer.Name,
-            displayName = game.Players.LocalPlayer.DisplayName,
-            executor = exec
-        })
+-- 60s heartbeat (balanced)
+coroutine.wrap(function()
+    while true do
+        httpJSON("POST", LIVE_BASE .. "/heartbeat", { hwid = PC_HWID })
+        task.wait(60)
     end
-end)
-
--- active loop
-task.spawn(function()
-    while task.wait(15) do
+end)()
+-- 30s active count (slower for ping)
+coroutine.wrap(function()
+    while true do
         local res = httpJSON("GET", LIVE_BASE .. "/active")
-
-        if res and tonumber(res.StatusCode) == 200 and res.Body then
-            local ok, data = pcall(function()
-                return Services.HttpService:JSONDecode(res.Body)
-            end)
-
+        if res and res.StatusCode == 200 then
+            local ok, data = pcall(function() return Services.HttpService:JSONDecode(res.Body) end)
             if ok and type(data) == "table" then
                 LiveActiveCount = tonumber(data.active) or 0
-                LiveUsers = data.users or {}
             end
         end
+        task.wait(30)
     end
-end)
+end)()
 -- Hesaplamalar ve Update (Örnekten tam) - Optimized: Grad update every 1s now
 local hbAvg, rsAvg, hbN, rsN, halfA, frameCount = 0, 0, 0, 0, 0, 0
 local lastGradUpdate = 0
@@ -476,7 +428,6 @@ getgenv().CurrentEmoteTrack = nil
 -- Emotes Listesi (Efendimin Verdiği Tam Liste!)
 local emotes = {
     {name = "susma", id = "rbxassetid://114829008360220"},
-    {name = "Jeffrey Epstine", id = "rbxassetid://126039650255772"},
     {name = "?", id = "rbxassetid://121966805049108"},
     {name = "??", id = "rbxassetid://112089880074848"},
     {name = "???", id = "rbxassetid://136491428712959"},
@@ -1590,7 +1541,6 @@ local emoteSections = {
     {
         title = "Emotes: Developer Section",
         emotes = {
-            {name = "Jeffrey Epstine", id = "rbxassetid://126039650255772"},
             {name = "susma", id = "rbxassetid://114829008360220"},
             {name = "SkibiDopDop", id = "rbxassetid://98328399081636"},
             {name = "Oyun Havası", id = "rbxassetid://104062506559570"},
@@ -1846,7 +1796,7 @@ MenuServerTab:CreateButton({
     end
 })
 Rayfield:Notify({
-    Title = "MYLFHUB | PREMIUM",
+    Title = "CENESENSE | PREMIUM",
     Content = "V 1.3.10c",
     Duration = 1,
     Image = 4483362458
@@ -1859,10 +1809,10 @@ if queue_on_teleport then
     spawn(function()
         while wait(1) do
             queue_on_teleport([[
-                if not getgenv().MYLFHUB_LOADED then
-                    getgenv().MYLFHUB_LOADED = true
+                if not getgenv().CENESENSE_LOADED then
+                    getgenv().CENESENSE_LOADED = true
                     loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/MYLFHUBPremium/main/MYLFHUB.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/CENESENSEPremium/main/Cenesense.lua"))() -- BURAYI KENDİ RAW LİNKİNE GÖRE DEĞİŞTİR
                 end
             ]])
         end
@@ -1872,9 +1822,9 @@ game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State)
     if State == Enum.TeleportState.Started then
         if queue_on_teleport then
             queue_on_teleport([[
-                if not getgenv().MYLFHUB_LOADED then
-                    getgenv().MYLFHUB_LOADED = true
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/MYLFHUBPremium/main/MYLFHUB.lua"))()
+                if not getgenv().CENESENSE_LOADED then
+                    getgenv().CENESENSE_LOADED = true
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/MYLFHUB/CENESENSEPremium/main/Cenesense.lua"))()
                 end
             ]])
         end
