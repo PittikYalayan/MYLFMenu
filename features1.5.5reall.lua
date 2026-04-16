@@ -1055,6 +1055,44 @@ end
 
 -- Toggle Fonksiyonu (iç kullanım) - start/stop loop fonksiyonlarını parametre olarak alıyoruz
 function toggleInvisible(startLoop, stopLoop)
+    local function getEquippedTool(char)
+    if not char then return nil end
+    for _,v in ipairs(char:GetChildren()) do
+        if v:IsA("Tool") then
+            return v
+        end
+    end
+end
+
+local function syncRealToFake()
+    if not IsInvisible then return end
+    if not RealCharacter or not FakeCharacter then return end
+
+    local realRoot = RealCharacter:FindFirstChild("HumanoidRootPart")
+    local fakeRoot = FakeCharacter:FindFirstChild("HumanoidRootPart")
+
+    if realRoot and fakeRoot then
+        realRoot.CFrame = fakeRoot.CFrame
+    end
+end
+
+local function forceToolUsable()
+    if not IsInvisible then return end
+
+    syncRealToFake()
+
+    local tool = getEquippedTool(FakeCharacter) or getEquippedTool(Player.Character)
+    if tool then
+        tool.Parent = RealCharacter
+        Player.Character = RealCharacter
+        task.wait()
+        tool:Activate()
+        task.wait()
+        tool.Parent = FakeCharacter
+        Player.Character = FakeCharacter
+        workspace.CurrentCamera.CameraSubject = FakeCharacter:FindFirstChildOfClass("Humanoid")
+    end
+end
     if not RealCharacter or not FakeCharacter then return end
     
     if IsInvisible == false then
